@@ -62,12 +62,18 @@ class ClinicasMetasScreen extends ConsumerWidget {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        icon: Icon(
+                          Icons.edit,
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                        ),
                         onPressed:
                             () => _showEditPeriodoDialog(context, ref, periodo),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
+                        icon: Icon(
+                          Icons.delete,
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                        ),
                         onPressed: () async {
                           final confirm = await showDialog<bool>(
                             context: context,
@@ -265,7 +271,10 @@ class _ClinicasList extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      icon: Icon(
+                        Icons.edit,
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                      ),
                       onPressed:
                           () => _showEditClinicaDialog(
                             context,
@@ -275,7 +284,10 @@ class _ClinicasList extends ConsumerWidget {
                           ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: Icon(
+                        Icons.delete,
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                      ),
                       onPressed: () async {
                         final confirm = await showDialog<bool>(
                           context: context,
@@ -633,6 +645,7 @@ class _ObjetivosDialog extends ConsumerWidget {
                         (val) =>
                             val == null || val.isEmpty ? 'Requerido' : null,
                   ),
+                  const SizedBox(height: 16),
                   FormBuilderTextField(
                     name: 'meta',
                     decoration: const InputDecoration(

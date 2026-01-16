@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:project_mmh/core/theme/clinic_palette.dart';
 
 class ColorPickerField extends StatelessWidget {
   final String name;
@@ -23,43 +24,45 @@ class ColorPickerField extends StatelessWidget {
         Color currentColor = _hexToColor(field.value);
 
         return InputDecorator(
-          decoration: decoration.copyWith(
-            errorText: field.errorText,
-            suffixIcon: GestureDetector(
-              onTap: () async {
-                final pickedColor = await showDialog<Color>(
-                  context: context,
-                  builder:
-                      (context) => AlertDialog(
-                        title: const Text('Seleccionar Color'),
-                        content: SingleChildScrollView(
-                          child: BlockPicker(
-                            pickerColor: currentColor,
-                            onColorChanged: (color) {
-                              Navigator.of(context).pop(color);
-                            },
-                          ),
+          decoration: decoration.copyWith(errorText: field.errorText),
+          child: GestureDetector(
+            onTap: () async {
+              final pickedColor = await showDialog<Color>(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: const Text('Seleccionar Color'),
+                      content: SingleChildScrollView(
+                        child: BlockPicker(
+                          pickerColor: currentColor,
+                          availableColors: ClinicPalette.colors,
+                          onColorChanged: (color) {
+                            Navigator.of(context).pop(color);
+                          },
                         ),
                       ),
-                );
+                    ),
+              );
 
-                if (pickedColor != null) {
-                  field.didChange(_colorToHex(pickedColor));
-                }
-              },
-              child: Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: currentColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey),
+              if (pickedColor != null) {
+                field.didChange(_colorToHex(pickedColor));
+              }
+            },
+            child: Row(
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: currentColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey),
+                  ),
+                  width: 24,
+                  height: 24,
                 ),
-                width: 24,
-                height: 24,
-              ),
+              ],
             ),
           ),
-          child: Text(field.value ?? ''),
         );
       },
     );
