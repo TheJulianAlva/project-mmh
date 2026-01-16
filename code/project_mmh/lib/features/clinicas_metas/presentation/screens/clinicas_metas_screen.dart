@@ -137,8 +137,10 @@ class ClinicasMetasScreen extends ConsumerWidget {
               key: formKey,
               child: FormBuilderTextField(
                 name: 'nombre',
+                maxLength: 30,
                 decoration: const InputDecoration(
                   labelText: 'Nombre del Periodo',
+                  counterText: "",
                 ),
                 validator: (val) {
                   if (val == null || val.isEmpty) return 'Requerido';
@@ -200,8 +202,10 @@ class ClinicasMetasScreen extends ConsumerWidget {
               child: FormBuilderTextField(
                 name: 'nombre',
                 initialValue: periodo.nombrePeriodo,
+                maxLength: 50,
                 decoration: const InputDecoration(
                   labelText: 'Nombre del Periodo',
+                  counterText: "",
                 ),
                 validator: (val) {
                   if (val == null || val.isEmpty) return 'Requerido';
@@ -385,8 +389,10 @@ class _ClinicasList extends ConsumerWidget {
                   children: [
                     FormBuilderTextField(
                       name: 'nombre',
+                      maxLength: 30,
                       decoration: const InputDecoration(
                         labelText: 'Nombre Clínica',
+                        counterText: "",
                       ),
                       validator: (val) {
                         if (val == null || val.isEmpty) return 'Requerido';
@@ -494,8 +500,10 @@ class _ClinicasList extends ConsumerWidget {
                   children: [
                     FormBuilderTextField(
                       name: 'nombre',
+                      maxLength: 30,
                       decoration: const InputDecoration(
                         labelText: 'Nombre Clínica',
+                        counterText: "",
                       ),
                       validator: (val) {
                         if (val == null || val.isEmpty) return 'Requerido';
@@ -640,7 +648,11 @@ class _ObjetivosDialog extends ConsumerWidget {
                 children: [
                   FormBuilderTextField(
                     name: 'nombre',
-                    decoration: const InputDecoration(labelText: 'Tratamiento'),
+                    maxLength: 30,
+                    decoration: const InputDecoration(
+                      labelText: 'Tratamiento',
+                      counterText: "",
+                    ),
                     validator:
                         (val) =>
                             val == null || val.isEmpty ? 'Requerido' : null,
@@ -652,9 +664,13 @@ class _ObjetivosDialog extends ConsumerWidget {
                       labelText: 'Cantidad Meta',
                     ),
                     keyboardType: TextInputType.number,
-                    validator:
-                        (val) =>
-                            val == null || val.isEmpty ? 'Requerido' : null,
+                    validator: (val) {
+                      if (val == null || val.isEmpty) return 'Requerido';
+                      final number = int.tryParse(val);
+                      if (number == null) return 'Debe ser un número entero';
+                      if (number <= 0) return 'Debe ser mayor a 0';
+                      return null;
+                    },
                   ),
                 ],
               ),

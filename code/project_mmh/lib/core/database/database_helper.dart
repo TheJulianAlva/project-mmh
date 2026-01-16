@@ -36,7 +36,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE periodos (
         id_periodo INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre_periodo TEXT NOT NULL
+        nombre_periodo TEXT NOT NULL CHECK(LENGTH(nombre_periodo) > 0)
       )
     ''');
 
@@ -44,7 +44,7 @@ class DatabaseHelper {
       CREATE TABLE clinicas (
         id_clinica INTEGER PRIMARY KEY AUTOINCREMENT,
         id_periodo INTEGER NOT NULL,
-        nombre_clinica TEXT NOT NULL UNIQUE,
+        nombre_clinica TEXT NOT NULL UNIQUE CHECK(LENGTH(nombre_clinica) > 0),
         color TEXT NOT NULL,
         horarios TEXT,
         FOREIGN KEY (id_periodo) REFERENCES periodos (id_periodo) ON DELETE CASCADE
@@ -56,8 +56,8 @@ class DatabaseHelper {
         id_objetivo INTEGER PRIMARY KEY AUTOINCREMENT,
         id_clinica INTEGER NOT NULL,
         nombre_tratamiento TEXT NOT NULL,
-        cantidad_meta INTEGER NOT NULL,
-        cantidad_actual INTEGER NOT NULL DEFAULT 0,
+        cantidad_meta INTEGER NOT NULL CHECK(cantidad_meta > 0),
+        cantidad_actual INTEGER NOT NULL DEFAULT 0 CHECK(cantidad_actual >= 0),
         FOREIGN KEY (id_clinica) REFERENCES clinicas (id_clinica) ON DELETE CASCADE
       )
     ''');
@@ -66,10 +66,10 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE pacientes (
         id_expediente TEXT PRIMARY KEY,
-        nombre TEXT NOT NULL,
-        primer_apellido TEXT NOT NULL,
+        nombre TEXT NOT NULL CHECK(LENGTH(nombre) > 0),
+        primer_apellido TEXT NOT NULL CHECK(LENGTH(primer_apellido) > 0),
         segundo_apellido TEXT,
-        edad INTEGER NOT NULL,
+        edad INTEGER NOT NULL CHECK(edad >= 0 AND edad <= 120),
         sexo TEXT NOT NULL,
         telefono TEXT,
         padecimiento_relevante TEXT,
@@ -90,12 +90,12 @@ class DatabaseHelper {
       CREATE TABLE piezas_dentales (
         id_pieza TEXT PRIMARY KEY,
         id_odontograma INTEGER NOT NULL,
-        numero_pieza INTEGER NOT NULL,
+        numero_pieza INTEGER NOT NULL CHECK(numero_pieza > 0),
         tipo_diente TEXT,
         estado_general TEXT,
         id_grupo_puente TEXT,
         superficies TEXT,
-        tiene_sellador INTEGER DEFAULT 0,
+        tiene_sellador INTEGER DEFAULT 0 CHECK(tiene_sellador IN (0, 1)),
         FOREIGN KEY (id_odontograma) REFERENCES odontogramas (id_odontograma) ON DELETE CASCADE
       )
     ''');
@@ -107,7 +107,7 @@ class DatabaseHelper {
         id_clinica INTEGER NOT NULL,
         id_expediente TEXT NOT NULL,
         id_objetivo INTEGER,
-        nombre_tratamiento TEXT NOT NULL,
+        nombre_tratamiento TEXT NOT NULL CHECK(LENGTH(nombre_tratamiento) > 0),
         fecha_creacion TEXT NOT NULL,
         estado TEXT NOT NULL,
         FOREIGN KEY (id_clinica) REFERENCES clinicas (id_clinica) ON DELETE CASCADE,
