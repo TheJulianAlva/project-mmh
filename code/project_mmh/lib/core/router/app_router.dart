@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/screens/clinicas_metas_screen.dart';
 import 'package:project_mmh/features/pacientes/presentation/screens/patients_screen.dart';
 import 'package:project_mmh/features/pacientes/presentation/screens/add_patient_screen.dart';
+import 'package:project_mmh/features/odontograma/presentation/screens/odontograma_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/pacientes', // Changed to test Block 3
@@ -19,6 +20,13 @@ final appRouter = GoRouter(
           builder: (context, state) => const AddPatientScreen(),
         ),
       ],
+    ),
+    GoRoute(
+      path: '/pacientes/:id/odontograma',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return OdontogramaScreen(pacienteId: id);
+      },
     ),
   ],
 );
