@@ -396,7 +396,7 @@ class _ToothPainter extends CustomPainter {
     if (hasSellador) {
       const textStyle = TextStyle(
         color: Colors.blue,
-        fontSize: 16,
+        fontSize: 36,
         fontWeight: FontWeight.bold,
       );
       final textSpan = TextSpan(text: 'S', style: textStyle);

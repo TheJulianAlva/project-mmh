@@ -16,6 +16,7 @@ class OdontogramaScreen extends ConsumerStatefulWidget {
 
 class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
   bool _showPediatric = false;
+  bool _isEditing = false;
   // Bridge Selection State
   PiezaDental? _bridgeStartPiece;
 
@@ -58,6 +59,20 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
           },
         ),
         actions: [
+          IconButton(
+            icon: Icon(_isEditing ? Icons.check : Icons.edit),
+            tooltip: _isEditing ? 'Terminar edición' : 'Editar odontograma',
+            onPressed: () {
+              setState(() {
+                _isEditing = !_isEditing;
+                // If exiting edit mode, we might want to clear any temporary selection like bridge start
+                if (!_isEditing) {
+                  _bridgeStartPiece = null;
+                }
+              });
+            },
+          ),
+          const SizedBox(width: 16),
           Switch(
             value: _showPediatric,
             onChanged: (v) {
@@ -71,7 +86,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                     .cleanPediatricTeeth();
               }
             },
-            activeColor: Colors.pinkAccent,
+            activeThumbColor: Colors.pinkAccent,
           ),
           const SizedBox(width: 8),
           const Text("Pediátrico"),
@@ -90,7 +105,10 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 64,
+                        vertical: 32,
+                      ),
                       child: Column(
                         children: [
                           if (_bridgeStartPiece != null)
@@ -152,88 +170,92 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
           ),
 
           // TOOL PALETTE
-          Container(
-            height: 110,
-            color: Colors.grey.shade100,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              children: [
-                // GROUP 1: ERASE & SURFACE
-                _buildToolSection("Superficie", [
-                  _buildToolItem(
-                    selectedTool,
-                    OdontogramaTools.sano,
-                    Colors.white,
-                    icon: Icons.cleaning_services,
-                    label: "Borrar",
-                  ),
-                  _buildToolItem(
-                    selectedTool,
-                    OdontogramaTools.caries,
-                    Colors.red,
-                    label: "Caries",
-                  ),
-                  _buildToolItem(
-                    selectedTool,
-                    OdontogramaTools.obturacion,
-                    Colors.blue,
-                    label: "Obturación",
-                  ),
-                  _buildToolItem(
-                    selectedTool,
-                    OdontogramaTools.fractura,
-                    Colors.red,
-                    icon: Icons.flash_on,
-                    label: "Fractura",
-                  ),
-                ]),
-                const VerticalDivider(),
-                // GROUP 2: INDEPENDENT
-                _buildToolSection("Indep.", [
-                  _buildToolItem(
-                    selectedTool,
-                    OdontogramaTools.sellador,
-                    Colors.blue,
-                    icon: Icons.security,
-                    label: "Sellador",
-                  ),
-                ]),
-                const VerticalDivider(),
-                // GROUP 3: GLOBAL
-                _buildToolSection("Global", [
-                  _buildToolItem(
-                    selectedTool,
-                    OdontogramaTools.ausente,
-                    Colors.blue,
-                    icon: Icons.cancel_outlined,
-                    label: "Ausente",
-                  ), // Blue /
-                  _buildToolItem(
-                    selectedTool,
-                    OdontogramaTools.porExtraer,
-                    Colors.red,
-                    icon: Icons.cancel,
-                    label: "P. Extraer",
-                  ), // Red /
-                  _buildToolItem(
-                    selectedTool,
-                    OdontogramaTools.erupcion,
-                    Colors.blue,
-                    icon: Icons.arrow_upward,
-                    label: "Erupción",
-                  ),
-                  _buildToolItem(
-                    selectedTool,
-                    OdontogramaTools.protesisFija,
-                    Colors.black,
-                    icon: Icons.link,
-                    label: "Puente",
-                  ),
-                ]),
-              ],
+          if (_isEditing)
+            Container(
+              height: 110,
+              color: Colors.grey.shade100,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 64,
+                  vertical: 8,
+                ),
+                children: [
+                  // GROUP 1: ERASE & SURFACE
+                  _buildToolSection("Superficie", [
+                    _buildToolItem(
+                      selectedTool,
+                      OdontogramaTools.sano,
+                      Colors.white,
+                      icon: Icons.cleaning_services,
+                      label: "Borrar",
+                    ),
+                    _buildToolItem(
+                      selectedTool,
+                      OdontogramaTools.caries,
+                      Colors.red,
+                      label: "Caries",
+                    ),
+                    _buildToolItem(
+                      selectedTool,
+                      OdontogramaTools.obturacion,
+                      Colors.blue,
+                      label: "Obturación",
+                    ),
+                    _buildToolItem(
+                      selectedTool,
+                      OdontogramaTools.fractura,
+                      Colors.red,
+                      icon: Icons.flash_on,
+                      label: "Fractura",
+                    ),
+                  ]),
+                  const VerticalDivider(),
+                  // GROUP 2: INDEPENDENT
+                  _buildToolSection("Indep.", [
+                    _buildToolItem(
+                      selectedTool,
+                      OdontogramaTools.sellador,
+                      Colors.blue,
+                      icon: Icons.security,
+                      label: "Sellador",
+                    ),
+                  ]),
+                  const VerticalDivider(),
+                  // GROUP 3: GLOBAL
+                  _buildToolSection("Global", [
+                    _buildToolItem(
+                      selectedTool,
+                      OdontogramaTools.ausente,
+                      Colors.blue,
+                      icon: Icons.cancel_outlined,
+                      label: "Ausente",
+                    ), // Blue /
+                    _buildToolItem(
+                      selectedTool,
+                      OdontogramaTools.porExtraer,
+                      Colors.red,
+                      icon: Icons.cancel,
+                      label: "P. Extraer",
+                    ), // Red /
+                    _buildToolItem(
+                      selectedTool,
+                      OdontogramaTools.erupcion,
+                      Colors.blue,
+                      icon: Icons.arrow_upward,
+                      label: "Erupción",
+                    ),
+                    _buildToolItem(
+                      selectedTool,
+                      OdontogramaTools.protesisFija,
+                      Colors.black,
+                      icon: Icons.link,
+                      label: "Puente",
+                    ),
+                  ]),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -403,6 +425,8 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
   }
 
   void _handleTap(PiezaDental pieza, String surface, String tool) {
+    if (!_isEditing) return;
+
     final controller = ref.read(
       odontogramaControllerProvider(widget.pacienteId).notifier,
     );
@@ -436,6 +460,16 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
         controller.createBridge(_bridgeStartPiece!, pieza);
         setState(() => _bridgeStartPiece = null);
       }
+      return;
+    }
+
+    // 3.5 Bridge/Global Deletion Logic
+    if (tool == OdontogramaTools.sano &&
+        (pieza.estadoGeneral == OdontogramaTools.protesisFija ||
+            pieza.estadoGeneral == OdontogramaTools.ausente ||
+            pieza.estadoGeneral == OdontogramaTools.porExtraer ||
+            pieza.estadoGeneral == OdontogramaTools.erupcion)) {
+      controller.setGlobalState(pieza, OdontogramaTools.sano);
       return;
     }
 
