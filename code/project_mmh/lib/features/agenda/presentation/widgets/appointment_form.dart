@@ -5,7 +5,7 @@ import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
-import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
+
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
 class AppointmentForm extends ConsumerStatefulWidget {
@@ -112,21 +112,66 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
                     );
                     return objetivosAsync.when(
                       data:
-                          (objetivos) => FormBuilderDropdown<int>(
-                            name: 'id_objetivo',
-                            decoration: const InputDecoration(
-                              labelText: 'Tratamiento / Objetivo',
-                              border: OutlineInputBorder(),
-                            ),
-                            validator: FormBuilderValidators.required(),
-                            items: [
-                              ...objetivos.map(
-                                (o) => DropdownMenuItem(
-                                  value: o.idObjetivo,
-                                  child: Text(
-                                    '${o.nombreTratamiento} (Meta: ${o.cantidadMeta})',
-                                  ),
+                          (objetivos) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              FormBuilderDropdown<int?>(
+                                name: 'id_objetivo',
+                                decoration: const InputDecoration(
+                                  labelText: 'Tratamiento / Objetivo',
+                                  border: OutlineInputBorder(),
+                                  helperText:
+                                      'Seleccione "Personalizado" si no aplica a un objetivo',
                                 ),
+                                // validator: FormBuilderValidators.required(), // REMOVED to allow null (Custom)
+                                items: [
+                                  // Option for Custom Treatment
+                                  const DropdownMenuItem<int?>(
+                                    value: null,
+                                    child: Text(
+                                      '-- Otro / Personalizado --',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue,
+                                      ),
+                                    ),
+                                  ),
+                                  ...objetivos.map(
+                                    (o) => DropdownMenuItem<int?>(
+                                      value: o.idObjetivo,
+                                      child: Text(
+                                        '${o.nombreTratamiento} (Meta: ${o.cantidadMeta})',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                onChanged: (val) {
+                                  // If objective selected, auto-fill name
+                                  if (val != null) {
+                                    final obj = objetivos.firstWhere(
+                                      (o) => o.idObjetivo == val,
+                                    );
+                                    _formKey
+                                        .currentState
+                                        ?.fields['nombre_tratamiento']
+                                        ?.didChange(obj.nombreTratamiento);
+                                  } else {
+                                    // Clear if custom selected (or let user type)
+                                    _formKey
+                                        .currentState
+                                        ?.fields['nombre_tratamiento']
+                                        ?.didChange('');
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              FormBuilderTextField(
+                                name: 'nombre_tratamiento',
+                                decoration: const InputDecoration(
+                                  labelText: 'Nombre del Tratamiento',
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: FormBuilderValidators.required(),
                               ),
                             ],
                           ),
@@ -306,15 +351,14 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
       final repo = ref.read(agendaRepositoryProvider);
 
       // 1. Crear Tratamiento
-      final idObjetivo = values['id_objetivo'] as int;
-      final selectedObjetivo = await _getObjetivoName(idObjetivo);
+      final idObjetivo = values['id_objetivo'] as int?; // Can be null
+      final nombreTratamiento = values['nombre_tratamiento'] as String;
 
       final nuevoTratamiento = Tratamiento(
         idClinica: values['id_clinica'] as int,
         idExpediente: values['id_expediente'] as String,
         idObjetivo: idObjetivo,
-        nombreTratamiento:
-            selectedObjetivo?.nombreTratamiento ?? 'Tratamiento General',
+        nombreTratamiento: nombreTratamiento,
         fechaCreacion: DateTime.now().toIso8601String(),
         estado: 'pendiente',
       );
@@ -348,6 +392,7 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
 
       // Refresh providers
       ref.invalidate(allSesionesProvider);
+      ref.invalidate(allTratamientosRichProvider);
 
       if (mounted) {
         Navigator.of(context).pop();
@@ -357,16 +402,6 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
           ),
         );
       }
-    }
-  }
-
-  Future<Objetivo?> _getObjetivoName(int idObjetivo) async {
-    final repo = ref.read(agendaRepositoryProvider);
-    final objectives = await repo.getObjetivosByClinica(_selectedClinicaId!);
-    try {
-      return objectives.firstWhere((o) => o.idObjetivo == idObjetivo);
-    } catch (e) {
-      return null;
     }
   }
 }

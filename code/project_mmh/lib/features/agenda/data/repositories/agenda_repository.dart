@@ -18,6 +18,50 @@ class AgendaRepository {
     return await _dbHelper.insert('tratamientos', tratamiento.toJson());
   }
 
+  Future<int> updateTratamiento(Tratamiento tratamiento) async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      'tratamientos',
+      tratamiento.toJson(),
+      where: 'id_tratamiento = ?',
+      whereArgs: [tratamiento.idTratamiento],
+    );
+  }
+
+  Future<void> deleteTratamiento(int idTratamiento) async {
+    final db = await _dbHelper.database;
+    // Cascade delete sessions first
+    await db.delete(
+      'sesiones',
+      where: 'id_tratamiento = ?',
+      whereArgs: [idTratamiento],
+    );
+    // Delete treatment
+    await db.delete(
+      'tratamientos',
+      where: 'id_tratamiento = ?',
+      whereArgs: [idTratamiento],
+    );
+  }
+
+  Future<void> markTreatmentAsFinalized(int idTratamiento) async {
+    final db = await _dbHelper.database;
+
+    // 1. Update Treatment State
+    await db.update(
+      'tratamientos',
+      {'estado': 'concluido'},
+      where: 'id_tratamiento = ?',
+      whereArgs: [idTratamiento],
+    );
+
+    // 2. Update Objective Progress
+    final tratamiento = await getTratamientoById(idTratamiento);
+    if (tratamiento?.idObjetivo != null) {
+      await incrementObjetivoProgress(tratamiento!.idObjetivo!);
+    }
+  }
+
   Future<List<Tratamiento>> getTratamientosByPaciente(
     String idExpediente,
   ) async {

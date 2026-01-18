@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
+import 'package:project_mmh/features/agenda/presentation/widgets/treatment_edit_dialog.dart';
+
 class TreatmentDetailScreen extends ConsumerWidget {
   final int tratamientoId;
 
@@ -20,7 +22,21 @@ class TreatmentDetailScreen extends ConsumerWidget {
     final dateFormat = DateFormat('EEE d MMM yyyy, HH:mm', 'es_ES');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle del Tratamiento')),
+      appBar: AppBar(
+        title: const Text('Detalle del Tratamiento'),
+        actions: [
+          if (tratamientoAsync.value?.estado != 'concluido') ...[
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () => _editTreatment(context, tratamientoAsync.value!),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () => _deleteTreatment(context, ref, tratamientoId),
+            ),
+          ],
+        ],
+      ),
       body: tratamientoAsync.when(
         data: (tratamiento) {
           if (tratamiento == null)
@@ -51,6 +67,8 @@ class TreatmentDetailScreen extends ConsumerWidget {
                   tratamiento.nombreTratamiento,
                   patientName,
                 ),
+                const SizedBox(height: 16),
+                _buildStatusCard(context, tratamiento.estado),
                 const SizedBox(height: 24),
                 _buildSectionTitle(context, 'Historial de Sesiones'),
                 const SizedBox(height: 8),
@@ -67,8 +85,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
                         final s = sesiones[index];
                         final start = DateTime.parse(s.fechaInicio);
                         final end = DateTime.parse(s.fechaFin);
-                        final duration =
-                            end.difference(start).inMinutes; // in minutes
+                        final duration = end.difference(start).inMinutes;
 
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
@@ -93,6 +110,21 @@ class TreatmentDetailScreen extends ConsumerWidget {
                   loading: () => const LinearProgressIndicator(),
                   error: (e, _) => Text('Error al cargar sesiones: $e'),
                 ),
+                const SizedBox(height: 32),
+                if (tratamiento.estado != 'concluido')
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _finalizeTreatment(context, ref),
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: const Text('Finalizar Tratamiento'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
               ],
             ),
           );
@@ -101,6 +133,77 @@ class TreatmentDetailScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
+  }
+
+  Widget _buildStatusCard(BuildContext context, String status) {
+    Color color;
+    String text;
+    IconData icon;
+
+    if (status == 'concluido') {
+      color = Colors.green;
+      text = 'Completado';
+      icon = Icons.check_circle;
+    } else {
+      color = Colors.orange;
+      text = 'En Progreso';
+      icon = Icons.pending;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _finalizeTreatment(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('¿Finalizar Tratamiento?'),
+            content: const Text(
+              'Esto marcará el tratamiento como concluido y actualizará el progreso del objetivo asociado.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Finalizar'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      final repo = ref.read(agendaRepositoryProvider);
+      await repo.markTreatmentAsFinalized(tratamientoId);
+      ref.invalidate(tratamientoByIdProvider(tratamientoId));
+      ref.invalidate(allTratamientosRichProvider); // Update list
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tratamiento finalizado correctamente')),
+        );
+      }
+    }
   }
 
   Widget _buildHeader(BuildContext context, String title, String subtitle) {
@@ -167,6 +270,56 @@ class TreatmentDetailScreen extends ConsumerWidget {
         return Icons.person_off;
       default:
         return Icons.event;
+    }
+  }
+
+  void _editTreatment(BuildContext context, dynamic tratamiento) {
+    showDialog(
+      context: context,
+      builder: (context) => TreatmentEditDialog(tratamiento: tratamiento),
+    );
+  }
+
+  void _deleteTreatment(BuildContext context, WidgetRef ref, int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Eliminar Tratamiento'),
+            content: const Text(
+              '¿Estás seguro de eliminar este tratamiento? Se eliminarán también todas sus sesiones asociadas.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      final repo = ref.read(agendaRepositoryProvider);
+      await repo.deleteTratamiento(id);
+
+      // Update lists
+      ref.invalidate(allTratamientosRichProvider);
+      ref.invalidate(allSesionesProvider);
+
+      if (context.mounted) {
+        Navigator.pop(context); // Go back
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Tratamiento eliminado')));
+      }
     }
   }
 }

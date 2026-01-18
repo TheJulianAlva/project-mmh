@@ -1,48 +1,271 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-
 import 'package:project_mmh/features/agenda/domain/tratamiento_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 import 'package:project_mmh/features/agenda/presentation/screens/treatment_detail_screen.dart';
+import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
+import 'package:project_mmh/features/pacientes/domain/patient.dart';
+import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
-class TreatmentsScreen extends ConsumerWidget {
+import 'package:project_mmh/features/agenda/presentation/widgets/appointment_form.dart';
+
+class TreatmentsScreen extends ConsumerStatefulWidget {
   const TreatmentsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tratamientosAsync = ref.watch(allTratamientosRichProvider);
+  ConsumerState<TreatmentsScreen> createState() => _TreatmentsScreenState();
+}
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tratamientos')),
-      body: tratamientosAsync.when(
-        data: (tratamientos) {
-          if (tratamientos.isEmpty) {
-            return const Center(
-              child: Text('No hay tratamientos registrados.'),
+class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
+  int? selectedClinicaId;
+  String? selectedPatientId;
+
+  @override
+  Widget build(BuildContext context) {
+    final tratamientosAsync = ref.watch(allTratamientosRichProvider);
+    final clinicasAsync = ref.watch(clinicasProvider);
+    final patientsAsync = ref.watch(patientsProvider);
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Tratamientos'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => ref.invalidate(allTratamientosRichProvider),
+            ),
+          ],
+          bottom: const TabBar(
+            tabs: [Tab(text: 'Pendientes'), Tab(text: 'Concluidos')],
+          ),
+        ),
+        body: Column(
+          children: [
+            _buildFilters(context, clinicasAsync, patientsAsync),
+            Expanded(
+              child: tratamientosAsync.when(
+                data: (tratamientos) {
+                  // Filter by clinic/patient
+                  var filtered = tratamientos;
+                  if (selectedClinicaId != null) {
+                    filtered =
+                        filtered
+                            .where(
+                              (t) =>
+                                  t.tratamiento.idClinica == selectedClinicaId,
+                            )
+                            .toList();
+                  }
+                  if (selectedPatientId != null) {
+                    filtered =
+                        filtered
+                            .where(
+                              (t) =>
+                                  t.tratamiento.idExpediente ==
+                                  selectedPatientId,
+                            )
+                            .toList();
+                  }
+
+                  final pending =
+                      filtered
+                          .where((t) => t.tratamiento.estado != 'concluido')
+                          .toList();
+                  final completed =
+                      filtered
+                          .where((t) => t.tratamiento.estado == 'concluido')
+                          .toList();
+
+                  return TabBarView(
+                    children: [
+                      _TreatmentsList(tratamientos: pending),
+                      _TreatmentsList(tratamientos: completed),
+                    ],
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, st) => Center(child: Text('Error: $e')),
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AppointmentForm(initialDate: DateTime.now()),
+              ),
             );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: tratamientos.length,
-            itemBuilder: (context, index) {
-              final item = tratamientos[index];
-              return _TreatmentCard(item: item);
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, st) => Center(child: Text('Error: $e')),
+          },
+          child: const Icon(Icons.add),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Ideally navigate to agenda or appointment form, or stay.
-          // User didn't specify creation from here, but probably useful.
-          // For now, no action or maybe refresh.
-          ref.invalidate(allTratamientosRichProvider);
-        },
-        child: const Icon(Icons.refresh),
+    );
+  }
+
+  Widget _buildFilters(
+    BuildContext context,
+    AsyncValue<List<Clinica>> clinicasAsync,
+    AsyncValue<List<Patient>> patientsAsync,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      color: Theme.of(context).cardColor,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            const Text(
+              'Filtrar por: ',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 8),
+            // Clinic Filter
+            clinicasAsync.when(
+              data:
+                  (clinicas) => FilterChip(
+                    label: Text(
+                      selectedClinicaId == null
+                          ? 'Clínica'
+                          : clinicas
+                              .firstWhere(
+                                (c) => c.idClinica == selectedClinicaId,
+                                orElse:
+                                    () => const Clinica(
+                                      idClinica: -1,
+                                      idPeriodo: -1,
+                                      nombreClinica: 'Unknown',
+                                      color: '',
+                                      horarios: '',
+                                    ),
+                              )
+                              .nombreClinica,
+                    ),
+                    selected: selectedClinicaId != null,
+                    onSelected: (selected) {
+                      if (selected) {
+                        _showClinicSelectionDialog(context, clinicas);
+                      } else {
+                        setState(() => selectedClinicaId = null);
+                      }
+                    },
+                  ),
+              loading: () => const SizedBox(),
+              error: (_, __) => const SizedBox(),
+            ),
+            const SizedBox(width: 8),
+            // Patient Filter
+            patientsAsync.when(
+              data:
+                  (patients) => FilterChip(
+                    label: Text(
+                      selectedPatientId == null
+                          ? 'Paciente'
+                          : (patients
+                                  .where(
+                                    (p) => p.idExpediente == selectedPatientId,
+                                  )
+                                  .firstOrNull
+                                  ?.nombre ??
+                              'Desconocido'),
+                    ),
+                    selected: selectedPatientId != null,
+                    onSelected: (selected) {
+                      if (selected) {
+                        _showPatientSelectionDialog(context, patients);
+                      } else {
+                        setState(() => selectedPatientId = null);
+                      }
+                    },
+                  ),
+              loading: () => const SizedBox(),
+              error: (_, __) => const SizedBox(),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  void _showClinicSelectionDialog(
+    BuildContext context,
+    List<Clinica> clinicas,
+  ) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => SimpleDialog(
+            title: const Text('Seleccionar Clínica'),
+            children:
+                clinicas
+                    .map(
+                      (c) => SimpleDialogOption(
+                        child: Text(c.nombreClinica),
+                        onPressed: () {
+                          setState(() => selectedClinicaId = c.idClinica);
+                          Navigator.pop(ctx);
+                        },
+                      ),
+                    )
+                    .toList(),
+          ),
+    );
+  }
+
+  void _showPatientSelectionDialog(
+    BuildContext context,
+    List<Patient> patients,
+  ) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Seleccionar Paciente'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: patients.length,
+                itemBuilder: (context, index) {
+                  final p = patients[index];
+                  return ListTile(
+                    title: Text('${p.nombre} ${p.primerApellido}'),
+                    subtitle: Text(p.idExpediente),
+                    onTap: () {
+                      setState(() => selectedPatientId = p.idExpediente);
+                      Navigator.pop(ctx);
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+    );
+  }
+}
+
+class _TreatmentsList extends StatelessWidget {
+  final List<TratamientoRichModel> tratamientos;
+
+  const _TreatmentsList({required this.tratamientos});
+
+  @override
+  Widget build(BuildContext context) {
+    if (tratamientos.isEmpty) {
+      return const Center(
+        child: Text('No hay tratamientos en esta categoría.'),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: tratamientos.length,
+      itemBuilder: (context, index) {
+        final item = tratamientos[index];
+        return _TreatmentCard(item: item);
+      },
     );
   }
 }
@@ -140,19 +363,30 @@ class _TreatmentCard extends StatelessWidget {
                     color: Colors.grey,
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    nextSession != null
-                        ? 'Próxima: ${dateFormat.format(nextSession)}'
-                        : 'Sin sesiones programadas',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          nextSession != null
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                      color: nextSession != null ? Colors.black87 : Colors.grey,
+                  if (item.tratamiento.estado == 'concluido')
+                    const Text(
+                      'Completado',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    )
+                  else
+                    Text(
+                      nextSession != null
+                          ? 'Próxima: ${dateFormat.format(nextSession)}'
+                          : 'Sin sesiones programadas',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            nextSession != null
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                        color:
+                            nextSession != null ? Colors.black87 : Colors.grey,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],

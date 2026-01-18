@@ -66,14 +66,8 @@ class SessionActionDialog extends ConsumerWidget {
     // 1. Update Sesion
     await repo.updateSesionStatus(sesion.idSesion!, status);
 
-    // 2. Logic for "Concluded": Update Objective Progress
-    if (status == 'concluido') {
-      // Fetch tratamiento to get objective ID
-      final tratamiento = await repo.getTratamientoById(sesion.idTratamiento);
-      if (tratamiento?.idObjetivo != null) {
-        await repo.incrementObjetivoProgress(tratamiento!.idObjetivo!);
-      }
-    }
+    // 2. Logic for "Concluded": Only update session status. Objective updates happen on Treatment Finalization.
+    // if (status == 'concluido') { ... } REMOVED
 
     ref.invalidate(allSesionesProvider);
     if (context.mounted) {
