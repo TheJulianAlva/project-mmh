@@ -1,0 +1,19 @@
+Analyzing project_mmh...                                        
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\agenda\presentation\screens\agenda_screen.dart:83:61 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\agenda\presentation\screens\agenda_screen.dart:138:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\agenda\presentation\screens\agenda_screen.dart:182:19 - deprecated_member_use
+   info - Statements in an if should be enclosed in a block - lib\features\agenda\presentation\widgets\session_action_dialog.dart:22:13 - curly_braces_in_flow_control_structures
+   info - Don't use 'BuildContext's across async gaps - lib\features\agenda\presentation\widgets\session_action_dialog.dart:79:18 - use_build_context_synchronously
+   info - Statements in an if should be enclosed in a block - lib\features\odontograma\presentation\controllers\odontograma_controller.dart:70:7 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\odontograma\presentation\widgets\tooth_widget.dart:227:11 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\odontograma\presentation\widgets\tooth_widget.dart:229:11 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\odontograma\presentation\widgets\tooth_widget.dart:234:11 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\odontograma\presentation\widgets\tooth_widget.dart:236:11 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\odontograma\presentation\widgets\tooth_widget.dart:241:11 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\odontograma\presentation\widgets\tooth_widget.dart:243:11 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\odontograma\presentation\widgets\tooth_widget.dart:250:9 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\features\odontograma\presentation\widgets\tooth_widget.dart:252:9 - curly_braces_in_flow_control_structures
+warning - Unused import: 'package:project_mmh/features/pacientes/domain/patient.dart' - lib\features\pacientes\presentation\screens\patients_screen.dart:6:8 - unused_import
+   info - The imported package 'flutter_localizations' isn't a dependency of the importing package - lib\main.dart:6:8 - depend_on_referenced_packages
+

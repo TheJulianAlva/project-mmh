@@ -3,9 +3,12 @@ import 'package:project_mmh/features/clinicas_metas/presentation/screens/clinica
 import 'package:project_mmh/features/pacientes/presentation/screens/patients_screen.dart';
 import 'package:project_mmh/features/pacientes/presentation/screens/add_patient_screen.dart';
 import 'package:project_mmh/features/odontograma/presentation/screens/odontograma_screen.dart';
+import 'package:project_mmh/features/agenda/presentation/screens/agenda_screen.dart';
+import 'package:project_mmh/features/agenda/presentation/screens/treatments_screen.dart';
 
 final appRouter = GoRouter(
-  initialLocation: '/pacientes', // Changed to test Block 3
+  initialLocation: '/tratamientos', // Centering on new feature
+  //initialLocation: '/clinicas-metas',
   routes: [
     GoRoute(
       path: '/clinicas-metas',
@@ -27,6 +30,11 @@ final appRouter = GoRouter(
         final id = state.pathParameters['id']!;
         return OdontogramaScreen(pacienteId: id);
       },
+    ),
+    GoRoute(path: '/agenda', builder: (context, state) => const AgendaScreen()),
+    GoRoute(
+      path: '/tratamientos',
+      builder: (context, state) => const TreatmentsScreen(),
     ),
   ],
 );
