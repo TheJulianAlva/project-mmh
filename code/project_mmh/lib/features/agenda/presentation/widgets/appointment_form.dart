@@ -7,11 +7,21 @@ import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
+import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
+import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
 
 class AppointmentForm extends ConsumerStatefulWidget {
   final DateTime initialDate;
+  final String? initialPatientId;
+  final int? initialClinicId;
+  // initialPeriodId can be inferred from context or persistence as default
 
-  const AppointmentForm({super.key, required this.initialDate});
+  const AppointmentForm({
+    super.key,
+    required this.initialDate,
+    this.initialPatientId,
+    this.initialClinicId,
+  });
 
   @override
   ConsumerState<AppointmentForm> createState() => _AppointmentFormState();
@@ -20,15 +30,33 @@ class AppointmentForm extends ConsumerStatefulWidget {
 class _AppointmentFormState extends ConsumerState<AppointmentForm> {
   final _formKey = GlobalKey<FormBuilderState>();
   int? _selectedClinicaId;
+  int? _selectedPeriodId;
+  String? _selectedPatientId;
 
   // List to track multiple sessions. Initialized with one session.
   // We store temporary data maps for sessions > 1
   final List<Map<String, dynamic>> _additionalSessions = [];
 
   @override
+  void initState() {
+    super.initState();
+    // 1. Initialize Patient
+    if (widget.initialPatientId != null) {
+      _selectedPatientId = widget.initialPatientId;
+    }
+
+    // 2. Initialize Period (Default to Persistent, fallback to none)
+    _selectedPeriodId = ref.read(lastViewedPeriodIdProvider);
+
+    // 3. Initialize Clinic (Contextual or null)
+    if (widget.initialClinicId != null) {
+      _selectedClinicaId = widget.initialClinicId;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final patientsAsync = ref.watch(patientsProvider);
-    final clinicasAsync = ref.watch(clinicasProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -50,6 +78,7 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
                 data:
                     (patients) => FormBuilderDropdown<String>(
                       name: 'id_expediente',
+                      initialValue: _selectedPatientId,
                       decoration: const InputDecoration(
                         labelText: 'Paciente',
                         border: OutlineInputBorder(),
@@ -72,38 +101,93 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
               ),
               const SizedBox(height: 16),
 
-              // 2. Seleccionar Clínica
-              clinicasAsync.when(
-                data:
-                    (clinicas) => FormBuilderDropdown<int>(
-                      name: 'id_clinica',
-                      decoration: const InputDecoration(
-                        labelText: 'Clínica',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: FormBuilderValidators.required(),
-                      items:
-                          clinicas
-                              .map(
-                                (c) => DropdownMenuItem(
-                                  value: c.idClinica,
-                                  child: Text(c.nombreClinica),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedClinicaId = val;
-                          _formKey.currentState?.fields['id_objetivo']?.reset();
-                        });
-                      },
-                    ),
-                loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text('Error al cargar clínicas: $e'),
+              // 2. Seleccionar Periodo (Required for Clinic)
+              Consumer(
+                builder: (context, ref, child) {
+                  final periodosAsync = ref.watch(periodosProvider);
+                  return periodosAsync.when(
+                    data:
+                        (periodos) => FormBuilderDropdown<int>(
+                          name: 'id_periodo',
+                          initialValue: _selectedPeriodId,
+                          decoration: const InputDecoration(
+                            labelText: 'Periodo',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: FormBuilderValidators.required(),
+                          items:
+                              periodos
+                                  .map(
+                                    (p) => DropdownMenuItem(
+                                      value: p.idPeriodo,
+                                      child: Text(p.nombrePeriodo),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedPeriodId = val;
+                              _selectedClinicaId = null; // Reset clinic
+                              _formKey.currentState?.fields['id_clinica']
+                                  ?.reset();
+                              _formKey.currentState?.fields['id_objetivo']
+                                  ?.reset();
+                            });
+                          },
+                        ),
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, __) => const Text('Error cargando periodos'),
+                  );
+                },
               ),
               const SizedBox(height: 16),
 
-              // 3. Seleccionar Objetivo (Tratamiento Meta)
+              // 3. Seleccionar Clínica (Dependent on Period)
+              if (_selectedPeriodId != null) ...[
+                Consumer(
+                  builder: (context, ref, child) {
+                    final clinicasAsync = ref.watch(
+                      clinicasByPeriodoProvider(_selectedPeriodId!),
+                    );
+
+                    return clinicasAsync.when(
+                      data:
+                          (clinicas) => FormBuilderDropdown<int>(
+                            name: 'id_clinica',
+                            initialValue:
+                                _selectedClinicaId, // Use contextual initial
+                            decoration: const InputDecoration(
+                              labelText: 'Clínica',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: FormBuilderValidators.required(),
+                            items:
+                                clinicas
+                                    .map(
+                                      (c) => DropdownMenuItem(
+                                        value: c.idClinica,
+                                        child: Text(c.nombreClinica),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedClinicaId = val;
+                                _formKey.currentState?.fields['id_objetivo']
+                                    ?.reset();
+                              });
+                            },
+                          ),
+                      loading: () => const LinearProgressIndicator(),
+                      error: (e, _) => Text('Error al cargar clínicas: $e'),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+              const SizedBox(height: 16),
+
+              // 4. Seleccionar Objetivo / Tratamiento (Dependent on Clinic)
               if (_selectedClinicaId != null)
                 Consumer(
                   builder: (context, ref, child) {

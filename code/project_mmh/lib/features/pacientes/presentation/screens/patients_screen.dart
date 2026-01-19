@@ -88,23 +88,10 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                       subtitle: Text('Exp: ${patient.idExpediente}'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.grid_view,
-                              color: Colors.blue,
-                            ),
-                            onPressed: () {
-                              context.push(
-                                '/pacientes/${patient.idExpediente}/odontograma',
-                              );
-                            },
-                          ),
-                          const Icon(Icons.chevron_right),
-                        ],
+                        children: [const Icon(Icons.chevron_right)],
                       ),
                       onTap: () {
-                        // TODO: Navigate to detail/edit
+                        context.push('/pacientes/${patient.idExpediente}');
                       },
                     );
                   },

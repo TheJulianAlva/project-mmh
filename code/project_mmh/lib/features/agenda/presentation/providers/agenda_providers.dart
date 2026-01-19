@@ -5,6 +5,7 @@ import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento_rich_model.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
+import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
 
 // Repository Provider
 final agendaRepositoryProvider = Provider<AgendaRepository>((ref) {
@@ -76,10 +77,23 @@ final tratamientoByIdProvider = FutureProvider.family<Tratamiento?, int>((
 
 // --- Treatments Screen Providers ---
 
-final allTratamientosRichProvider =
-    FutureProvider.autoDispose<List<TratamientoRichModel>>((ref) async {
+final allTratamientosRichProvider = FutureProvider.autoDispose
+    .family<List<TratamientoRichModel>, int?>((ref, filterPeriodId) async {
       final repo = ref.watch(agendaRepositoryProvider);
-      return await repo.getAllTratamientosRich();
+      final allTreatments = await repo.getAllTratamientosRich();
+
+      // Filter by Provided Period ID (if any)
+      if (filterPeriodId == null) return allTreatments;
+
+      final clinicasRepo = ref.watch(clinicasRepositoryProvider);
+      final allowedClinics = await clinicasRepo.getClinicasByPeriodo(
+        filterPeriodId,
+      );
+      final allowedClinicIds = allowedClinics.map((c) => c.idClinica).toSet();
+
+      return allTreatments
+          .where((t) => allowedClinicIds.contains(t.tratamiento.idClinica))
+          .toList();
     });
 
 final sesionesByTratamientoProvider = FutureProvider.autoDispose

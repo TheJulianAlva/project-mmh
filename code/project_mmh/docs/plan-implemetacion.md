@@ -50,5 +50,16 @@ Instrucción para la IA: No intentes generar todo el código de una sola vez. Si
 **Objetivo:** Feedback al usuario.
 
 1. UI: Pantalla principal con barras de progreso (Calculadas desde Objetivos).
-2. Implementar notificaciones locales (Recordatorios).
-3. Pruebas de flujo completo offline.
+1.1. Barra inferior de navegación entre pantallas:
+    - Dashboard
+    - Agenda
+    - Tratamientos
+    - Pacientes
+    - Configuración
+Nota: El dashboard debe tener opciones para filtrar por periodo y clinica, dar datos generales de la clínica y contar con botones para agregar nuevos pacientes, tratamientos para mejorar la UX. (En la ventana de agregar se debe rellenar automáticamente la clínica seleccionada en el dashboard)
+
+## BLOQUE 7: Notificaciones
+
+**Objetivo:** Recordatorios de citas.
+1. Implementar notificaciones locales (Recordatorios).
+2. Pruebas de flujo completo offline.

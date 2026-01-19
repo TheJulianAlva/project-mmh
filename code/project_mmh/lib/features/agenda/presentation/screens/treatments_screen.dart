@@ -8,10 +8,13 @@ import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
+import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
+
 import 'package:project_mmh/features/agenda/presentation/widgets/appointment_form.dart';
 
 class TreatmentsScreen extends ConsumerStatefulWidget {
-  const TreatmentsScreen({super.key});
+  final String? initialPatientId;
+  const TreatmentsScreen({super.key, this.initialPatientId});
 
   @override
   ConsumerState<TreatmentsScreen> createState() => _TreatmentsScreenState();
@@ -20,10 +23,24 @@ class TreatmentsScreen extends ConsumerStatefulWidget {
 class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
   int? selectedClinicaId;
   String? selectedPatientId;
+  int? selectedPeriodId; // Local filter, defaults to persistent
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialPatientId != null) {
+      selectedPatientId = widget.initialPatientId;
+    }
+    // Initialize period from persistent state
+    selectedPeriodId = ref.read(lastViewedPeriodIdProvider);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tratamientosAsync = ref.watch(allTratamientosRichProvider);
+    // Pass selectedPeriodId to provider
+    final tratamientosAsync = ref.watch(
+      allTratamientosRichProvider(selectedPeriodId),
+    );
     final clinicasAsync = ref.watch(clinicasProvider);
     final patientsAsync = ref.watch(patientsProvider);
 
@@ -121,6 +138,26 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
             const Text(
               'Filtrar por: ',
               style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 8),
+            // Period Filter
+            FilterChip(
+              label: Text(
+                selectedPeriodId == null
+                    ? 'Todos los Periodos'
+                    : 'Periodo Actual', // Simplification: we could fetch period name if needed
+              ),
+              selected: selectedPeriodId != null,
+              onSelected: (selected) {
+                // Toggle: if selected and was already selected (logic handled by chip usually),
+                // here we just want to allow clearing it.
+                // But wait, the requirement says "default to last viewed".
+                // Let's allow user to clear it to see EVERYTHING.
+                setState(() {
+                  selectedPeriodId =
+                      selected ? ref.read(lastViewedPeriodIdProvider) : null;
+                });
+              },
             ),
             const SizedBox(width: 8),
             // Clinic Filter

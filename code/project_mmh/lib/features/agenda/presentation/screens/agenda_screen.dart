@@ -8,7 +8,8 @@ import 'package:table_calendar/table_calendar.dart' as tc show isSameDay;
 import 'package:intl/intl.dart';
 
 class AgendaScreen extends ConsumerStatefulWidget {
-  const AgendaScreen({super.key});
+  final String? initialAction;
+  const AgendaScreen({super.key, this.initialAction});
 
   @override
   ConsumerState<AgendaScreen> createState() => _AgendaScreenState();
@@ -16,6 +17,38 @@ class AgendaScreen extends ConsumerStatefulWidget {
 
 class _AgendaScreenState extends ConsumerState<AgendaScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialAction == 'new') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _openAppointmentForm();
+      });
+    }
+  }
+
+  // Handle widget updates (if navigating while already built)
+  @override
+  void didUpdateWidget(AgendaScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialAction == 'new' && oldWidget.initialAction != 'new') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _openAppointmentForm();
+      });
+    }
+  }
+
+  void _openAppointmentForm() {
+    // Clear the query parameter to avoid re-opening on hot reload or rebuilt (optional but good practice)
+    // Actually, handling it here is fine.
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => AppointmentForm(initialDate: ref.read(selectedDateProvider)),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
