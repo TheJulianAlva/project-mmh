@@ -46,7 +46,7 @@ class DataSeeder {
           'id_periodo': periodId,
           'nombre_clinica': c['name'],
           'color': c['color'],
-          'horarios': 'Lunes 8-12',
+          'horarios': 'Lun: 08:00-12:00, Mié: 08:00-12:00',
         });
 
         // 3. Metas/Objetivos por defecto
@@ -72,7 +72,7 @@ class DataSeeder {
 
   Future<void> seedPatients(int count) async {
     final db = await _dbHelper.database;
-    final sexos = ['M', 'F'];
+    final sexos = ['Masculino', 'Femenino'];
 
     for (int i = 0; i < count; i++) {
       final sexo = sexos[_random.nextInt(sexos.length)];
@@ -125,20 +125,23 @@ class DataSeeder {
         for (int t = 0; t < treatmentCount; t++) {
           int? objectiveId;
           String treatmentName = 'Consulta General';
+          final isConcluido = _random.nextBool();
 
           if (goals.isNotEmpty && _random.nextBool()) {
             final goal = goals[_random.nextInt(goals.length)];
             objectiveId = goal['id_objetivo'] as int;
             treatmentName = goal['nombre_tratamiento'] as String;
 
-            // Increment goal progress
-            int current = (goal['cantidad_actual'] as int) + 1;
-            await db.update(
-              'objetivos',
-              {'cantidad_actual': current},
-              where: 'id_objetivo = ?',
-              whereArgs: [objectiveId],
-            );
+            if (isConcluido) {
+              // Increment goal progress
+              int current = (goal['cantidad_actual'] as int) + 1;
+              await db.update(
+                'objetivos',
+                {'cantidad_actual': current},
+                where: 'id_objetivo = ?',
+                whereArgs: [objectiveId],
+              );
+            }
           } else {
             final treatments = [
               'Profilaxis',
@@ -159,7 +162,7 @@ class DataSeeder {
                 DateTime.now()
                     .subtract(Duration(days: _random.nextInt(60)))
                     .toIso8601String(),
-            'estado': _random.nextBool() ? 'Activo' : 'Completado',
+            'estado': isConcluido ? 'concluido' : 'en_proceso',
           });
         }
       }
@@ -182,11 +185,24 @@ class DataSeeder {
               days: _random.nextInt(60) - 30,
             ), // Past 30 to Future 30 days
           );
+
+          String estadoAsistencia = 'asistio';
+          if (date.isAfter(DateTime.now())) {
+            estadoAsistencia = 'programada';
+          } else {
+            final rand = _random.nextDouble();
+            if (rand < 0.1) {
+              estadoAsistencia = 'cancelo';
+            } else if (rand < 0.2) {
+              estadoAsistencia = 'falto';
+            }
+          }
+
           await db.insert('sesiones', {
             'id_tratamiento': tId,
             'fecha_inicio': date.toIso8601String(),
             'fecha_fin': date.add(const Duration(hours: 1)).toIso8601String(),
-            'estado_asistencia': 'Asistió',
+            'estado_asistencia': estadoAsistencia,
           });
         }
       }

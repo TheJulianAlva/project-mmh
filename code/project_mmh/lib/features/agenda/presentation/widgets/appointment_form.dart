@@ -6,8 +6,12 @@ import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 
+import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
+import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
+import 'package:project_mmh/features/clinicas_metas/presentation/providers/objetivos_providers.dart'
+    as obj_prov;
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
 
 class AppointmentForm extends ConsumerStatefulWidget {
@@ -77,29 +81,122 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildSectionTitle('Información del Tratamiento'),
-              // 1. Seleccionar Paciente
+              // 1. Seleccionar Paciente (Searchable)
               patientsAsync.when(
-                data:
-                    (patients) => FormBuilderDropdown<String>(
-                      name: 'id_expediente',
-                      initialValue: _selectedPatientId,
-                      decoration: const InputDecoration(
-                        labelText: 'Paciente',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: FormBuilderValidators.required(),
-                      items:
-                          patients
-                              .map(
-                                (p) => DropdownMenuItem(
-                                  value: p.idExpediente,
-                                  child: Text(
-                                    '${p.nombre} ${p.primerApellido}',
+                data: (patients) {
+                  return FormBuilderField<String>(
+                    name: 'id_expediente',
+                    initialValue: _selectedPatientId,
+                    validator: FormBuilderValidators.required(
+                      errorText: 'Seleccione un paciente de la lista',
+                    ),
+                    builder: (FormFieldState<String> field) {
+                      // Calculate initial text if available
+                      String initialText = '';
+                      if (field.value != null) {
+                        final p = patients.firstWhere(
+                          (element) => element.idExpediente == field.value,
+                          orElse: () => patients.first, // Fallback safe
+                        );
+                        if (p.idExpediente == field.value) {
+                          initialText = '${p.nombre} ${p.primerApellido}';
+                        }
+                      }
+
+                      return InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Paciente',
+                          border: const OutlineInputBorder(),
+                          errorText: field.errorText,
+                        ),
+                        child: Autocomplete<Patient>(
+                          initialValue: TextEditingValue(text: initialText),
+                          optionsBuilder: (TextEditingValue textEditingValue) {
+                            if (textEditingValue.text.isEmpty) {
+                              return patients;
+                            }
+                            return patients.where((Patient p) {
+                              final name =
+                                  '${p.nombre} ${p.primerApellido} ${p.segundoApellido ?? ''}'
+                                      .toLowerCase();
+                              final id = p.idExpediente.toLowerCase();
+                              final query = textEditingValue.text.toLowerCase();
+                              return name.contains(query) || id.contains(query);
+                            });
+                          },
+                          displayStringForOption:
+                              (Patient p) =>
+                                  '${p.nombre} ${p.primerApellido} (${p.idExpediente})',
+                          onSelected: (Patient selection) {
+                            field.didChange(selection.idExpediente);
+                          },
+                          fieldViewBuilder: (
+                            context,
+                            textEditingController,
+                            focusNode,
+                            onFieldSubmitted,
+                          ) {
+                            return TextField(
+                              controller: textEditingController,
+                              focusNode: focusNode,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'Escriba para buscar...',
+                              ),
+                              onChanged: (val) {
+                                // Clear selection if user types (enforcing selection)
+                                // Only allow if matches exactly, otherwise null
+                                // For basic UX, we clear value on change and expect re-selection
+                                // But to avoid clearing on cosmetic changes, we can logic check,
+                                // but safest for "Must exist" is to clear ID if text changes.
+                                if (field.value != null) {
+                                  field.didChange(null);
+                                }
+                              },
+                            );
+                          },
+                          optionsViewBuilder: (context, onSelected, options) {
+                            return Align(
+                              alignment: Alignment.topLeft,
+                              child: Material(
+                                elevation: 4.0,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxHeight: 200,
+                                    maxWidth:
+                                        MediaQuery.of(context).size.width - 32,
+                                  ),
+                                  child: ListView.builder(
+                                    padding: EdgeInsets.zero,
+                                    shrinkWrap: true,
+                                    itemCount: options.length,
+                                    itemBuilder: (
+                                      BuildContext context,
+                                      int index,
+                                    ) {
+                                      final Patient option = options.elementAt(
+                                        index,
+                                      );
+                                      return ListTile(
+                                        title: Text(
+                                          '${option.nombre} ${option.primerApellido}',
+                                        ),
+                                        subtitle: Text(option.idExpediente),
+                                        onTap: () {
+                                          onSelected(option);
+                                        },
+                                      );
+                                    },
                                   ),
                                 ),
-                              )
-                              .toList(),
-                    ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
                 loading: () => const LinearProgressIndicator(),
                 error: (e, _) => Text('Error al cargar pacientes: $e'),
               ),
@@ -191,81 +288,149 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
               ],
               const SizedBox(height: 16),
 
-              // 4. Seleccionar Objetivo / Tratamiento (Dependent on Clinic)
+              // 4. Seleccionar Objetivo / Tratamiento (Searchable)
               if (_selectedClinicaId != null)
                 Consumer(
                   builder: (context, ref, child) {
                     final objetivosAsync = ref.watch(
-                      objetivosByClinicaProvider(_selectedClinicaId!),
+                      obj_prov.objetivosByClinicaProvider(_selectedClinicaId!),
                     );
                     return objetivosAsync.when(
-                      data:
-                          (objetivos) => Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              FormBuilderDropdown<int?>(
-                                name: 'id_objetivo',
-                                decoration: const InputDecoration(
-                                  labelText: 'Tratamiento / Objetivo',
-                                  border: OutlineInputBorder(),
-                                  helperText:
-                                      'Seleccione "Personalizado" si no aplica a un objetivo',
-                                ),
-                                // validator: FormBuilderValidators.required(), // REMOVED to allow null (Custom)
-                                items: [
-                                  // Option for Custom Treatment
-                                  DropdownMenuItem<int?>(
-                                    value: null,
-                                    child: Text(
-                                      '-- Otro / Personalizado --',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                      ),
-                                    ),
-                                  ),
-                                  ...objetivos.map(
-                                    (o) => DropdownMenuItem<int?>(
-                                      value: o.idObjetivo,
-                                      child: Text(
-                                        '${o.nombreTratamiento} (Meta: ${o.cantidadMeta})',
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                onChanged: (val) {
-                                  // If objective selected, auto-fill name
-                                  if (val != null) {
-                                    final obj = objetivos.firstWhere(
-                                      (o) => o.idObjetivo == val,
-                                    );
-                                    _formKey
-                                        .currentState
-                                        ?.fields['nombre_tratamiento']
-                                        ?.didChange(obj.nombreTratamiento);
-                                  } else {
-                                    // Clear if custom selected (or let user type)
+                      data: (objetivos) {
+                        return FormBuilderField<int?>(
+                          name: 'id_objetivo',
+                          builder: (FormFieldState<int?> field) {
+                            // Helper constant for Custom Option
+                            const customOption = Objetivo(
+                              idObjetivo: -1, // Use -1 as sentinel for Custom
+                              idClinica: 0,
+                              nombreTratamiento: '-- Otro / Personalizado --',
+                              cantidadMeta: 0,
+                            );
+
+                            return InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: 'Tratamiento / Objetivo',
+                                border: const OutlineInputBorder(),
+                                helperText:
+                                    'Busque o deje vacío para Personalizado',
+                                errorText: field.errorText,
+                              ),
+                              child: Autocomplete<Objetivo>(
+                                optionsBuilder: (
+                                  TextEditingValue textEditingValue,
+                                ) {
+                                  final query =
+                                      textEditingValue.text.toLowerCase();
+                                  final filtered =
+                                      objetivos
+                                          .where(
+                                            (o) => o.nombreTratamiento
+                                                .toLowerCase()
+                                                .contains(query),
+                                          )
+                                          .toList();
+
+                                  return [customOption, ...filtered];
+                                },
+                                displayStringForOption: (Objetivo option) {
+                                  if (option.idObjetivo == -1) {
+                                    return '-- Otro / Personalizado --';
+                                  }
+                                  return '${option.nombreTratamiento} (Meta: ${option.cantidadMeta})';
+                                },
+                                onSelected: (Objetivo selection) {
+                                  if (selection.idObjetivo == -1) {
+                                    field.didChange(null);
                                     _formKey
                                         .currentState
                                         ?.fields['nombre_tratamiento']
                                         ?.didChange('');
+                                  } else {
+                                    field.didChange(selection.idObjetivo);
+                                    _formKey
+                                        .currentState
+                                        ?.fields['nombre_tratamiento']
+                                        ?.didChange(
+                                          selection.nombreTratamiento,
+                                        );
                                   }
                                 },
+                                fieldViewBuilder: (
+                                  context,
+                                  textEditingController,
+                                  focusNode,
+                                  onFieldSubmitted,
+                                ) {
+                                  return TextField(
+                                    controller: textEditingController,
+                                    focusNode: focusNode,
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      hintText: 'Seleccione...',
+                                    ),
+                                    onChanged: (val) {
+                                      // If typing, assume custom
+                                      if (field.value != null &&
+                                          val.isNotEmpty) {
+                                        field.didChange(null);
+                                      }
+                                    },
+                                  );
+                                },
+                                optionsViewBuilder: (
+                                  context,
+                                  onSelected,
+                                  options,
+                                ) {
+                                  return Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Material(
+                                      elevation: 4.0,
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          maxHeight: 200,
+                                          maxWidth:
+                                              MediaQuery.of(
+                                                context,
+                                              ).size.width -
+                                              32,
+                                        ),
+                                        child: ListView.builder(
+                                          padding: EdgeInsets.zero,
+                                          shrinkWrap: true,
+                                          itemCount: options.length,
+                                          itemBuilder: (
+                                            BuildContext context,
+                                            int index,
+                                          ) {
+                                            final Objetivo option = options
+                                                .elementAt(index);
+                                            return ListTile(
+                                              title: Text(
+                                                option.idObjetivo == -1
+                                                    ? option.nombreTratamiento
+                                                    : option.nombreTratamiento,
+                                              ),
+                                              subtitle:
+                                                  option.idObjetivo != -1
+                                                      ? Text(
+                                                        'Meta: ${option.cantidadMeta} - Actual: ${option.cantidadActual}',
+                                                      )
+                                                      : null,
+                                              onTap: () => onSelected(option),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                              const SizedBox(height: 16),
-                              FormBuilderTextField(
-                                name: 'nombre_tratamiento',
-                                decoration: const InputDecoration(
-                                  labelText: 'Nombre del Tratamiento',
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: FormBuilderValidators.required(),
-                              ),
-                            ],
-                          ),
+                            );
+                          },
+                        );
+                      },
                       loading: () => const LinearProgressIndicator(),
                       error: (e, _) => Text('Error: $e'),
                     );

@@ -48,15 +48,10 @@ class _SessionEditDialogState extends ConsumerState<SessionEditDialog> {
                 ),
                 validator: FormBuilderValidators.required(),
                 onChanged: (val) {
-                  // Only auto-update end time if creating new and field untouched
-                  if (!isEditing && val != null) {
-                    final currentEnd =
-                        _formKey.currentState?.fields['fecha_fin']?.value;
-                    if (currentEnd == null) {
-                      _formKey.currentState?.fields['fecha_fin']?.didChange(
-                        val.add(const Duration(hours: 2)),
-                      );
-                    }
+                  if (val != null) {
+                    _formKey.currentState?.fields['fecha_fin']?.didChange(
+                      val.add(const Duration(hours: 2)),
+                    );
                   }
                 },
               ),
