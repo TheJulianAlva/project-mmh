@@ -17,10 +17,9 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
   padecimientoRelevante: json['padecimiento_relevante'] as String?,
   informacionAdicional: json['informacion_adicional'] as String?,
   imagenesPaths:
-      (json['imagenes_paths'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ??
-      const [],
+      json['imagenes_paths'] == null
+          ? const []
+          : _parseImages(json['imagenes_paths']),
 );
 
 Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{

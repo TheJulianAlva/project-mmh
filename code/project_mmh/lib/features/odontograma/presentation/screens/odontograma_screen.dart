@@ -86,7 +86,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                     .cleanPediatricTeeth();
               }
             },
-            activeThumbColor: Colors.pinkAccent,
+            activeThumbColor: Theme.of(context).colorScheme.secondary,
           ),
           const SizedBox(width: 8),
           const Text("Pediátrico"),
@@ -115,9 +115,21 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               margin: const EdgeInsets.only(bottom: 8),
-                              color: Colors.yellow.shade100,
+                              decoration: BoxDecoration(
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.tertiaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                               child: Text(
                                 "Seleccione el diente final del puente (Inicio: ${_bridgeStartPiece?.iso})",
+                                style: TextStyle(
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onTertiaryContainer,
+                                ),
                               ),
                             ),
 
@@ -173,7 +185,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
           if (_isEditing)
             Container(
               height: 110,
-              color: Colors.grey.shade100,
+              color: Theme.of(context).scaffoldBackgroundColor,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(
@@ -186,7 +198,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.sano,
-                      Colors.white,
+                      Theme.of(context).colorScheme.onSurface,
                       icon: Icons.cleaning_services,
                       label: "Borrar",
                     ),
@@ -248,7 +260,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.protesisFija,
-                      Colors.black,
+                      Theme.of(context).colorScheme.onSurface,
                       icon: Icons.link,
                       label: "Puente",
                     ),
@@ -265,7 +277,13 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 10,
+            color: Theme.of(context).disabledColor,
+          ),
+        ),
         const SizedBox(height: 4),
         Row(children: children),
       ],
@@ -293,9 +311,15 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.withValues(alpha: 0.1) : Colors.white,
+          color:
+              isSelected
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                  : Theme.of(context).cardColor,
           border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
+            color:
+                isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).dividerColor,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(8),
@@ -310,7 +334,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                   height: 24,
                   decoration: BoxDecoration(
                     color: color,
-                    border: Border.all(color: Colors.black12),
+                    border: Border.all(color: Theme.of(context).dividerColor),
                   ),
                 ),
             const SizedBox(height: 4),

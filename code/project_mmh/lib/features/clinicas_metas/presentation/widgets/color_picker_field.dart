@@ -71,7 +71,16 @@ class ColorPickerField extends StatelessWidget {
   Color _hexToColor(String? hex) {
     if (hex == null || hex.isEmpty) return Colors.blue;
     try {
-      return Color(int.parse(hex.substring(1), radix: 16) + 0xFF000000);
+      String cleanHex = hex
+          .replaceAll('#', '')
+          .replaceAll('0x', '')
+          .replaceAll('0X', '');
+      if (cleanHex.length == 6) {
+        return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
+      } else if (cleanHex.length == 8) {
+        return Color(int.parse(cleanHex, radix: 16));
+      }
+      return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
     } catch (_) {
       return Colors.blue;
     }

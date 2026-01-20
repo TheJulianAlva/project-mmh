@@ -16,9 +16,21 @@ abstract class Patient with _$Patient {
     @JsonKey(name: 'telefono') String? telefono,
     @JsonKey(name: 'padecimiento_relevante') String? padecimientoRelevante,
     @JsonKey(name: 'informacion_adicional') String? informacionAdicional,
-    @JsonKey(name: 'imagenes_paths') @Default([]) List<String> imagenesPaths,
+    @JsonKey(name: 'imagenes_paths', fromJson: _parseImages)
+    @Default([])
+    List<String> imagenesPaths,
   }) = _Patient;
 
   factory Patient.fromJson(Map<String, dynamic> json) =>
       _$PatientFromJson(json);
+}
+
+List<String> _parseImages(Object? value) {
+  if (value is List) {
+    return value.map((e) => e.toString()).toList();
+  } else if (value is String) {
+    if (value.trim().isEmpty) return [];
+    return value.split('|');
+  }
+  return [];
 }

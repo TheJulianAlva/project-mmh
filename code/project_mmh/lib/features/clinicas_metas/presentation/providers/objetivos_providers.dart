@@ -39,4 +39,10 @@ class ObjetivosNotifier extends FamilyAsyncNotifier<List<Objetivo>, int> {
     ref.invalidateSelf();
     await future;
   }
+
+  Future<void> updateObjetivo(Objetivo objetivo) async {
+    await ref.read(objetivosRepositoryProvider).updateObjetivo(objetivo);
+    ref.invalidateSelf();
+    await future;
+  }
 }

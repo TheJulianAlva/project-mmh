@@ -8,6 +8,10 @@ final clinicasRepositoryProvider = Provider<ClinicasRepository>((ref) {
   return ClinicasRepository();
 });
 
+// Global Active Context
+final activePeriodIdProvider = StateProvider<int?>((ref) => null);
+final activeClinicIdProvider = StateProvider<int?>((ref) => null);
+
 // 1. Periodos Provider
 final periodosProvider = AsyncNotifierProvider<PeriodosNotifier, List<Periodo>>(
   PeriodosNotifier.new,
@@ -84,3 +88,10 @@ class ClinicasByPeriodoNotifier
     await future;
   }
 }
+
+final clinicaByIdProvider = FutureProvider.autoDispose.family<Clinica?, int>((
+  ref,
+  idClinica,
+) async {
+  return await ref.watch(clinicasRepositoryProvider).getClinicaById(idClinica);
+});

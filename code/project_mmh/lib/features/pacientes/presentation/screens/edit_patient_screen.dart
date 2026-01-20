@@ -5,33 +5,29 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:project_mmh/core/services/image_service.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
-class AddPatientScreen extends ConsumerStatefulWidget {
-  const AddPatientScreen({super.key});
+class EditPatientScreen extends ConsumerStatefulWidget {
+  final Patient patient;
+  const EditPatientScreen({super.key, required this.patient});
 
   @override
-  ConsumerState<AddPatientScreen> createState() => _AddPatientScreenState();
+  ConsumerState<EditPatientScreen> createState() => _EditPatientScreenState();
 }
 
-class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
+class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
-  final ImageService _imageService = ImageService();
 
-  // Locally held images before saving
-  final List<XFile> _selectedImages = [];
+  // List of images to keep (initially all existing).
+  // We remove from here if user deletes.
+  late List<String> _currentImagePaths;
   bool _isSaving = false;
 
-  Future<void> _pickImage(ImageSource source) async {
-    final XFile? image = await _imageService.pickImage(source);
-    if (image != null) {
-      setState(() {
-        _selectedImages.add(image);
-      });
-    }
+  @override
+  void initState() {
+    super.initState();
+    _currentImagePaths = List.from(widget.patient.imagenesPaths);
   }
 
   Future<void> _savePatient() async {
@@ -42,40 +38,35 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
 
       try {
         final formData = _formKey.currentState!.value;
-        final String idExpediente = formData['id_expediente'];
 
-        // 1. Save images to app storage
-        List<String> savedImagePaths = [];
-        for (var img in _selectedImages) {
-          final path = await _imageService.saveImage(img, idExpediente);
-          savedImagePaths.add(path);
-        }
+        // Note: New images are added via Detail Screen mostly,
+        // but if we were to support adding here, we'd need ImageService.
+        // For now, we only handle UPDATING TEXT fields and DELETING existing images
+        // as per the user plan "functionality to eliminate uploaded images".
+        // Adding images is explicitly requested for the Detail Screen.
 
-        // 2. Create Patient object
-        final newPatient = Patient(
-          idExpediente: idExpediente,
+        final updatedPatient = widget.patient.copyWith(
           nombre: formData['nombre'],
           primerApellido: formData['primer_apellido'],
           segundoApellido: formData['segundo_apellido'],
-          edad: int.parse(formData['edad']), // Ensure numeric input
+          edad: int.parse(formData['edad']),
           sexo: formData['sexo'],
           telefono: formData['telefono'],
           padecimientoRelevante: formData['padecimiento_relevante'],
           informacionAdicional: formData['informacion_adicional'],
-          imagenesPaths: savedImagePaths,
+          imagenesPaths: _currentImagePaths, // Use the modified list
         );
 
-        // 3. Save to DB provider
-        await ref.read(patientsProvider.notifier).addPatient(newPatient);
+        await ref.read(patientsProvider.notifier).updatePatient(updatedPatient);
 
         if (mounted) {
-          context.pop(); // Go back to list
+          context.pop(); // Go back
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
+          ).showSnackBar(SnackBar(content: Text('Error al actualizar: $e')));
         }
       } finally {
         if (mounted) {
@@ -87,22 +78,24 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
     }
   }
 
+  void _removeImage(int index) {
+    setState(() {
+      _currentImagePaths.removeAt(index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Watch patients so we have the latest list for validation
-    final patientsAsync = ref.watch(patientsProvider);
-    final existingPatients = patientsAsync.asData?.value ?? [];
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nuevo Paciente'),
+        title: const Text('Editar Paciente'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.check),
+            icon: const Icon(Icons.save),
             onPressed: _isSaving ? null : _savePatient,
           ),
         ],
@@ -114,6 +107,19 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: FormBuilder(
                   key: _formKey,
+                  initialValue: {
+                    'id_expediente': widget.patient.idExpediente,
+                    'nombre': widget.patient.nombre,
+                    'primer_apellido': widget.patient.primerApellido,
+                    'segundo_apellido': widget.patient.segundoApellido,
+                    'edad': widget.patient.edad.toString(),
+                    'sexo': widget.patient.sexo,
+                    'telefono': widget.patient.telefono,
+                    'padecimiento_relevante':
+                        widget.patient.padecimientoRelevante,
+                    'informacion_adicional':
+                        widget.patient.informacionAdicional,
+                  },
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -125,23 +131,18 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
+                      // ID Expediente is Read Only usually for consistency,
+                      // or we can allow edit if it's not the PK in DB (it looks like it is).
+                      // Repository uses it for update `where: id_expediente = ?`.
+                      // So we CANNOT edit ID Expediente here effectively unless we handle primary key change (delete + insert).
+                      // Better to leave it read-only or disabled.
                       FormBuilderTextField(
                         name: 'id_expediente',
                         decoration: const InputDecoration(
-                          labelText: 'No. Expediente *',
+                          labelText: 'No. Expediente (No editable)',
                         ),
-                        maxLength: 15,
-                        validator: (val) {
-                          if (val == null || val.isEmpty) {
-                            return 'Requerido';
-                          }
-                          if (existingPatients.any(
-                            (p) => p.idExpediente == val,
-                          )) {
-                            return 'El ID ya existe';
-                          }
-                          return null;
-                        },
+                        readOnly: true,
+                        enabled: false,
                       ),
                       const SizedBox(height: 10),
                       FormBuilderTextField(
@@ -151,9 +152,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                         ),
                         maxLength: 20,
                         validator: (val) {
-                          if (val == null || val.isEmpty) {
-                            return 'Requerido';
-                          }
+                          if (val == null || val.isEmpty) return 'Requerido';
                           return null;
                         },
                       ),
@@ -168,9 +167,8 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                               ),
                               maxLength: 20,
                               validator: (val) {
-                                if (val == null || val.isEmpty) {
+                                if (val == null || val.isEmpty)
                                   return 'Requerido';
-                                }
                                 return null;
                               },
                             ),
@@ -199,22 +197,15 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                               keyboardType: TextInputType.number,
                               validator: FormBuilderValidators.compose([
                                 (val) {
-                                  if (val == null || val.isEmpty) {
+                                  if (val == null || val.isEmpty)
                                     return 'Requerido';
-                                  }
                                   return null;
                                 },
                                 FormBuilderValidators.integer(
-                                  errorText: 'Debe ser un número entero',
+                                  errorText: 'Número entero',
                                 ),
-                                FormBuilderValidators.min(
-                                  1,
-                                  errorText: 'Edad no válida',
-                                ),
-                                FormBuilderValidators.max(
-                                  100,
-                                  errorText: 'Edad no válida',
-                                ),
+                                FormBuilderValidators.min(1),
+                                FormBuilderValidators.max(100),
                               ]),
                             ),
                           ),
@@ -225,12 +216,6 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Sexo *',
                               ),
-                              validator: (val) {
-                                if (val == null || val.isEmpty) {
-                                  return 'Requerido';
-                                }
-                                return null;
-                              },
                               items:
                                   ['Masculino', 'Femenino', 'Otro']
                                       .map(
@@ -252,16 +237,6 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                         ),
                         maxLength: 10,
                         keyboardType: TextInputType.phone,
-                        validator: FormBuilderValidators.compose([
-                          FormBuilderValidators.match(
-                            RegExp(r'^\d*$'),
-                            errorText: 'Solo números permitidos',
-                          ),
-                          FormBuilderValidators.maxLength(
-                            10,
-                            errorText: 'Máximo 10 dígitos',
-                          ),
-                        ]),
                       ),
                       const SizedBox(height: 20),
 
@@ -279,7 +254,6 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                           labelText: 'Padecimiento Relevante (Breve)',
                         ),
                         maxLength: 30,
-                        maxLines: 1,
                       ),
                       const SizedBox(height: 10),
                       FormBuilderTextField(
@@ -290,87 +264,76 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                         maxLines: 5,
                         minLines: 3,
                       ),
-                      const SizedBox(height: 20),
 
-                      const Text(
-                        'Fotografías',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(height: 20),
+                      if (_currentImagePaths.isNotEmpty) ...[
+                        const Text(
+                          'Gestionar Imágenes',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: () => _pickImage(ImageSource.camera),
-                            icon: const Icon(Icons.camera_alt),
-                            label: const Text('Cámara'),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Toca el botón X para eliminar una imagen.',
+                          style: TextStyle(
+                            color: Theme.of(context).disabledColor,
+                            fontSize: 12,
                           ),
-                          const SizedBox(width: 10),
-                          ElevatedButton.icon(
-                            onPressed: () => _pickImage(ImageSource.gallery),
-                            icon: const Icon(Icons.photo_library),
-                            label: const Text('Galería'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      if (_selectedImages.isNotEmpty)
-                        SizedBox(
-                          height: 120,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _selectedImages.length,
-                            itemBuilder: (context, index) {
-                              return Stack(
-                                children: [
-                                  Container(
-                                    margin: const EdgeInsets.only(right: 10),
-                                    width: 100,
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Theme.of(context).dividerColor,
-                                      ),
-                                      image: DecorationImage(
-                                        image: FileImage(
-                                          File(_selectedImages[index].path),
-                                        ),
-                                        fit: BoxFit.cover,
+                        ),
+                        const SizedBox(height: 10),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                              ),
+                          itemCount: _currentImagePaths.length,
+                          itemBuilder: (context, index) {
+                            final path = _currentImagePaths[index];
+                            return Stack(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Theme.of(context).dividerColor,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                    image: DecorationImage(
+                                      image: FileImage(File(path)),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: 5,
+                                  top: 5,
+                                  child: GestureDetector(
+                                    onTap: () => _removeImage(index),
+                                    child: CircleAvatar(
+                                      radius: 12,
+                                      backgroundColor:
+                                          Theme.of(context).colorScheme.error,
+                                      child: Icon(
+                                        Icons.close,
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onError,
+                                        size: 16,
                                       ),
                                     ),
                                   ),
-                                  Positioned(
-                                    right: 0,
-                                    top: 0,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedImages.removeAt(index);
-                                        });
-                                      },
-                                      child: Container(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .error
-                                            .withValues(alpha: 0.8),
-                                        child: Icon(
-                                          Icons.close,
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.onError,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
+                      ],
                     ],
                   ),
                 ),

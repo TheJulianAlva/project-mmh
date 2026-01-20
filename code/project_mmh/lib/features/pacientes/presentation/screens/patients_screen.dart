@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
 class PatientsScreen extends ConsumerStatefulWidget {
@@ -35,10 +34,23 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             padding: const EdgeInsets.all(8.0),
             child: TextField(
               controller: _searchController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Buscar paciente',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon:
+                    _searchQuery.isNotEmpty
+                        ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                            FocusManager.instance.primaryFocus?.unfocus();
+                          },
+                        )
+                        : null,
+                border: const OutlineInputBorder(),
               ),
               onChanged: (value) {
                 setState(() {
@@ -88,23 +100,10 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                       subtitle: Text('Exp: ${patient.idExpediente}'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.grid_view,
-                              color: Colors.blue,
-                            ),
-                            onPressed: () {
-                              context.push(
-                                '/pacientes/${patient.idExpediente}/odontograma',
-                              );
-                            },
-                          ),
-                          const Icon(Icons.chevron_right),
-                        ],
+                        children: [const Icon(Icons.chevron_right)],
                       ),
                       onTap: () {
-                        // TODO: Navigate to detail/edit
+                        context.push('/pacientes/${patient.idExpediente}');
                       },
                     );
                   },
@@ -117,6 +116,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
         onPressed: () {
           context.push('/pacientes/nuevo');
         },

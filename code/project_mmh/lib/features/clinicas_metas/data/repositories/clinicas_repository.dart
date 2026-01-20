@@ -39,6 +39,17 @@ class ClinicasRepository {
     return result.map((e) => Clinica.fromJson(e)).toList();
   }
 
+  Future<Clinica?> getClinicaById(int idClinica) async {
+    final db = await _dbHelper.database;
+    final result = await db.query(
+      'clinicas',
+      where: 'id_clinica = ?',
+      whereArgs: [idClinica],
+    );
+    if (result.isEmpty) return null;
+    return Clinica.fromJson(result.first);
+  }
+
   Future<int> insertClinica(Clinica clinica) async {
     return await _dbHelper.insert('clinicas', clinica.toJson());
   }
