@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
 import 'package:project_mmh/features/dashboard/presentation/providers/dashboard_providers.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
+import 'package:project_mmh/core/database/data_seeder.dart';
+import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
+import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -27,7 +30,7 @@ class DashboardScreen extends ConsumerWidget {
               return Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: Container(
-                  width: 140, // Fixed width to prevent overflow
+                  width: 150, // Fixed width to prevent overflow
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 4,
@@ -36,7 +39,7 @@ class DashboardScreen extends ConsumerWidget {
                     color: Theme.of(
                       context,
                     ).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: Theme.of(
                         context,
@@ -83,6 +86,59 @@ class DashboardScreen extends ConsumerWidget {
             },
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'seed') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Generando datos de prueba...')),
+                );
+                try {
+                  // Lazy import/instantiate to avoid circular deps if possible or just standard import
+                  // Assuming DataSeeder is available
+                  await DataSeeder().seedAll();
+                  // Re-read providers to refresh UI
+                  ref.invalidate(periodosProvider);
+                  ref.invalidate(dashboardStatsProvider);
+                  // Refresh other lists
+                  ref.invalidate(patientsProvider); // Fix for missing patients
+                  ref.invalidate(allTratamientosRichProvider);
+                  ref.invalidate(allSesionesProvider);
+
+                  // Verify if we need to invalidate clinics as well
+                  if (selectedPeriodId != null) {
+                    ref.invalidate(clinicasByPeriodoProvider(selectedPeriodId));
+                  }
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Datos generados correctamente'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  }
+                }
+              }
+            },
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(
+                    value: 'seed',
+                    child: Row(
+                      children: [
+                        Icon(Icons.science, color: Colors.grey),
+                        SizedBox(width: 8),
+                        Text('Generar Datos de Prueba'),
+                      ],
+                    ),
+                  ),
+                ],
           ),
         ],
       ),
@@ -145,22 +201,24 @@ class DashboardScreen extends ConsumerWidget {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _ActionButton(
                       icon: Icons.person_add,
                       label: 'Nuevo Paciente',
                       onPressed: () {
-                        context.go('/pacientes/nuevo');
+                        context.push('/pacientes/nuevo');
                       },
                     ),
+                    const SizedBox(height: 12),
                     _ActionButton(
-                      icon: Icons.medical_services_outlined,
+                      icon: Icons.medical_services,
                       label: 'Agregar Tratamiento',
+                      overflow: true,
                       onPressed: () {
                         // Navigate to Treatments -> New
-                        context.go('/tratamientos/new');
+                        context.push('/tratamientos/new');
                       },
                     ),
                   ],
@@ -231,17 +289,31 @@ class _ClinicsHorizontalList extends ConsumerWidget {
               final clinica = clinicas[index];
               final isSelected = clinica.idClinica == selectedClinicId;
 
-              // Parse color string to Color object
               Color clinicColor = Colors.teal; // Default
-              if (clinica.color.startsWith('Color(')) {
-                String valueString =
-                    clinica.color.split('(0x')[1].split(')')[0];
-                int value = int.parse(valueString, radix: 16);
-                clinicColor = Color(value);
-              } else if (clinica.color.startsWith('#')) {
-                clinicColor = Color(
-                  int.parse(clinica.color.substring(1), radix: 16) + 0xFF000000,
-                );
+              try {
+                String colorStr = clinica.color;
+                if (colorStr.startsWith('Color(')) {
+                  String value = colorStr.split('(')[1].split(')')[0];
+                  clinicColor = Color(int.parse(value));
+                } else {
+                  String cleanHex = colorStr
+                      .replaceAll('#', '')
+                      .replaceAll('0x', '')
+                      .replaceAll('0X', '');
+                  if (cleanHex.length == 6) {
+                    clinicColor = Color(
+                      int.parse(cleanHex, radix: 16) + 0xFF000000,
+                    );
+                  } else if (cleanHex.length == 8) {
+                    clinicColor = Color(int.parse(cleanHex, radix: 16));
+                  } else {
+                    clinicColor = Color(
+                      int.parse(cleanHex, radix: 16) + 0xFF000000,
+                    );
+                  }
+                }
+              } catch (_) {
+                clinicColor = Colors.teal;
               }
 
               return GestureDetector(
@@ -252,17 +324,24 @@ class _ClinicsHorizontalList extends ConsumerWidget {
                 child: Container(
                   width: 140,
                   decoration: BoxDecoration(
-                    color: isSelected ? clinicColor : Colors.grey[100],
+                    color:
+                        isSelected
+                            ? clinicColor
+                            : Theme.of(context).cardTheme.color ??
+                                Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected ? clinicColor : Colors.grey[300]!,
+                      color:
+                          isSelected
+                              ? clinicColor
+                              : Theme.of(context).dividerColor,
                       width: 2,
                     ),
                     boxShadow:
                         isSelected
                             ? [
                               BoxShadow(
-                                color: clinicColor.withOpacity(0.3),
+                                color: clinicColor.withValues(alpha: 0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
@@ -276,14 +355,22 @@ class _ClinicsHorizontalList extends ConsumerWidget {
                     children: [
                       Icon(
                         Icons.local_hospital,
-                        color: isSelected ? Colors.white : Colors.grey[600],
+                        color:
+                            isSelected
+                                ? Colors.white
+                                : Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
                         size: 28,
                       ),
                       const Spacer(),
                       Text(
                         clinica.nombreClinica,
                         style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black87,
+                          color:
+                              isSelected
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -318,6 +405,7 @@ class _DashboardStats extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(dashboardStatsProvider);
+    //final statsAsync = const AsyncValue.loading(); // Forced loading for testing
 
     return statsAsync.when(
       data: (objetivos) {
@@ -374,7 +462,9 @@ class _DashboardStats extends ConsumerWidget {
                           value: progress,
                           minHeight: 8,
                           borderRadius: BorderRadius.circular(4),
-                          backgroundColor: Colors.grey[200],
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.12),
                           color: _getProgressColor(progress),
                         ),
                       ],
@@ -386,7 +476,66 @@ class _DashboardStats extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading:
+          () => Card(
+            elevation: 0,
+            color: Theme.of(context).cardTheme.color,
+            child: Container(
+              height: 250, // Approximate height of the content
+              padding: const EdgeInsets.all(16.0),
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 120,
+                    height: 20,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.05),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          height: 16,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          height: 8,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          height: 16,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          height: 8,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       error: (e, s) => Text('Error: $e'),
     );
   }
@@ -402,11 +551,13 @@ class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onPressed;
+  final bool overflow;
 
   const _ActionButton({
     required this.icon,
     required this.label,
     required this.onPressed,
+    this.overflow = false,
   });
 
   @override
@@ -417,7 +568,7 @@ class _ActionButton extends StatelessWidget {
       ),
       onPressed: onPressed,
       icon: Icon(icon),
-      label: Text(label),
+      label: Text(label, overflow: overflow ? TextOverflow.ellipsis : null),
     );
   }
 }

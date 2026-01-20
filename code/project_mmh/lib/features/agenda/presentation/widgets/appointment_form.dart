@@ -60,7 +60,11 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nueva Cita'),
+        title: const Text('Nuevo Tratamiento'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         actions: [
           IconButton(icon: const Icon(Icons.save), onPressed: _saveAppointment),
         ],
@@ -129,9 +133,9 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
                               _selectedPeriodId = val;
                               _selectedClinicaId = null; // Reset clinic
                               _formKey.currentState?.fields['id_clinica']
-                                  ?.reset();
+                                  ?.didChange(null);
                               _formKey.currentState?.fields['id_objetivo']
-                                  ?.reset();
+                                  ?.didChange(null);
                             });
                           },
                         ),
@@ -210,13 +214,16 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
                                 // validator: FormBuilderValidators.required(), // REMOVED to allow null (Custom)
                                 items: [
                                   // Option for Custom Treatment
-                                  const DropdownMenuItem<int?>(
+                                  DropdownMenuItem<int?>(
                                     value: null,
                                     child: Text(
                                       '-- Otro / Personalizado --',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.blue,
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
                                       ),
                                     ),
                                   ),
@@ -341,7 +348,10 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
+                          icon: Icon(
+                            Icons.delete,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
                           onPressed: () {
                             setState(() {
                               _additionalSessions.removeAt(index);
@@ -422,7 +432,7 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Theme.of(context).primaryColor,
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );

@@ -88,3 +88,10 @@ class ClinicasByPeriodoNotifier
     await future;
   }
 }
+
+final clinicaByIdProvider = FutureProvider.autoDispose.family<Clinica?, int>((
+  ref,
+  idClinica,
+) async {
+  return await ref.watch(clinicasRepositoryProvider).getClinicaById(idClinica);
+});

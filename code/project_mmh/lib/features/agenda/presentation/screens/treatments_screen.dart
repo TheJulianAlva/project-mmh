@@ -24,15 +24,25 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
   int? selectedClinicaId;
   String? selectedPatientId;
   int? selectedPeriodId; // Local filter, defaults to persistent
+  String searchQuery = '';
+
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     if (widget.initialPatientId != null) {
-      selectedPatientId = widget.initialPatientId;
+      searchQuery = widget.initialPatientId!;
+      _searchController.text = searchQuery;
     }
     // Initialize period from persistent state
     selectedPeriodId = ref.read(lastViewedPeriodIdProvider);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -61,6 +71,37 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
         ),
         body: Column(
           children: [
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: 'Buscar por tratamiento, paciente o ID...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon:
+                      searchQuery.isNotEmpty
+                          ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                searchQuery = '';
+                              });
+                              FocusManager.instance.primaryFocus?.unfocus();
+                            },
+                          )
+                          : null,
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                onChanged: (val) {
+                  setState(() {
+                    searchQuery = val.toLowerCase();
+                  });
+                },
+              ),
+            ),
             _buildFilters(context, clinicasAsync, patientsAsync),
             Expanded(
               child: tratamientosAsync.when(
@@ -87,6 +128,22 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
                             .toList();
                   }
 
+                  if (searchQuery.isNotEmpty) {
+                    filtered =
+                        filtered.where((t) {
+                          final query = searchQuery.toLowerCase();
+                          final treatmentName =
+                              t.tratamiento.nombreTratamiento.toLowerCase();
+                          final patientName = t.nombrePaciente.toLowerCase();
+                          final fileId =
+                              t.tratamiento.idExpediente.toLowerCase();
+
+                          return treatmentName.contains(query) ||
+                              patientName.contains(query) ||
+                              fileId.contains(query);
+                        }).toList();
+                  }
+
                   final pending =
                       filtered
                           .where((t) => t.tratamiento.estado != 'concluido')
@@ -110,6 +167,7 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
           ],
         ),
         floatingActionButton: FloatingActionButton(
+          heroTag: null,
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -321,7 +379,7 @@ class _TreatmentCard extends StatelessWidget {
         int.parse(item.colorClinica.replaceAll('#', '0xFF')),
       );
     } catch (_) {
-      clinicaColor = Colors.blue;
+      clinicaColor = Theme.of(context).colorScheme.primary;
     }
 
     final nextSession = item.proximaSesion;
@@ -387,17 +445,24 @@ class _TreatmentCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 item.nombrePaciente,
-                style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                style: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(height: 8),
               const Divider(height: 1),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.calendar_today,
                     size: 14,
-                    color: Colors.grey,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
                   ),
                   const SizedBox(width: 4),
                   if (item.tratamiento.estado == 'concluido')
@@ -421,7 +486,9 @@ class _TreatmentCard extends StatelessWidget {
                                 ? FontWeight.w600
                                 : FontWeight.normal,
                         color:
-                            nextSession != null ? Colors.black87 : Colors.grey,
+                            nextSession != null
+                                ? Theme.of(context).textTheme.bodyLarge?.color
+                                : Theme.of(context).disabledColor,
                       ),
                     ),
                 ],

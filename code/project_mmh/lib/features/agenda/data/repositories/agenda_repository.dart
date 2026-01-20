@@ -208,6 +208,25 @@ class AgendaRepository {
     );
   }
 
+  Future<int> updateSesion(Sesion sesion) async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      'sesiones',
+      sesion.toJson(),
+      where: 'id_sesion = ?',
+      whereArgs: [sesion.idSesion],
+    );
+  }
+
+  Future<int> deleteSesion(int idSesion) async {
+    final db = await _dbHelper.database;
+    return await db.delete(
+      'sesiones',
+      where: 'id_sesion = ?',
+      whereArgs: [idSesion],
+    );
+  }
+
   // --- Support Methods (Objectives, Clinicas) for Dropdowns ---
 
   Future<List<Objetivo>> getObjetivosByClinica(int idClinica) async {

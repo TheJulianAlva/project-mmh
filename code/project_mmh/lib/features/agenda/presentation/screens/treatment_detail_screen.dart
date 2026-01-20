@@ -3,8 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
+import 'package:project_mmh/features/dashboard/presentation/providers/dashboard_providers.dart';
+import 'package:project_mmh/features/clinicas_metas/presentation/providers/objetivos_providers.dart'
+    as objectives_provider;
 
 import 'package:project_mmh/features/agenda/presentation/widgets/treatment_edit_dialog.dart';
+import 'package:project_mmh/features/agenda/presentation/widgets/session_edit_dialog.dart';
+import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
 
 class TreatmentDetailScreen extends ConsumerWidget {
   final int tratamientoId;
@@ -18,6 +23,12 @@ class TreatmentDetailScreen extends ConsumerWidget {
       sesionesByTratamientoProvider(tratamientoId),
     );
     final patientsAsync = ref.watch(patientsProvider);
+
+    // Watch clinic if treatment is loaded
+    final clinicAsync =
+        tratamientoAsync.value != null
+            ? ref.watch(clinicaByIdProvider(tratamientoAsync.value!.idClinica))
+            : const AsyncValue.data(null);
 
     final dateFormat = DateFormat('EEE d MMM yyyy, HH:mm', 'es_ES');
 
@@ -66,11 +77,23 @@ class TreatmentDetailScreen extends ConsumerWidget {
                   context,
                   tratamiento.nombreTratamiento,
                   patientName,
+                  clinicAsync.value?.nombreClinica,
                 ),
                 const SizedBox(height: 16),
                 _buildStatusCard(context, tratamiento.estado),
                 const SizedBox(height: 24),
-                _buildSectionTitle(context, 'Historial de Sesiones'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildSectionTitle(context, 'Historial de Sesiones'),
+                    if (tratamiento.estado != 'concluido')
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: () => _addSesion(context, tratamientoId),
+                        tooltip: 'Agregar Sesión',
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 sesionesAsync.when(
                   data: (sesiones) {
@@ -91,11 +114,15 @@ class TreatmentDetailScreen extends ConsumerWidget {
                           contentPadding: EdgeInsets.zero,
                           leading: CircleAvatar(
                             backgroundColor: _getStatusColor(
+                              context,
                               s.estadoAsistencia,
                             ).withValues(alpha: 0.2),
                             child: Icon(
                               _getStatusIcon(s.estadoAsistencia),
-                              color: _getStatusColor(s.estadoAsistencia),
+                              color: _getStatusColor(
+                                context,
+                                s.estadoAsistencia,
+                              ),
                               size: 20,
                             ),
                           ),
@@ -103,6 +130,39 @@ class TreatmentDetailScreen extends ConsumerWidget {
                           subtitle: Text(
                             '${duration} min • ${s.estadoAsistencia ?? "Programada"}',
                           ),
+                          trailing:
+                              tratamiento.estado != 'concluido'
+                                  ? PopupMenuButton<String>(
+                                    onSelected: (value) {
+                                      if (value == 'edit') {
+                                        _editSesion(context, tratamientoId, s);
+                                      } else if (value == 'delete') {
+                                        _deleteSesion(
+                                          context,
+                                          ref,
+                                          s.idSesion!,
+                                          tratamientoId,
+                                        );
+                                      }
+                                    },
+                                    itemBuilder:
+                                        (context) => [
+                                          const PopupMenuItem(
+                                            value: 'edit',
+                                            child: Text('Editar'),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'delete',
+                                            child: Text(
+                                              'Eliminar',
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                  )
+                                  : null,
                         );
                       },
                     );
@@ -115,12 +175,18 @@ class TreatmentDetailScreen extends ConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => _finalizeTreatment(context, ref),
+                      onPressed:
+                          () => _finalizeTreatment(
+                            context,
+                            ref,
+                            tratamiento.idClinica,
+                          ),
                       icon: const Icon(Icons.check_circle_outline),
                       label: const Text('Finalizar Tratamiento'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                     ),
@@ -171,7 +237,11 @@ class TreatmentDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _finalizeTreatment(BuildContext context, WidgetRef ref) async {
+  void _finalizeTreatment(
+    BuildContext context,
+    WidgetRef ref,
+    int clinicId,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -198,6 +268,12 @@ class TreatmentDetailScreen extends ConsumerWidget {
       await repo.markTreatmentAsFinalized(tratamientoId);
       ref.invalidate(tratamientoByIdProvider(tratamientoId));
       ref.invalidate(allTratamientosRichProvider); // Update list
+
+      // Invalidate the underlying objectives provider to force a refresh from DB
+      ref.invalidate(objectives_provider.objetivosByClinicaProvider(clinicId));
+
+      ref.invalidate(dashboardStatsProvider); // Update Dashboard Goals
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Tratamiento finalizado correctamente')),
@@ -206,15 +282,20 @@ class TreatmentDetailScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildHeader(BuildContext context, String title, String subtitle) {
+  Widget _buildHeader(
+    BuildContext context,
+    String title,
+    String subtitle,
+    String? clinicName,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -224,7 +305,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
             title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).primaryColor,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(height: 8),
@@ -235,6 +316,26 @@ class TreatmentDetailScreen extends ConsumerWidget {
               Text(subtitle, style: const TextStyle(fontSize: 16)),
             ],
           ),
+          if (clinicName != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  Icons.business,
+                  size: 18,
+                  color: Theme.of(context).disabledColor,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  clinicName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).disabledColor,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -247,7 +348,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
     );
   }
 
-  Color _getStatusColor(String? status) {
+  Color _getStatusColor(BuildContext context, String? status) {
     switch (status) {
       case 'concluido':
         return Colors.green;
@@ -256,7 +357,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
       case 'falto':
         return Colors.orange;
       default:
-        return Colors.blue;
+        return Theme.of(context).colorScheme.primary;
     }
   }
 
@@ -296,7 +397,10 @@ class TreatmentDetailScreen extends ConsumerWidget {
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(ctx).colorScheme.error,
+                  foregroundColor: Theme.of(ctx).colorScheme.onError,
+                ),
                 child: const Text(
                   'Eliminar',
                   style: TextStyle(color: Colors.white),
@@ -319,6 +423,66 @@ class TreatmentDetailScreen extends ConsumerWidget {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Tratamiento eliminado')));
+      }
+    }
+  }
+
+  void _addSesion(BuildContext context, int idTratamiento) {
+    showDialog(
+      context: context,
+      builder: (context) => SessionEditDialog(idTratamiento: idTratamiento),
+    );
+  }
+
+  void _editSesion(BuildContext context, int idTratamiento, dynamic sesion) {
+    showDialog(
+      context: context,
+      builder:
+          (context) =>
+              SessionEditDialog(idTratamiento: idTratamiento, sesion: sesion),
+    );
+  }
+
+  void _deleteSesion(
+    BuildContext context,
+    WidgetRef ref,
+    int idSesion,
+    int idTratamiento,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Eliminar Sesión'),
+            content: const Text('¿Estás seguro de eliminar esta sesión?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(ctx).colorScheme.error,
+                  foregroundColor: Theme.of(ctx).colorScheme.onError,
+                ),
+                child: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      final repo = ref.read(agendaRepositoryProvider);
+      await repo.deleteSesion(idSesion);
+      ref.invalidate(sesionesByTratamientoProvider(idTratamiento));
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sesión eliminada')));
       }
     }
   }

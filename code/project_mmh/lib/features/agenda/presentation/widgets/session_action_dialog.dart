@@ -43,17 +43,17 @@ class SessionActionDialog extends ConsumerWidget {
           ElevatedButton(
             onPressed: () => _updateStatus(context, ref, 'concluido'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.secondary,
+              foregroundColor: Theme.of(context).colorScheme.onSecondary,
             ),
             child: const Text('Concluir (Asistió)'),
           ),
         if (sesion.estadoAsistencia != 'cancelo')
           TextButton(
             onPressed: () => _updateStatus(context, ref, 'cancelo'),
-            child: const Text(
+            child: Text(
               'Marcar Cancelado',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
       ],

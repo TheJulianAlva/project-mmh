@@ -60,18 +60,18 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
       appBar: AppBar(
         title: const Text('Agenda y Citas'),
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         actions: [
           IconButton(
-            icon: Icon(Icons.today, color: Theme.of(context).primaryColor),
+            icon: Icon(
+              Icons.today,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             onPressed: () {
               ref.read(selectedDateProvider.notifier).state = DateTime.now();
             },
           ),
         ],
       ),
-      backgroundColor: Colors.white,
       body: Column(
         children: [
           sessionsAsync.when(
@@ -115,16 +115,22 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
                     todayDecoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).primaryColor.withValues(alpha: 0.4),
+                      ).colorScheme.primary.withValues(alpha: 0.4),
                       shape: BoxShape.circle,
                     ),
                     selectedDecoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       shape: BoxShape.circle,
                     ),
-                    markerDecoration: const BoxDecoration(
-                      color: Colors.redAccent,
+                    markerDecoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.error,
                       shape: BoxShape.circle,
+                    ),
+                    defaultTextStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    weekendTextStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -145,6 +151,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -166,17 +173,25 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color:
+            Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow:
+            Theme.of(context).brightness == Brightness.light
+                ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+                : [],
         border: Border(
-          left: BorderSide(color: Theme.of(context).primaryColor, width: 4),
+          left: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 4,
+          ),
         ),
       ),
       child: ListTile(
@@ -201,7 +216,13 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                Icon(
+                  Icons.access_time,
+                  size: 14,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${DateFormat('HH:mm').format(startTime)} - ${DateFormat('HH:mm').format(endTime)} ($durationStr)',
@@ -241,13 +262,13 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
   Color _getStatusColor(String? status) {
     switch (status) {
       case 'concluido':
-        return Colors.green;
+        return Theme.of(context).colorScheme.secondary; // Teal
       case 'cancelo':
-        return Colors.red;
+        return Theme.of(context).colorScheme.error;
       case 'falto':
         return Colors.orange;
       default:
-        return Colors.blue;
+        return Theme.of(context).colorScheme.primary; // Default/Programada
     }
   }
 }

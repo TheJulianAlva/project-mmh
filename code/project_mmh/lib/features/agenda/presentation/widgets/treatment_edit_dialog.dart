@@ -126,13 +126,14 @@ class _TreatmentEditDialogState extends ConsumerState<TreatmentEditDialog> {
                                     'Seleccione "Personalizado" si no aplica',
                               ),
                               items: [
-                                const DropdownMenuItem<int?>(
+                                DropdownMenuItem<int?>(
                                   value: null,
                                   child: Text(
                                     '-- Otro / Personalizado --',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.blue,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
                                 ),
