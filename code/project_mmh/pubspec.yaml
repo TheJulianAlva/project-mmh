@@ -52,11 +52,19 @@ flutter_launcher_icons:
   min_sdk_android: 21
 
 flutter_native_splash:
-  color: "#fc4492"
+  android: true
+  ios: true
+  web: false
+
+  color: "#fc4391"
   image: "lib/assets/klinik-icon.png"
+  branding: "lib/assets/klinik-branding.png"
+
   android_12:
+    color: "#fc4391"
     image: "lib/assets/klinik-icon.png"
-    color: "#fc4492"
+    branding: "lib/assets/klinik-branding.png"
+
 
 flutter:
   uses-material-design: true

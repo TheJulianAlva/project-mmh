@@ -61,12 +61,7 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
                 backgroundColor: Theme.of(
                   context,
                 ).colorScheme.surface.withValues(alpha: 0.9),
-                largeTitle: Text(
-                  'Tratamientos',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
+                largeTitle: const Text('Tratamientos'),
                 trailing: TextButton(
                   onPressed: () {
                     final clinicasState = ref.read(clinicasProvider);
