@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
@@ -94,78 +94,61 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
     final existingPatients = patientsAsync.asData?.value ?? [];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nuevo Paciente'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: _isSaving ? null : _savePatient,
+      body: CustomScrollView(
+        slivers: [
+          CupertinoSliverNavigationBar(
+            largeTitle: const Text('Nuevo Paciente'),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surface.withValues(alpha: 0.9),
+            trailing: TextButton(
+              onPressed: _isSaving ? null : _savePatient,
+              child: const Text(
+                'Guardar',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
           ),
-        ],
-      ),
-      body:
-          _isSaving
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: FormBuilder(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Datos Generales',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+          SliverToBoxAdapter(
+            child:
+                _isSaving
+                    ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: CircularProgressIndicator(),
                       ),
-                      const SizedBox(height: 10),
-                      FormBuilderTextField(
-                        name: 'id_expediente',
-                        decoration: const InputDecoration(
-                          labelText: 'No. Expediente *',
-                        ),
-                        maxLength: 15,
-                        validator: (val) {
-                          if (val == null || val.isEmpty) {
-                            return 'Requerido';
-                          }
-                          if (existingPatients.any(
-                            (p) => p.idExpediente == val,
-                          )) {
-                            return 'El ID ya existe';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      FormBuilderTextField(
-                        name: 'nombre',
-                        decoration: const InputDecoration(
-                          labelText: 'Nombre(s) *',
-                        ),
-                        maxLength: 20,
-                        validator: (val) {
-                          if (val == null || val.isEmpty) {
-                            return 'Requerido';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FormBuilderTextField(
-                              name: 'primer_apellido',
-                              decoration: const InputDecoration(
-                                labelText: 'Primer Apellido *',
+                    )
+                    : Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: FormBuilder(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionTitle('Datos Generales'),
+                            const SizedBox(height: 12),
+                            FormBuilderTextField(
+                              name: 'id_expediente',
+                              decoration: _getInputDecoration(
+                                'No. Expediente *',
                               ),
+                              maxLength: 15,
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return 'Requerido';
+                                }
+                                if (existingPatients.any(
+                                  (p) => p.idExpediente == val,
+                                )) {
+                                  return 'El ID ya existe';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            FormBuilderTextField(
+                              name: 'nombre',
+                              decoration: _getInputDecoration('Nombre(s) *'),
                               maxLength: 20,
                               validator: (val) {
                                 if (val == null || val.isEmpty) {
@@ -174,207 +157,283 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                                 return null;
                               },
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: FormBuilderTextField(
-                              name: 'segundo_apellido',
-                              decoration: const InputDecoration(
-                                labelText: 'Segundo Apellido',
-                              ),
-                              maxLength: 20,
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: FormBuilderTextField(
+                                    name: 'primer_apellido',
+                                    decoration: _getInputDecoration(
+                                      'Primer Apellido *',
+                                    ),
+                                    maxLength: 20,
+                                    validator: (val) {
+                                      if (val == null || val.isEmpty) {
+                                        return 'Requerido';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: FormBuilderTextField(
+                                    name: 'segundo_apellido',
+                                    decoration: _getInputDecoration(
+                                      'Segundo Apellido',
+                                    ),
+                                    maxLength: 20,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FormBuilderTextField(
-                              name: 'edad',
-                              decoration: const InputDecoration(
-                                labelText: 'Edad *',
-                              ),
-                              keyboardType: TextInputType.number,
+                            const SizedBox(height: 10),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: FormBuilderTextField(
+                                    name: 'edad',
+                                    decoration: _getInputDecoration('Edad *'),
+                                    keyboardType: TextInputType.number,
+                                    validator: FormBuilderValidators.compose([
+                                      (val) {
+                                        if (val == null || val.isEmpty) {
+                                          return 'Requerido';
+                                        }
+                                        return null;
+                                      },
+                                      FormBuilderValidators.integer(
+                                        errorText: 'Debe ser un número entero',
+                                      ),
+                                      FormBuilderValidators.min(
+                                        1,
+                                        errorText: 'Edad no válida',
+                                      ),
+                                      FormBuilderValidators.max(
+                                        100,
+                                        errorText: 'Edad no válida',
+                                      ),
+                                    ]),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Builder(
+                                    builder: (context) {
+                                      const options = [
+                                        'Masculino',
+                                        'Femenino',
+                                        'Otro',
+                                      ];
+                                      return FormBuilderDropdown<String>(
+                                        name: 'sexo',
+                                        decoration: _getInputDecoration(
+                                          'Sexo *',
+                                        ),
+                                        validator: (val) {
+                                          if (val == null || val.isEmpty) {
+                                            return 'Requerido';
+                                          }
+                                          return null;
+                                        },
+                                        items:
+                                            options
+                                                .map(
+                                                  (gender) => DropdownMenuItem(
+                                                    value: gender,
+                                                    child: Text(gender),
+                                                  ),
+                                                )
+                                                .toList(),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            FormBuilderTextField(
+                              name: 'telefono',
+                              decoration: _getInputDecoration('Teléfono'),
+                              maxLength: 10,
+                              keyboardType: TextInputType.phone,
                               validator: FormBuilderValidators.compose([
-                                (val) {
-                                  if (val == null || val.isEmpty) {
-                                    return 'Requerido';
-                                  }
-                                  return null;
-                                },
-                                FormBuilderValidators.integer(
-                                  errorText: 'Debe ser un número entero',
+                                FormBuilderValidators.match(
+                                  RegExp(r'^\d*$'),
+                                  errorText: 'Solo números permitidos',
                                 ),
-                                FormBuilderValidators.min(
-                                  1,
-                                  errorText: 'Edad no válida',
-                                ),
-                                FormBuilderValidators.max(
-                                  100,
-                                  errorText: 'Edad no válida',
+                                FormBuilderValidators.maxLength(
+                                  10,
+                                  errorText: 'Máximo 10 dígitos',
                                 ),
                               ]),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: FormBuilderDropdown<String>(
-                              name: 'sexo',
-                              decoration: const InputDecoration(
-                                labelText: 'Sexo *',
+                            const SizedBox(height: 24),
+                            _buildSectionTitle('Información Médica'),
+                            const SizedBox(height: 12),
+                            FormBuilderTextField(
+                              name: 'padecimiento_relevante',
+                              decoration: _getInputDecoration(
+                                'Padecimiento (Breve)',
                               ),
-                              validator: (val) {
-                                if (val == null || val.isEmpty) {
-                                  return 'Requerido';
-                                }
-                                return null;
-                              },
-                              items:
-                                  ['Masculino', 'Femenino', 'Otro']
-                                      .map(
-                                        (gender) => DropdownMenuItem(
-                                          value: gender,
-                                          child: Text(gender),
-                                        ),
-                                      )
-                                      .toList(),
+                              maxLength: 30,
+                              maxLines: 1,
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      FormBuilderTextField(
-                        name: 'telefono',
-                        decoration: const InputDecoration(
-                          labelText: 'Teléfono',
-                        ),
-                        maxLength: 10,
-                        keyboardType: TextInputType.phone,
-                        validator: FormBuilderValidators.compose([
-                          FormBuilderValidators.match(
-                            RegExp(r'^\d*$'),
-                            errorText: 'Solo números permitidos',
-                          ),
-                          FormBuilderValidators.maxLength(
-                            10,
-                            errorText: 'Máximo 10 dígitos',
-                          ),
-                        ]),
-                      ),
-                      const SizedBox(height: 20),
-
-                      const Text(
-                        'Información Médica',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      FormBuilderTextField(
-                        name: 'padecimiento_relevante',
-                        decoration: const InputDecoration(
-                          labelText: 'Padecimiento Relevante (Breve)',
-                        ),
-                        maxLength: 30,
-                        maxLines: 1,
-                      ),
-                      const SizedBox(height: 10),
-                      FormBuilderTextField(
-                        name: 'informacion_adicional',
-                        decoration: const InputDecoration(
-                          labelText: 'Información Adicional (Detallada)',
-                        ),
-                        maxLines: 5,
-                        minLines: 3,
-                      ),
-                      const SizedBox(height: 20),
-
-                      const Text(
-                        'Fotografías',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: () => _pickImage(ImageSource.camera),
-                            icon: const Icon(Icons.camera_alt),
-                            label: const Text('Cámara'),
-                          ),
-                          const SizedBox(width: 10),
-                          ElevatedButton.icon(
-                            onPressed: () => _pickImage(ImageSource.gallery),
-                            icon: const Icon(Icons.photo_library),
-                            label: const Text('Galería'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      if (_selectedImages.isNotEmpty)
-                        SizedBox(
-                          height: 120,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _selectedImages.length,
-                            itemBuilder: (context, index) {
-                              return Stack(
-                                children: [
-                                  Container(
-                                    margin: const EdgeInsets.only(right: 10),
-                                    width: 100,
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Theme.of(context).dividerColor,
-                                      ),
-                                      image: DecorationImage(
-                                        image: FileImage(
-                                          File(_selectedImages[index].path),
-                                        ),
-                                        fit: BoxFit.cover,
+                            const SizedBox(height: 12),
+                            FormBuilderTextField(
+                              name: 'informacion_adicional',
+                              decoration: _getInputDecoration(
+                                'Información Detallada',
+                              ),
+                              maxLines: 5,
+                              minLines: 3,
+                            ),
+                            const SizedBox(height: 24),
+                            _buildSectionTitle('Fotografías'),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed:
+                                        () => _pickImage(ImageSource.camera),
+                                    icon: const Icon(
+                                      Icons.camera_alt,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Cámara'),
+                                    style: OutlinedButton.styleFrom(
+                                      shape: const StadiumBorder(),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
                                       ),
                                     ),
                                   ),
-                                  Positioned(
-                                    right: 0,
-                                    top: 0,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedImages.removeAt(index);
-                                        });
-                                      },
-                                      child: Container(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .error
-                                            .withValues(alpha: 0.8),
-                                        child: Icon(
-                                          Icons.close,
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.onError,
-                                          size: 20,
-                                        ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed:
+                                        () => _pickImage(ImageSource.gallery),
+                                    icon: const Icon(
+                                      Icons.photo_library,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Galería'),
+                                    style: OutlinedButton.styleFrom(
+                                      shape: const StadiumBorder(),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
                                       ),
                                     ),
                                   ),
-                                ],
-                              );
-                            },
-                          ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            if (_selectedImages.isNotEmpty)
+                              SizedBox(
+                                height: 120,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: _selectedImages.length,
+                                  itemBuilder: (context, index) {
+                                    return Stack(
+                                      children: [
+                                        Container(
+                                          margin: const EdgeInsets.only(
+                                            right: 10,
+                                          ),
+                                          width: 100,
+                                          height: 100,
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).dividerColor,
+                                            ),
+                                            image: DecorationImage(
+                                              image: FileImage(
+                                                File(
+                                                  _selectedImages[index].path,
+                                                ),
+                                              ),
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          right: 0,
+                                          top: 0,
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedImages.removeAt(index);
+                                              });
+                                            },
+                                            child: Container(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .error
+                                                  .withValues(alpha: 0.8),
+                                              child: Icon(
+                                                Icons.close,
+                                                color:
+                                                    Theme.of(
+                                                      context,
+                                                    ).colorScheme.onError,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
                         ),
-                    ],
-                  ),
-                ),
-              ),
+                      ),
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _getInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Theme.of(context).colorScheme.surface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context).colorScheme.primary,
+        letterSpacing: 0.5,
+      ),
     );
   }
 }

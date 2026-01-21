@@ -19,7 +19,7 @@ class ColorPickerField extends StatelessWidget {
   Widget build(BuildContext context) {
     return FormBuilderField<String>(
       name: name,
-      initialValue: initialValue ?? '#2196F3',
+      initialValue: initialValue ?? '#007AFF',
       builder: (FormFieldState<String> field) {
         Color currentColor = _hexToColor(field.value);
 
@@ -69,7 +69,7 @@ class ColorPickerField extends StatelessWidget {
   }
 
   Color _hexToColor(String? hex) {
-    if (hex == null || hex.isEmpty) return Colors.blue;
+    if (hex == null || hex.isEmpty) return const Color(0xFF007AFF);
     try {
       String cleanHex = hex
           .replaceAll('#', '')

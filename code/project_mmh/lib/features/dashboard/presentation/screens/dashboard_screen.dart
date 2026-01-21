@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import 'package:project_mmh/features/core/presentation/providers/preferences_pro
 import 'package:project_mmh/core/database/data_seeder.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
+import 'package:project_mmh/features/clinicas_metas/domain/periodo.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -21,214 +23,232 @@ class DashboardScreen extends ConsumerWidget {
     final selectedClinicId = ref.watch(activeClinicIdProvider); // Global
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Panel Principal'),
-        actions: [
+      body: CustomScrollView(
+        slivers: [
+          CupertinoSliverNavigationBar(
+            largeTitle: const Text('Inicio'),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surface.withValues(alpha: 0.9),
+            trailing: PopupMenuButton<String>(
+              onSelected: (value) async {
+                if (value == 'seed') {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Generando datos de prueba...'),
+                    ),
+                  );
+                  try {
+                    await DataSeeder().seedAll();
+                    ref.invalidate(periodosProvider);
+                    ref.invalidate(dashboardStatsProvider);
+                    ref.invalidate(patientsProvider);
+                    ref.invalidate(allTratamientosRichProvider);
+                    ref.invalidate(allSesionesProvider);
+
+                    if (selectedPeriodId != null) {
+                      ref.invalidate(
+                        clinicasByPeriodoProvider(selectedPeriodId),
+                      );
+                    }
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Datos generados correctamente'),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                    }
+                  }
+                }
+              },
+              itemBuilder:
+                  (context) => [
+                    const PopupMenuItem(
+                      value: 'seed',
+                      child: Row(
+                        children: [
+                          Icon(Icons.science, color: Colors.grey),
+                          SizedBox(width: 8),
+                          Text('Generar Datos de Prueba'),
+                        ],
+                      ),
+                    ),
+                  ],
+            ),
+          ),
           periodosAsync.when(
             data: (periodos) {
-              if (periodos.isEmpty) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: Container(
-                  width: 150, // Fixed width to prevent overflow
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
-                      isExpanded: true,
-                      value: selectedPeriodId,
-                      hint: Text(
-                        'Periodo',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 14,
+              if (periodos.isEmpty) {
+                return SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('No hay periodos configurados.'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed:
+                              () => context.go('/settings/clinicas-metas'),
+                          child: const Text('Configurar Clínicas'),
                         ),
-                      ),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      onChanged: (val) {
-                        ref
-                            .read(lastViewedPeriodIdProvider.notifier)
-                            .setPeriod(val);
-                        ref.read(activeClinicIdProvider.notifier).state = null;
-                      },
-                      items:
-                          periodos
-                              .map(
-                                (p) => DropdownMenuItem(
-                                  value: p.idPeriodo,
-                                  child: Text(
-                                    p.nombrePeriodo,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                      ],
                     ),
+                  ),
+                );
+              }
+
+              // Validate if selectedPeriodId exists in the list
+              int? validPeriodId = selectedPeriodId;
+              if (validPeriodId != null &&
+                  !periodos.any((p) => p.idPeriodo == validPeriodId)) {
+                validPeriodId = null;
+              }
+
+              // Auto-select first period if none selected or invalid
+              if (validPeriodId == null && periodos.isNotEmpty) {
+                Future.microtask(() {
+                  ref
+                      .read(lastViewedPeriodIdProvider.notifier)
+                      .setPeriod(periodos.first.idPeriodo);
+                });
+              }
+
+              return SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Period Selector
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Periodo Actual',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          _PeriodSelectorTrigger(
+                            periodos: periodos,
+                            selectedPeriodId: validPeriodId,
+                            onTap:
+                                () => _showPeriodPicker(
+                                  context,
+                                  ref,
+                                  periodos,
+                                  validPeriodId,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Clinics Horizontal List
+                      Text(
+                        'Mis Clínicas',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 12),
+                      _ClinicsHorizontalList(periodId: validPeriodId),
+                      const SizedBox(height: 24),
+
+                      // Content
+                      if (selectedClinicId == null)
+                        const Center(
+                          child: Text(
+                            'Selecciona una clínica para ver el progreso.',
+                          ),
+                        )
+                      else
+                        const _DashboardStats(),
+
+                      const SizedBox(height: 24),
+
+                      // Quick Actions
+                      Text(
+                        'Accesos Directos',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _ActionButton(
+                            icon: Icons.person_add,
+                            label: 'Nuevo Paciente',
+                            onPressed: () {
+                              context.push('/patient-create');
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          _ActionButton(
+                            icon: Icons.medical_services,
+                            label: 'Agregar Tratamiento',
+                            overflow: true,
+                            onPressed: () {
+                              final clinicasState = ref.read(clinicasProvider);
+
+                              clinicasState.when(
+                                data: (clinicas) {
+                                  if (clinicas.isEmpty) {
+                                    showDialog(
+                                      context: context,
+                                      builder:
+                                          (context) => AlertDialog(
+                                            title: const Text('Sin Clínicas'),
+                                            content: const Text(
+                                              'No se pueden crear tratamientos sin clínicas registradas. Por favor, registre una clínica primero en Configuración.',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed:
+                                                    () =>
+                                                        Navigator.pop(context),
+                                                child: const Text('OK'),
+                                              ),
+                                            ],
+                                          ),
+                                    );
+                                  } else {
+                                    context.push('/treatment-create');
+                                  }
+                                },
+                                loading:
+                                    () => context.push('/treatment-create'),
+                                error:
+                                    (_, __) =>
+                                        context.push('/treatment-create'),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      // Add extra padding at the bottom for better scrolling
+                      const SizedBox(height: 48),
+                    ],
                   ),
                 ),
               );
             },
-            loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              if (value == 'seed') {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Generando datos de prueba...')),
-                );
-                try {
-                  // Lazy import/instantiate to avoid circular deps if possible or just standard import
-                  // Assuming DataSeeder is available
-                  await DataSeeder().seedAll();
-                  // Re-read providers to refresh UI
-                  ref.invalidate(periodosProvider);
-                  ref.invalidate(dashboardStatsProvider);
-                  // Refresh other lists
-                  ref.invalidate(patientsProvider); // Fix for missing patients
-                  ref.invalidate(allTratamientosRichProvider);
-                  ref.invalidate(allSesionesProvider);
-
-                  // Verify if we need to invalidate clinics as well
-                  if (selectedPeriodId != null) {
-                    ref.invalidate(clinicasByPeriodoProvider(selectedPeriodId));
-                  }
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Datos generados correctamente'),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                  }
-                }
-              }
-            },
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(
-                    value: 'seed',
-                    child: Row(
-                      children: [
-                        Icon(Icons.science, color: Colors.grey),
-                        SizedBox(width: 8),
-                        Text('Generar Datos de Prueba'),
-                      ],
-                    ),
-                  ),
-                ],
+            loading:
+                () => const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+            error:
+                (e, s) => SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: Text('Error: $e')),
+                ),
           ),
         ],
-      ),
-      body: periodosAsync.when(
-        data: (periodos) {
-          if (periodos.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('No hay periodos configurados.'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => context.go('/clinicas-metas'),
-                    child: const Text('Configurar Clínicas'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          // Auto-select first period if none selected
-          if (selectedPeriodId == null && periodos.isNotEmpty) {
-            Future.microtask(() {
-              ref
-                  .read(lastViewedPeriodIdProvider.notifier)
-                  .setPeriod(periodos.first.idPeriodo);
-            });
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Period dropdown moved to AppBar
-
-                // Clinics Horizontal List
-                const Text(
-                  'Mis Clínicas',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                _ClinicsHorizontalList(periodId: selectedPeriodId),
-                const SizedBox(height: 24),
-
-                // Content
-                if (selectedClinicId == null)
-                  const Center(
-                    child: Text('Selecciona una clínica para ver el progreso.'),
-                  )
-                else
-                  const _DashboardStats(),
-
-                const SizedBox(height: 24),
-
-                // Quick Actions
-                const Text(
-                  'Accesos Directos',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _ActionButton(
-                      icon: Icons.person_add,
-                      label: 'Nuevo Paciente',
-                      onPressed: () {
-                        context.push('/pacientes/nuevo');
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _ActionButton(
-                      icon: Icons.medical_services,
-                      label: 'Agregar Tratamiento',
-                      overflow: true,
-                      onPressed: () {
-                        // Navigate to Treatments -> New
-                        context.push('/tratamientos/new');
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Error: $e')),
       ),
     );
   }
@@ -261,7 +281,7 @@ class _ClinicsHorizontalList extends ConsumerWidget {
                 children: [
                   const Text('No hay clínicas en este periodo'),
                   TextButton(
-                    onPressed: () => context.go('/clinicas-metas'),
+                    onPressed: () => context.go('/settings/clinicas-metas'),
                     child: const Text('Agregar Clínica'),
                   ),
                 ],
@@ -270,8 +290,13 @@ class _ClinicsHorizontalList extends ConsumerWidget {
           );
         }
 
-        // Auto-select first clinic if available and none selected
-        if (selectedClinicId == null && clinicas.isNotEmpty) {
+        // Check if selected clinic still exists
+        final isSelectedValid =
+            selectedClinicId != null &&
+            clinicas.any((c) => c.idClinica == selectedClinicId);
+
+        // Auto-select first clinic if available and (none selected OR selected is invalid)
+        if (!isSelectedValid && clinicas.isNotEmpty) {
           // Avoid immediate state change during build
           Future.microtask(() {
             ref.read(activeClinicIdProvider.notifier).state =
@@ -280,7 +305,7 @@ class _ClinicsHorizontalList extends ConsumerWidget {
         }
 
         return SizedBox(
-          height: 110, // Fixed height for cards
+          height: 160, // Fixed height for cards
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: clinicas.length,
@@ -322,33 +347,24 @@ class _ClinicsHorizontalList extends ConsumerWidget {
                       clinica.idClinica;
                 },
                 child: Container(
-                  width: 140,
+                  width: 180,
                   decoration: BoxDecoration(
                     color:
                         isSelected
                             ? clinicColor
-                            : Theme.of(context).cardTheme.color ??
-                                Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(12),
+                            : Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color:
                           isSelected
                               ? clinicColor
-                              : Theme.of(context).dividerColor,
-                      width: 2,
+                              : Theme.of(
+                                context,
+                              ).dividerColor.withValues(alpha: 0.1),
+                      width: 1.5,
                     ),
-                    boxShadow:
-                        isSelected
-                            ? [
-                              BoxShadow(
-                                color: clinicColor.withValues(alpha: 0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                            : [],
                   ),
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -366,13 +382,9 @@ class _ClinicsHorizontalList extends ConsumerWidget {
                       const Spacer(),
                       Text(
                         clinica.nombreClinica,
-                        style: TextStyle(
-                          color:
-                              isSelected
-                                  ? Colors.white
-                                  : Theme.of(context).colorScheme.onSurface,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: isSelected ? Colors.white : null,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -423,13 +435,13 @@ class _DashboardStats extends ConsumerWidget {
         return Card(
           elevation: 2,
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Progreso de Metas',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 16),
                 ...objetivos.map((obj) {
@@ -451,9 +463,8 @@ class _DashboardStats extends ConsumerWidget {
                             Text(obj.nombreTratamiento),
                             Text(
                               '${obj.cantidadActual} / ${obj.cantidadMeta}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -547,6 +558,156 @@ class _DashboardStats extends ConsumerWidget {
   }
 }
 
+void _showPeriodPicker(
+  BuildContext context,
+  WidgetRef ref,
+  List<Periodo> periodos,
+  int? currentId,
+) {
+  int initialIndex = periodos.indexWhere((p) => p.idPeriodo == currentId);
+  if (initialIndex == -1) initialIndex = 0;
+
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder:
+        (context) => Container(
+          height: 320,
+          padding: const EdgeInsets.only(top: 12),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Periodo Académico',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Listo',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 24),
+              Expanded(
+                child: CupertinoPicker(
+                  scrollController: FixedExtentScrollController(
+                    initialItem: initialIndex,
+                  ),
+                  itemExtent: 44,
+                  magnification: 1.1,
+                  useMagnifier: true,
+                  onSelectedItemChanged: (index) {
+                    ref
+                        .read(lastViewedPeriodIdProvider.notifier)
+                        .setPeriod(periodos[index].idPeriodo);
+                    ref.read(activeClinicIdProvider.notifier).state = null;
+                  },
+                  children:
+                      periodos
+                          .map(
+                            (p) => Center(
+                              child: Text(
+                                p.nombrePeriodo,
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+  );
+}
+
+class _PeriodSelectorTrigger extends StatelessWidget {
+  final List<Periodo> periodos;
+  final int? selectedPeriodId;
+  final VoidCallback onTap;
+
+  const _PeriodSelectorTrigger({
+    required this.periodos,
+    this.selectedPeriodId,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Periodo? selectedPeriod;
+
+    if (periodos.isNotEmpty) {
+      try {
+        selectedPeriod = periodos.firstWhere(
+          (p) => p.idPeriodo == selectedPeriodId,
+        );
+      } catch (_) {
+        selectedPeriod = periodos.first;
+      }
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.15),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              selectedPeriod?.nombrePeriodo ?? 'Seleccionar',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -565,6 +726,13 @@ class _ActionButton extends StatelessWidget {
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+          ),
+        ),
       ),
       onPressed: onPressed,
       icon: Icon(icon),

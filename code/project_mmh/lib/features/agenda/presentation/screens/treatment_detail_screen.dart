@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +8,7 @@ import 'package:project_mmh/features/dashboard/presentation/providers/dashboard_
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/objetivos_providers.dart'
     as objectives_provider;
 
+import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/treatment_edit_dialog.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_edit_dialog.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
@@ -33,170 +35,205 @@ class TreatmentDetailScreen extends ConsumerWidget {
     final dateFormat = DateFormat('EEE d MMM yyyy, HH:mm', 'es_ES');
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalle del Tratamiento'),
-        actions: [
-          if (tratamientoAsync.value?.estado != 'concluido') ...[
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () => _editTreatment(context, tratamientoAsync.value!),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () => _deleteTreatment(context, ref, tratamientoId),
-            ),
-          ],
-        ],
-      ),
-      body: tratamientoAsync.when(
-        data: (tratamiento) {
-          if (tratamiento == null)
-            return const Center(child: Text('Tratamiento no encontrado'));
-
-          // Find patient name
-          String patientName = 'Cargando...';
-          if (patientsAsync.hasValue && patientsAsync.value != null) {
-            try {
-              final p = patientsAsync.value!.firstWhere(
-                (p) => p.idExpediente == tratamiento.idExpediente,
-              );
-              patientName =
-                  '${p.nombre} ${p.primerApellido} (${p.idExpediente})';
-            } catch (e) {
-              patientName =
-                  'Paciente no encontrado (${tratamiento.idExpediente})';
-            }
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(
-                  context,
-                  tratamiento.nombreTratamiento,
-                  patientName,
-                  clinicAsync.value?.nombreClinica,
-                ),
-                const SizedBox(height: 16),
-                _buildStatusCard(context, tratamiento.estado),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildSectionTitle(context, 'Historial de Sesiones'),
-                    if (tratamiento.estado != 'concluido')
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline),
-                        onPressed: () => _addSesion(context, tratamientoId),
-                        tooltip: 'Agregar Sesión',
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                sesionesAsync.when(
-                  data: (sesiones) {
-                    if (sesiones.isEmpty)
-                      return const Text('No hay sesiones registradas.');
-                    return ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: sesiones.length,
-                      separatorBuilder: (_, __) => const Divider(),
-                      itemBuilder: (context, index) {
-                        final s = sesiones[index];
-                        final start = DateTime.parse(s.fechaInicio);
-                        final end = DateTime.parse(s.fechaFin);
-                        final duration = end.difference(start).inMinutes;
-
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(
-                            backgroundColor: _getStatusColor(
-                              context,
-                              s.estadoAsistencia,
-                            ).withValues(alpha: 0.2),
-                            child: Icon(
-                              _getStatusIcon(s.estadoAsistencia),
-                              color: _getStatusColor(
-                                context,
-                                s.estadoAsistencia,
-                              ),
-                              size: 20,
-                            ),
-                          ),
-                          title: Text(dateFormat.format(start)),
-                          subtitle: Text(
-                            '${duration} min • ${s.estadoAsistencia ?? "Programada"}',
-                          ),
-                          trailing:
-                              tratamiento.estado != 'concluido'
-                                  ? PopupMenuButton<String>(
-                                    onSelected: (value) {
-                                      if (value == 'edit') {
-                                        _editSesion(context, tratamientoId, s);
-                                      } else if (value == 'delete') {
-                                        _deleteSesion(
-                                          context,
-                                          ref,
-                                          s.idSesion!,
-                                          tratamientoId,
-                                        );
-                                      }
-                                    },
-                                    itemBuilder:
-                                        (context) => [
-                                          const PopupMenuItem(
-                                            value: 'edit',
-                                            child: Text('Editar'),
-                                          ),
-                                          const PopupMenuItem(
-                                            value: 'delete',
-                                            child: Text(
-                                              'Eliminar',
-                                              style: TextStyle(
-                                                color: Colors.red,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                  )
-                                  : null,
-                        );
-                      },
-                    );
-                  },
-                  loading: () => const LinearProgressIndicator(),
-                  error: (e, _) => Text('Error al cargar sesiones: $e'),
-                ),
-                const SizedBox(height: 32),
-                if (tratamiento.estado != 'concluido')
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
+      body: CustomScrollView(
+        slivers: [
+          CupertinoSliverNavigationBar(
+            largeTitle: const Text('Detalle'),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surface.withValues(alpha: 0.9),
+            trailing:
+                tratamientoAsync.value != null &&
+                        tratamientoAsync.value?.estado != 'concluido'
+                    ? TextButton(
                       onPressed:
-                          () => _finalizeTreatment(
-                            context,
-                            ref,
-                            tratamiento.idClinica,
-                          ),
-                      icon: const Icon(Icons.check_circle_outline),
-                      label: const Text('Finalizar Tratamiento'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                          () =>
+                              _editTreatment(context, tratamientoAsync.value!),
+                      child: const Text(
+                        'Editar',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
+                    )
+                    : null,
+          ),
+          SliverToBoxAdapter(
+            child: tratamientoAsync.when(
+              data: (tratamiento) {
+                if (tratamiento == null)
+                  return const Center(child: Text('Tratamiento no encontrado'));
+
+                // Find patient name
+                String patientName = 'Cargando...';
+                if (patientsAsync.hasValue && patientsAsync.value != null) {
+                  try {
+                    final p = patientsAsync.value!.firstWhere(
+                      (p) => p.idExpediente == tratamiento.idExpediente,
+                    );
+                    patientName =
+                        '${p.nombre} ${p.primerApellido} (${p.idExpediente})';
+                  } catch (e) {
+                    patientName =
+                        'Paciente no encontrado (${tratamiento.idExpediente})';
+                  }
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(
+                        context,
+                        tratamiento.nombreTratamiento,
+                        patientName,
+                        clinicAsync.value?.nombreClinica,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildStatusCard(context, tratamiento.estado),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildSectionTitle(context, 'Historial de Sesiones'),
+                          if (tratamiento.estado != 'concluido')
+                            TextButton(
+                              onPressed:
+                                  () => _addSesion(context, tratamientoId),
+                              child: const Text('Añadir Sesión'),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      sesionesAsync.when(
+                        data: (sesiones) {
+                          if (sesiones.isEmpty)
+                            return const Text('No hay sesiones registradas.');
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            padding: EdgeInsets.zero,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: sesiones.length,
+                            separatorBuilder:
+                                (_, __) => Divider(
+                                  height: 1,
+                                  color: Theme.of(
+                                    context,
+                                  ).dividerColor.withValues(alpha: 0.1),
+                                ),
+                            itemBuilder: (context, index) {
+                              final s = sesiones[index];
+                              final start = DateTime.parse(s.fechaInicio);
+                              final end = DateTime.parse(s.fechaFin);
+                              final duration = end.difference(start).inMinutes;
+
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: _getStatusColor(
+                                      context,
+                                      s.estadoAsistencia,
+                                    ).withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    _getStatusIcon(s.estadoAsistencia),
+                                    color: _getStatusColor(
+                                      context,
+                                      s.estadoAsistencia,
+                                    ),
+                                    size: 18,
+                                  ),
+                                ),
+                                title: Text(
+                                  dateFormat.format(start),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${duration} min • ${s.estadoAsistencia ?? "Programada"}',
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall?.color,
+                                  ),
+                                ),
+                                trailing:
+                                    tratamiento.estado != 'concluido'
+                                        ? IconButton(
+                                          icon: const Icon(Icons.more_horiz),
+                                          onPressed:
+                                              () => _showSessionOptions(
+                                                context,
+                                                ref,
+                                                s,
+                                                tratamientoId,
+                                              ),
+                                        )
+                                        : null,
+                              );
+                            },
+                          );
+                        },
+                        loading: () => const LinearProgressIndicator(),
+                        error: (e, _) => Text('Error al cargar sesiones: $e'),
+                      ),
+                      const SizedBox(height: 32),
+                      if (tratamiento.estado != 'concluido')
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed:
+                                () => _finalizeTreatment(
+                                  context,
+                                  ref,
+                                  tratamiento.idClinica,
+                                ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: const StadiumBorder(),
+                              side: BorderSide(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: const Text('Finalizar Tratamiento'),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      if (tratamiento.estado != 'concluido')
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed:
+                                () => _deleteTreatment(
+                                  context,
+                                  ref,
+                                  tratamientoId,
+                                ),
+                            style: TextButton.styleFrom(
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.error,
+                            ),
+                            child: const Text('Eliminar Tratamiento'),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+          ),
+        ],
       ),
     );
   }
@@ -217,20 +254,24 @@ class TreatmentDetailScreen extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: ShapeDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        shape: const StadiumBorder(),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 8),
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
           Text(
-            text,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+            text.toUpperCase(),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+              letterSpacing: 0.5,
+            ),
           ),
         ],
       ),
@@ -290,52 +331,59 @@ class TreatmentDetailScreen extends ConsumerWidget {
   ) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-        ),
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
+              letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.person, size: 18),
-              const SizedBox(width: 8),
-              Text(subtitle, style: const TextStyle(fontSize: 16)),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.person_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (clinicName != null)
+                      Text(
+                        clinicName,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).disabledColor,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
-          if (clinicName != null) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(
-                  Icons.business,
-                  size: 18,
-                  color: Theme.of(context).disabledColor,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  clinicName,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).disabledColor,
-                  ),
-                ),
-              ],
-            ),
-          ],
+          const SizedBox(height: 8),
+          Divider(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
         ],
       ),
     );
@@ -375,9 +423,9 @@ class TreatmentDetailScreen extends ConsumerWidget {
   }
 
   void _editTreatment(BuildContext context, dynamic tratamiento) {
-    showDialog(
+    showCustomBottomSheet(
       context: context,
-      builder: (context) => TreatmentEditDialog(tratamiento: tratamiento),
+      child: TreatmentEditSheet(tratamiento: tratamiento),
     );
   }
 
@@ -428,18 +476,16 @@ class TreatmentDetailScreen extends ConsumerWidget {
   }
 
   void _addSesion(BuildContext context, int idTratamiento) {
-    showDialog(
+    showCustomBottomSheet(
       context: context,
-      builder: (context) => SessionEditDialog(idTratamiento: idTratamiento),
+      child: SessionEditSheet(idTratamiento: idTratamiento),
     );
   }
 
   void _editSesion(BuildContext context, int idTratamiento, dynamic sesion) {
-    showDialog(
+    showCustomBottomSheet(
       context: context,
-      builder:
-          (context) =>
-              SessionEditDialog(idTratamiento: idTratamiento, sesion: sesion),
+      child: SessionEditSheet(idTratamiento: idTratamiento, sesion: sesion),
     );
   }
 
@@ -485,5 +531,41 @@ class TreatmentDetailScreen extends ConsumerWidget {
         ).showSnackBar(const SnackBar(content: Text('Sesión eliminada')));
       }
     }
+  }
+
+  void _showSessionOptions(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic sesion,
+    int idTratamiento,
+  ) {
+    showCupertinoModalPopup(
+      context: context,
+      builder:
+          (ctx) => CupertinoActionSheet(
+            title: const Text('Sesión'),
+            actions: [
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _editSesion(context, idTratamiento, sesion);
+                },
+                child: const Text('Editar'),
+              ),
+              CupertinoActionSheetAction(
+                isDestructiveAction: true,
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _deleteSesion(context, ref, sesion.idSesion!, idTratamiento);
+                },
+                child: const Text('Eliminar'),
+              ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+          ),
+    );
   }
 }

@@ -1,16 +1,14 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
-import 'package:project_mmh/features/agenda/presentation/screens/treatment_detail_screen.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
-
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
-
-import 'package:project_mmh/features/agenda/presentation/widgets/appointment_form.dart';
 
 class TreatmentsScreen extends ConsumerStatefulWidget {
   final String? initialPatientId;
@@ -22,7 +20,6 @@ class TreatmentsScreen extends ConsumerStatefulWidget {
 
 class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
   int? selectedClinicaId;
-  String? selectedPatientId;
   int? selectedPeriodId; // Local filter, defaults to persistent
   String searchQuery = '';
 
@@ -57,125 +54,157 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Tratamientos'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () => ref.invalidate(allTratamientosRichProvider),
-            ),
-          ],
-          bottom: const TabBar(
-            tabs: [Tab(text: 'Pendientes'), Tab(text: 'Concluidos')],
-          ),
-        ),
-        body: Column(
-          children: [
-            // Search Bar
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  labelText: 'Buscar por tratamiento, paciente o ID...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon:
-                      searchQuery.isNotEmpty
-                          ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                searchQuery = '';
-                              });
-                              FocusManager.instance.primaryFocus?.unfocus();
-                            },
-                          )
-                          : null,
-                  border: const OutlineInputBorder(),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              CupertinoSliverNavigationBar(
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surface.withValues(alpha: 0.9),
+                largeTitle: Text(
+                  'Tratamientos',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
-                onChanged: (val) {
-                  setState(() {
-                    searchQuery = val.toLowerCase();
-                  });
-                },
+                trailing: TextButton(
+                  onPressed: () {
+                    final clinicasState = ref.read(clinicasProvider);
+
+                    clinicasState.when(
+                      data: (clinicas) {
+                        if (clinicas.isEmpty) {
+                          showDialog(
+                            context: context,
+                            builder:
+                                (context) => AlertDialog(
+                                  title: const Text('Sin Clínicas'),
+                                  content: const Text(
+                                    'No se pueden crear tratamientos sin clínicas registradas. Por favor, registre una clínica primero en Configuración.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('OK'),
+                                    ),
+                                  ],
+                                ),
+                          );
+                        } else {
+                          context.push('/treatment-create');
+                        }
+                      },
+                      loading: () {
+                        context.push('/treatment-create');
+                      },
+                      error: (_, __) {
+                        context.push('/treatment-create');
+                      },
+                    );
+                  },
+                  child: const Text(
+                    'Añadir',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
               ),
-            ),
-            _buildFilters(context, clinicasAsync, patientsAsync),
-            Expanded(
-              child: tratamientosAsync.when(
-                data: (tratamientos) {
-                  // Filter by clinic/patient
-                  var filtered = tratamientos;
-                  if (selectedClinicaId != null) {
-                    filtered =
-                        filtered
-                            .where(
-                              (t) =>
-                                  t.tratamiento.idClinica == selectedClinicaId,
-                            )
-                            .toList();
-                  }
-                  if (selectedPatientId != null) {
-                    filtered =
-                        filtered
-                            .where(
-                              (t) =>
-                                  t.tratamiento.idExpediente ==
-                                  selectedPatientId,
-                            )
-                            .toList();
-                  }
-
-                  if (searchQuery.isNotEmpty) {
-                    filtered =
-                        filtered.where((t) {
-                          final query = searchQuery.toLowerCase();
-                          final treatmentName =
-                              t.tratamiento.nombreTratamiento.toLowerCase();
-                          final patientName = t.nombrePaciente.toLowerCase();
-                          final fileId =
-                              t.tratamiento.idExpediente.toLowerCase();
-
-                          return treatmentName.contains(query) ||
-                              patientName.contains(query) ||
-                              fileId.contains(query);
-                        }).toList();
-                  }
-
-                  final pending =
-                      filtered
-                          .where((t) => t.tratamiento.estado != 'concluido')
-                          .toList();
-                  final completed =
-                      filtered
-                          .where((t) => t.tratamiento.estado == 'concluido')
-                          .toList();
-
-                  return TabBarView(
-                    children: [
-                      _TreatmentsList(tratamientos: pending),
-                      _TreatmentsList(tratamientos: completed),
-                    ],
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, st) => Center(child: Text('Error: $e')),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar por tratamiento, paciente o ID...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon:
+                          searchQuery.isNotEmpty
+                              ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    searchQuery = '';
+                                  });
+                                  FocusManager.instance.primaryFocus?.unfocus();
+                                },
+                              )
+                              : null,
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        searchQuery = val.toLowerCase();
+                      });
+                    },
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          heroTag: null,
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AppointmentForm(initialDate: DateTime.now()),
+              SliverToBoxAdapter(
+                child: _buildFilters(context, clinicasAsync, patientsAsync),
               ),
-            );
+              SliverToBoxAdapter(
+                child: TabBar(
+                  labelColor: Theme.of(context).colorScheme.primary,
+                  unselectedLabelColor: Theme.of(context).disabledColor,
+                  indicatorColor: Theme.of(context).colorScheme.primary,
+                  tabs: const [
+                    Tab(text: 'Pendientes'),
+                    Tab(text: 'Concluidos'),
+                  ],
+                ),
+              ),
+            ];
           },
-          child: const Icon(Icons.add),
+          body: tratamientosAsync.when(
+            data: (tratamientos) {
+              // Filter by clinic
+              var filtered = tratamientos;
+              if (selectedClinicaId != null) {
+                filtered =
+                    filtered
+                        .where(
+                          (t) => t.tratamiento.idClinica == selectedClinicaId,
+                        )
+                        .toList();
+              }
+
+              if (searchQuery.isNotEmpty) {
+                filtered =
+                    filtered.where((t) {
+                      final query = searchQuery.toLowerCase();
+                      final treatmentName =
+                          t.tratamiento.nombreTratamiento.toLowerCase();
+                      final patientName = t.nombrePaciente.toLowerCase();
+                      final fileId = t.tratamiento.idExpediente.toLowerCase();
+
+                      return treatmentName.contains(query) ||
+                          patientName.contains(query) ||
+                          fileId.contains(query);
+                    }).toList();
+              }
+
+              final pending =
+                  filtered
+                      .where((t) => t.tratamiento.estado != 'concluido')
+                      .toList();
+              final completed =
+                  filtered
+                      .where((t) => t.tratamiento.estado == 'concluido')
+                      .toList();
+
+              return TabBarView(
+                children: [
+                  _TreatmentsList(tratamientos: pending),
+                  _TreatmentsList(tratamientos: completed),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, st) => Center(child: Text('Error: $e')),
+          ),
         ),
       ),
     );
@@ -193,9 +222,11 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            const Text(
+            Text(
               'Filtrar por: ',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(width: 8),
             // Period Filter
@@ -203,14 +234,10 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
               label: Text(
                 selectedPeriodId == null
                     ? 'Todos los Periodos'
-                    : 'Periodo Actual', // Simplification: we could fetch period name if needed
+                    : 'Periodo Actual',
               ),
               selected: selectedPeriodId != null,
               onSelected: (selected) {
-                // Toggle: if selected and was already selected (logic handled by chip usually),
-                // here we just want to allow clearing it.
-                // But wait, the requirement says "default to last viewed".
-                // Let's allow user to clear it to see EVERYTHING.
                 setState(() {
                   selectedPeriodId =
                       selected ? ref.read(lastViewedPeriodIdProvider) : null;
@@ -242,37 +269,9 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
                     selected: selectedClinicaId != null,
                     onSelected: (selected) {
                       if (selected) {
-                        _showClinicSelectionDialog(context, clinicas);
+                        _showClinicCupertinoPicker(context, clinicas);
                       } else {
                         setState(() => selectedClinicaId = null);
-                      }
-                    },
-                  ),
-              loading: () => const SizedBox(),
-              error: (_, __) => const SizedBox(),
-            ),
-            const SizedBox(width: 8),
-            // Patient Filter
-            patientsAsync.when(
-              data:
-                  (patients) => FilterChip(
-                    label: Text(
-                      selectedPatientId == null
-                          ? 'Paciente'
-                          : (patients
-                                  .where(
-                                    (p) => p.idExpediente == selectedPatientId,
-                                  )
-                                  .firstOrNull
-                                  ?.nombre ??
-                              'Desconocido'),
-                    ),
-                    selected: selectedPatientId != null,
-                    onSelected: (selected) {
-                      if (selected) {
-                        _showPatientSelectionDialog(context, patients);
-                      } else {
-                        setState(() => selectedPatientId = null);
                       }
                     },
                   ),
@@ -285,59 +284,79 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
     );
   }
 
-  void _showClinicSelectionDialog(
+  void _showClinicCupertinoPicker(
     BuildContext context,
     List<Clinica> clinicas,
   ) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder:
-          (ctx) => SimpleDialog(
-            title: const Text('Seleccionar Clínica'),
-            children:
-                clinicas
-                    .map(
-                      (c) => SimpleDialogOption(
-                        child: Text(c.nombreClinica),
-                        onPressed: () {
-                          setState(() => selectedClinicaId = c.idClinica);
-                          Navigator.pop(ctx);
-                        },
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          height: 300,
+          padding: const EdgeInsets.only(top: 6),
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: Column(
+            children: [
+              // Header with Done button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        setState(() => selectedClinicaId = null);
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Limpiar'),
+                    ),
+                    Text(
+                      'Seleccionar Clínica',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                    )
-                    .toList(),
-          ),
-    );
-  }
-
-  void _showPatientSelectionDialog(
-    BuildContext context,
-    List<Patient> patients,
-  ) {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Seleccionar Paciente'),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: patients.length,
-                itemBuilder: (context, index) {
-                  final p = patients[index];
-                  return ListTile(
-                    title: Text('${p.nombre} ${p.primerApellido}'),
-                    subtitle: Text(p.idExpediente),
-                    onTap: () {
-                      setState(() => selectedPatientId = p.idExpediente);
-                      Navigator.pop(ctx);
-                    },
-                  );
-                },
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Listo',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const Divider(height: 1),
+              Expanded(
+                child: CupertinoPicker(
+                  itemExtent: 44,
+                  magnification: 1.1,
+                  useMagnifier: true,
+                  onSelectedItemChanged: (int index) {
+                    setState(() {
+                      selectedClinicaId = clinicas[index].idClinica;
+                    });
+                  },
+                  children:
+                      clinicas
+                          .map(
+                            (e) => Center(
+                              child: Text(
+                                e.nombreClinica,
+                                style: const TextStyle(fontSize: 18),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                ),
+              ),
+            ],
           ),
+        );
+      },
     );
   }
 }
@@ -392,14 +411,7 @@ class _TreatmentCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder:
-                  (_) => TreatmentDetailScreen(
-                    tratamientoId: item.tratamiento.idTratamiento!,
-                  ),
-            ),
-          );
+          context.push('/tratamientos/${item.tratamiento.idTratamiento}');
         },
         child: Container(
           decoration: BoxDecoration(
@@ -410,13 +422,11 @@ class _TreatmentCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
                       item.tratamiento.nombreTratamiento,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -424,19 +434,19 @@ class _TreatmentCard extends StatelessWidget {
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
+                      horizontal: 10,
+                      vertical: 4,
                     ),
-                    decoration: BoxDecoration(
+                    decoration: ShapeDecoration(
                       color: clinicaColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
+                      shape: const StadiumBorder(),
                     ),
                     child: Text(
                       item.nombreClinica,
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: clinicaColor,
                         fontWeight: FontWeight.bold,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ),
@@ -445,11 +455,10 @@ class _TreatmentCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 item.nombrePaciente,
-                style: TextStyle(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(
                     context,
-                  ).textTheme.bodyMedium?.color?.withOpacity(0.7),
-                  fontSize: 14,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: 8),
@@ -466,12 +475,22 @@ class _TreatmentCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   if (item.tratamiento.estado == 'concluido')
-                    const Text(
-                      'Completado',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: const ShapeDecoration(
                         color: Colors.green,
+                        shape: StadiumBorder(),
+                      ),
+                      child: const Text(
+                        'Completado',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     )
                   else
@@ -479,15 +498,14 @@ class _TreatmentCard extends StatelessWidget {
                       nextSession != null
                           ? 'Próxima: ${dateFormat.format(nextSession)}'
                           : 'Sin sesiones programadas',
-                      style: TextStyle(
-                        fontSize: 13,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight:
                             nextSession != null
                                 ? FontWeight.w600
                                 : FontWeight.normal,
                         color:
                             nextSession != null
-                                ? Theme.of(context).textTheme.bodyLarge?.color
+                                ? null
                                 : Theme.of(context).disabledColor,
                       ),
                     ),

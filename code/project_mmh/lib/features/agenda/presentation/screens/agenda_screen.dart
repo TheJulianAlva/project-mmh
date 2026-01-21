@@ -1,10 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
-import 'package:project_mmh/features/agenda/presentation/widgets/appointment_form.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_action_dialog.dart';
 import 'package:table_calendar/table_calendar.dart' hide isSameDay;
 import 'package:table_calendar/table_calendar.dart' as tc show isSameDay;
+import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:intl/intl.dart';
 
 class AgendaScreen extends ConsumerStatefulWidget {
@@ -40,13 +42,37 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
   }
 
   void _openAppointmentForm() {
-    // Clear the query parameter to avoid re-opening on hot reload or rebuilt (optional but good practice)
-    // Actually, handling it here is fine.
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder:
-            (_) => AppointmentForm(initialDate: ref.read(selectedDateProvider)),
-      ),
+    final clinicasState = ref.read(clinicasProvider);
+
+    clinicasState.when(
+      data: (clinicas) {
+        if (clinicas.isEmpty) {
+          _showNoClinicsDialog();
+        } else {
+          context.push('/treatment-create');
+        }
+      },
+      loading: () => context.push('/treatment-create'),
+      error: (_, __) => context.push('/treatment-create'),
+    );
+  }
+
+  void _showNoClinicsDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Sin Clínicas'),
+            content: const Text(
+              'No se pueden crear tratamientos sin clínicas registradas. Por favor, registre una clínica primero en Configuración.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
     );
   }
 
@@ -57,109 +83,101 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
     final sessionsToday = ref.watch(sessionsOnSelectedDateProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Agenda y Citas'),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.today,
-              color: Theme.of(context).colorScheme.primary,
+      body: CustomScrollView(
+        slivers: [
+          CupertinoSliverNavigationBar(
+            largeTitle: const Text('Agenda y Citas'),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surface.withValues(alpha: 0.9),
+            trailing: TextButton(
+              onPressed: _openAppointmentForm,
+              child: const Text(
+                'Añadir',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
             ),
-            onPressed: () {
-              ref.read(selectedDateProvider.notifier).state = DateTime.now();
-            },
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          sessionsAsync.when(
-            data:
-                (allSessions) => TableCalendar(
-                  locale: 'es_ES',
-                  firstDay: DateTime.utc(2020, 1, 1),
-                  lastDay: DateTime.utc(2030, 12, 31),
-                  focusedDay: selectedDate,
-                  calendarFormat: _calendarFormat,
-                  startingDayOfWeek: StartingDayOfWeek.monday,
-                  headerStyle: const HeaderStyle(
-                    formatButtonVisible: false,
-                    titleCentered: true,
-                    titleTextStyle: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+          SliverToBoxAdapter(
+            child: sessionsAsync.when(
+              data:
+                  (allSessions) => TableCalendar(
+                    locale: 'es_ES',
+                    firstDay: DateTime.utc(2020, 1, 1),
+                    lastDay: DateTime.utc(2030, 12, 31),
+                    focusedDay: selectedDate,
+                    calendarFormat: _calendarFormat,
+                    startingDayOfWeek: StartingDayOfWeek.monday,
+                    headerStyle: const HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                      titleTextStyle: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    selectedDayPredicate: (day) {
+                      return tc.isSameDay(selectedDate, day);
+                    },
+                    onDaySelected: (selectedDay, focusedDay) {
+                      ref.read(selectedDateProvider.notifier).state =
+                          selectedDay;
+                    },
+                    onFormatChanged: (format) {
+                      setState(() {
+                        _calendarFormat = format;
+                      });
+                    },
+                    eventLoader: (day) {
+                      return allSessions
+                          .where(
+                            (s) => tc.isSameDay(
+                              DateTime.parse(s.fechaInicio),
+                              day,
+                            ),
+                          )
+                          .toList();
+                    },
+                    calendarStyle: CalendarStyle(
+                      outsideDaysVisible: false,
+                      todayDecoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.4),
+                        shape: BoxShape.circle,
+                      ),
+                      selectedDecoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      markerDecoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.error,
+                        shape: BoxShape.circle,
+                      ),
+                      defaultTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      weekendTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                   ),
-                  selectedDayPredicate: (day) {
-                    return tc.isSameDay(selectedDate, day);
-                  },
-                  onDaySelected: (selectedDay, focusedDay) {
-                    ref.read(selectedDateProvider.notifier).state = selectedDay;
-                  },
-                  onFormatChanged: (format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
-                  },
-                  eventLoader: (day) {
-                    return allSessions
-                        .where(
-                          (s) =>
-                              tc.isSameDay(DateTime.parse(s.fechaInicio), day),
-                        )
-                        .toList();
-                  },
-                  calendarStyle: CalendarStyle(
-                    outsideDaysVisible: false,
-                    todayDecoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.4),
-                      shape: BoxShape.circle,
-                    ),
-                    selectedDecoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    markerDecoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.error,
-                      shape: BoxShape.circle,
-                    ),
-                    defaultTextStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    weekendTextStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
-          ),
-          const Divider(height: 1),
-          const SizedBox(height: 8.0),
-          Expanded(
-            child: ListView.builder(
-              itemCount: sessionsToday.length,
-              itemBuilder: (context, index) {
-                final sesion = sessionsToday[index];
-                return _buildSessionCard(context, sesion, ref);
-              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
             ),
+          ),
+          const SliverToBoxAdapter(
+            child: Column(
+              children: [Divider(height: 1), SizedBox(height: 8.0)],
+            ),
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final sesion = sessionsToday[index];
+              return _buildSessionCard(context, sesion, ref);
+            }, childCount: sessionsToday.length),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: null,
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => AppointmentForm(initialDate: selectedDate),
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -173,25 +191,10 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color:
-            Theme.of(context).cardTheme.color ??
-            Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow:
-            Theme.of(context).brightness == Brightness.light
-                ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-                : [],
-        border: Border(
-          left: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-            width: 4,
-          ),
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         ),
       ),
       child: ListTile(
@@ -232,11 +235,11 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
+              decoration: ShapeDecoration(
                 color: _getStatusColor(
                   sesion.estadoAsistencia,
                 ).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                shape: const StadiumBorder(),
               ),
               child: Text(
                 (sesion.estadoAsistencia ?? 'Programada').toUpperCase(),
@@ -250,9 +253,9 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
           ],
         ),
         onTap: () {
-          showDialog(
+          showCustomBottomSheet(
             context: context,
-            builder: (_) => SessionActionDialog(sesion: sesion),
+            child: SessionActionSheet(sesion: sesion),
           );
         },
       ),

@@ -56,6 +56,7 @@ bool isSameDay(DateTime? a, DateTime? b) {
 
 // Providers for Forms
 final clinicasProvider = FutureProvider.autoDispose<List<Clinica>>((ref) async {
+  ref.watch(clinicasUpdateSignalProvider);
   final repo = ref.watch(agendaRepositoryProvider);
   return await repo.getAllClinicas();
 });
@@ -79,6 +80,7 @@ final tratamientoByIdProvider = FutureProvider.family<Tratamiento?, int>((
 
 final allTratamientosRichProvider = FutureProvider.autoDispose
     .family<List<TratamientoRichModel>, int?>((ref, filterPeriodId) async {
+      ref.watch(clinicasUpdateSignalProvider);
       final repo = ref.watch(agendaRepositoryProvider);
       final allTreatments = await repo.getAllTratamientosRich();
 

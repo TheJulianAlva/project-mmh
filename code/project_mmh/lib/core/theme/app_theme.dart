@@ -22,18 +22,70 @@ class AppTheme {
 
   static TextTheme _buildTextTheme(TextTheme base) {
     return base.copyWith(
-      displayLarge: GoogleFonts.nunito(textStyle: base.displayLarge),
-      displayMedium: GoogleFonts.nunito(textStyle: base.displayMedium),
-      displaySmall: GoogleFonts.nunito(textStyle: base.displaySmall),
-      headlineLarge: GoogleFonts.nunito(textStyle: base.headlineLarge),
-      headlineMedium: GoogleFonts.nunito(textStyle: base.headlineMedium),
-      headlineSmall: GoogleFonts.nunito(textStyle: base.headlineSmall),
-      titleLarge: GoogleFonts.nunito(textStyle: base.titleLarge),
-      titleMedium: GoogleFonts.nunito(textStyle: base.titleMedium),
-      titleSmall: GoogleFonts.nunito(textStyle: base.titleSmall),
-      bodyLarge: GoogleFonts.lato(textStyle: base.bodyLarge),
-      bodyMedium: GoogleFonts.lato(textStyle: base.bodyMedium),
-      bodySmall: GoogleFonts.lato(textStyle: base.bodySmall),
+      displayLarge: GoogleFonts.outfit(
+        textStyle: base.displayLarge,
+        fontWeight: FontWeight.bold,
+        letterSpacing: -1.0,
+      ),
+      displayMedium: GoogleFonts.outfit(
+        textStyle: base.displayMedium,
+        fontWeight: FontWeight.bold,
+        letterSpacing: -0.8,
+      ),
+      displaySmall: GoogleFonts.outfit(
+        textStyle: base.displaySmall,
+        fontWeight: FontWeight.bold,
+        letterSpacing: -0.5,
+      ),
+      headlineLarge: GoogleFonts.outfit(
+        textStyle: base.headlineLarge,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.5,
+      ),
+      headlineMedium: GoogleFonts.outfit(
+        textStyle: base.headlineMedium,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.4,
+      ),
+      headlineSmall: GoogleFonts.outfit(
+        textStyle: base.headlineSmall,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.3,
+      ),
+      titleLarge: GoogleFonts.outfit(
+        textStyle: base.titleLarge,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.2,
+      ),
+      titleMedium: GoogleFonts.outfit(
+        textStyle: base.titleMedium,
+        fontWeight: FontWeight.w500,
+      ),
+      titleSmall: GoogleFonts.outfit(
+        textStyle: base.titleSmall,
+        fontWeight: FontWeight.w500,
+      ),
+      bodyLarge: GoogleFonts.outfit(
+        textStyle: base.bodyLarge,
+        letterSpacing: -0.1,
+      ),
+      bodyMedium: GoogleFonts.outfit(
+        textStyle: base.bodyMedium,
+        letterSpacing: -0.1,
+      ),
+      bodySmall: GoogleFonts.outfit(textStyle: base.bodySmall),
+      labelLarge: GoogleFonts.outfit(
+        textStyle: base.labelLarge,
+        fontWeight: FontWeight.w600,
+      ),
+      labelMedium: GoogleFonts.outfit(
+        textStyle: base.labelMedium,
+        fontWeight: FontWeight.w600,
+      ),
+      labelSmall: GoogleFonts.outfit(
+        textStyle: base.labelSmall,
+        fontWeight: FontWeight.w500,
+      ),
     );
   }
 
@@ -53,9 +105,11 @@ class AppTheme {
         onSurface: _lightText,
       ),
       scaffoldBackgroundColor: _lightBackground,
-      textTheme: _buildTextTheme(
-        base.textTheme,
-      ).apply(bodyColor: _lightText, displayColor: _lightText),
+      textTheme: _buildTextTheme(base.textTheme).apply(
+        bodyColor: _lightText,
+        displayColor: _lightText,
+        fontFamily: GoogleFonts.outfit().fontFamily,
+      ),
       cardTheme: CardThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 2,
@@ -91,11 +145,19 @@ class AppTheme {
         foregroundColor: _lightText,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.nunito(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
+        titleTextStyle: GoogleFonts.outfit(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
           color: _lightText,
+          letterSpacing: -0.4,
         ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: _lightText,
+        contentTextStyle: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 4,
       ),
     );
   }
@@ -116,9 +178,11 @@ class AppTheme {
         onSurface: _darkText,
       ),
       scaffoldBackgroundColor: _darkBackground,
-      textTheme: _buildTextTheme(
-        base.textTheme,
-      ).apply(bodyColor: _darkText, displayColor: _darkText),
+      textTheme: _buildTextTheme(base.textTheme).apply(
+        bodyColor: _darkText,
+        displayColor: _darkText,
+        fontFamily: GoogleFonts.outfit().fontFamily,
+      ),
       cardTheme: CardThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 1,
@@ -154,11 +218,19 @@ class AppTheme {
         foregroundColor: _darkText,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.nunito(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
+        titleTextStyle: GoogleFonts.outfit(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
           color: _darkText,
+          letterSpacing: -0.4,
         ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: _darkSurface,
+        contentTextStyle: GoogleFonts.outfit(color: _darkText, fontSize: 14),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 4,
       ),
     );
   }

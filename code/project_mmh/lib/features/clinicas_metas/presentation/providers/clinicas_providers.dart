@@ -12,6 +12,9 @@ final clinicasRepositoryProvider = Provider<ClinicasRepository>((ref) {
 final activePeriodIdProvider = StateProvider<int?>((ref) => null);
 final activeClinicIdProvider = StateProvider<int?>((ref) => null);
 
+// Signal to notify other features (like Agenda) that clinics have changed
+final clinicasUpdateSignalProvider = StateProvider<int>((ref) => 0);
+
 // 1. Periodos Provider
 final periodosProvider = AsyncNotifierProvider<PeriodosNotifier, List<Periodo>>(
   PeriodosNotifier.new,
@@ -27,6 +30,8 @@ class PeriodosNotifier extends AsyncNotifier<List<Periodo>> {
     final periodo = Periodo(nombrePeriodo: nombre);
     await ref.read(clinicasRepositoryProvider).insertPeriodo(periodo);
     ref.invalidateSelf();
+    // Notify other features
+    ref.read(clinicasUpdateSignalProvider.notifier).state++;
     await future;
   }
 
@@ -40,6 +45,8 @@ class PeriodosNotifier extends AsyncNotifier<List<Periodo>> {
   Future<void> deletePeriodo(int idPeriodo) async {
     await ref.read(clinicasRepositoryProvider).deletePeriodo(idPeriodo);
     ref.invalidateSelf();
+    // Notify other features
+    ref.read(clinicasUpdateSignalProvider.notifier).state++;
     await future;
   }
 }
@@ -73,18 +80,24 @@ class ClinicasByPeriodoNotifier
     );
     await ref.read(clinicasRepositoryProvider).insertClinica(clinica);
     ref.invalidateSelf();
+    // Notify other features
+    ref.read(clinicasUpdateSignalProvider.notifier).state++;
     await future;
   }
 
   Future<void> updateClinica(Clinica clinica) async {
     await ref.read(clinicasRepositoryProvider).updateClinica(clinica);
     ref.invalidateSelf();
+    // Notify other features
+    ref.read(clinicasUpdateSignalProvider.notifier).state++;
     await future;
   }
 
   Future<void> deleteClinica(int idClinica) async {
     await ref.read(clinicasRepositoryProvider).deleteClinica(idClinica);
     ref.invalidateSelf();
+    // Notify other features
+    ref.read(clinicasUpdateSignalProvider.notifier).state++;
     await future;
   }
 }
