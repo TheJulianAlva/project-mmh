@@ -234,6 +234,30 @@ class _ToothPainter extends CustomPainter {
           canvas.drawRect(rect, paint);
         else
           canvas.drawPath(path, paint);
+      } else if (state == OdontogramaTools.restauracionFiltrada) {
+        // Blue Fill
+        paint.color = Colors.blue;
+        paint.style = PaintingStyle.fill;
+        if (rect != null)
+          canvas.drawRect(rect, paint);
+        else
+          canvas.drawPath(path, paint);
+
+        // Red Border (on top of normal border, so we draw it separately or just change stroke color?)
+        // Requirement: "borde de color rojo".
+        // The normal border is drawn below with strokePaint (black54).
+        // We probably want to override that or draw a red border on top.
+        // Let's draw a Red stroke here specifically for this condition.
+        final redBorderPaint =
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..color = Colors.red
+              ..strokeWidth = 2.0;
+
+        if (rect != null)
+          canvas.drawRect(rect, redBorderPaint);
+        else
+          canvas.drawPath(path, redBorderPaint);
       } else {
         paint.color = Colors.white; // Sano
         paint.style = PaintingStyle.fill;

@@ -221,6 +221,13 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                       icon: Icons.flash_on,
                       label: "Fractura",
                     ),
+                    _buildToolItem(
+                      selectedTool,
+                      OdontogramaTools.restauracionFiltrada,
+                      Colors.blue,
+                      borderColor: Colors.red,
+                      label: "Rest. Filtrada",
+                    ),
                   ]),
                   const VerticalDivider(),
                   // GROUP 2: INDEPENDENT
@@ -295,6 +302,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
     String toolId,
     Color color, {
     IconData? icon,
+    Color? borderColor,
     required String label,
   }) {
     final isSelected = currentTool == toolId;
@@ -319,8 +327,8 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
             color:
                 isSelected
                     ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).dividerColor,
-            width: 2,
+                    : (borderColor ?? Theme.of(context).dividerColor),
+            width: isSelected || borderColor != null ? 2.0 : 1.0,
           ),
           borderRadius: BorderRadius.circular(8),
         ),
@@ -334,7 +342,10 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                   height: 24,
                   decoration: BoxDecoration(
                     color: color,
-                    border: Border.all(color: Theme.of(context).dividerColor),
+                    border: Border.all(
+                      color: borderColor ?? Theme.of(context).dividerColor,
+                      width: borderColor != null ? 2.0 : 1.0,
+                    ),
                   ),
                 ),
             const SizedBox(height: 4),

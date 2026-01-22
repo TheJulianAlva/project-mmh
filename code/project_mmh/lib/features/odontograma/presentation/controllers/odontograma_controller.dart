@@ -42,6 +42,8 @@ class OdontogramaTools {
   static const String caries = 'Caries'; // Red solid
   static const String obturacion = 'Obturacion'; // Blue solid (Resina)
   static const String fractura = 'Fractura'; // Red Zigzag
+  static const String restauracionFiltrada =
+      'RestauracionFiltrada'; // Blue fill, Red border
 }
 
 class OdontogramaController
