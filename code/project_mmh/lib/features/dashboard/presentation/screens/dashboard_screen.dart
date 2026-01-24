@@ -187,7 +187,7 @@ class DashboardScreen extends ConsumerWidget {
                               context.push('/patient-create');
                             },
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 6),
                           _ActionButton(
                             icon: Icons.medical_services,
                             label: 'Agregar Tratamiento',
@@ -226,6 +226,16 @@ class DashboardScreen extends ConsumerWidget {
                                     (_, __) =>
                                         context.push('/treatment-create'),
                               );
+                            },
+                          ),
+                          const SizedBox(height: 6),
+                          _ActionButton(
+                            icon:
+                                Icons
+                                    .psychology_rounded, // or any other suitable icon like settings_suggest or healing
+                            label: 'Diagnóstico Pulpar',
+                            onPressed: () {
+                              context.push('/diagnosis');
                             },
                           ),
                         ],
