@@ -11,6 +11,8 @@ class DiagnosisTree {
     description:
         'Dolor pulsátil y severo. Inflamación de tejidos blando. Pruebas térmicas negativas.',
     color: Color(0xFFE91E63), // Pink
+    treatmentRecommendation:
+        "- Drenado.\n- Medicación intraconducto.\n- Farmacoterapia.\n- Finalizar con tx de conductos.",
   );
 
   static const DiagnosisResultNode pulpitisReversible = DiagnosisResultNode(
@@ -18,6 +20,7 @@ class DiagnosisTree {
     description:
         'Dolor agudo momentáneo. Cesa inmediatamente al retirar estímulo.',
     color: Color(0xFF8BC34A), // LightGreen
+    treatmentRecommendation: "- Prevención.\n- Odontología conservadora.",
   );
 
   static const DiagnosisResultNode
@@ -26,6 +29,7 @@ class DiagnosisTree {
     description:
         'Dolor prolongado tras estímulo térmico. Reacción intensa / Dolor penetrante, punzante o nocturno.',
     color: Color(0xFFFF9800), // Orange
+    treatmentRecommendation: "- Tratamiento de conductos.\n- Apicoformación.",
   );
 
   static const DiagnosisResultNode
@@ -34,6 +38,8 @@ class DiagnosisTree {
     description:
         'Dolor severo localizado. Sensibilidad a la palpación/percusión. Sensación de "diente largo".',
     color: Color(0xFFFF5722), // OrangeRed
+    treatmentRecommendation:
+        "- Aliviar la sintomatología.\n- Ajuste de puntos altos.\n- Tratamiento de conductos.\n-Periodoncia.\n- Apicectomía.",
   );
 
   static const DiagnosisResultNode
@@ -42,18 +48,21 @@ class DiagnosisTree {
     description:
         'Inflamación persistente sin síntomas agudos. Pruebas térmicas anormales.',
     color: Color(0xFFFFEB3B), // Yellow
+    treatmentRecommendation: "- Tratamiento de conductos.\n- Apicoformación.",
   );
 
   static const DiagnosisResultNode osteitisCondensante = DiagnosisResultNode(
     title: 'Osteítis Condensante',
     description: 'Respuesta a inflamación leve crónica. Hallazgo radiográfico.',
     color: Color(0xFF03A9F4), // LightBlue
+    treatmentRecommendation: "- Tratamiento de conductos.",
   );
 
   static const DiagnosisResultNode pulpaNormal = DiagnosisResultNode(
     title: 'Pulpa Normal',
     description: 'Sin síntomas. Responde normal a pruebas.',
     color: Color(0xFF4CAF50), // Green (similar to LightGreen but distinct)
+    treatmentRecommendation: "- Prevención.\n- Odontología conservadora.",
   );
 
   static const DiagnosisResultNode
@@ -62,6 +71,7 @@ class DiagnosisTree {
     description:
         'Secuela de periodontitis sintomática. Cambios radiolúcidos perirradiculares.',
     color: Color(0xFFBDBDBD), // LightGray
+    treatmentRecommendation: "- Tratamiento de conductos.",
   );
 
   static const DiagnosisResultNode necrosisPulpar = DiagnosisResultNode(
@@ -69,6 +79,7 @@ class DiagnosisTree {
     description:
         'Muerte pulpar. No responde a sensibilidad. Puede haber cambio de coloración.',
     color: Color(0xFF9E9E9E), // Gray
+    treatmentRecommendation: "- Tratamiento de conductos.\n- Apicoformación.",
   );
 
   // --- DECISION TREE LOGIC ---
