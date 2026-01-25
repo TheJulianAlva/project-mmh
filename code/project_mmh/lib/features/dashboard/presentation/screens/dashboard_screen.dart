@@ -5,8 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
 import 'package:project_mmh/features/dashboard/presentation/providers/dashboard_providers.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
-import 'package:project_mmh/core/database/data_seeder.dart';
-import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/periodo.dart';
 
@@ -30,58 +28,6 @@ class DashboardScreen extends ConsumerWidget {
             backgroundColor: Theme.of(
               context,
             ).colorScheme.surface.withValues(alpha: 0.9),
-            trailing: PopupMenuButton<String>(
-              onSelected: (value) async {
-                if (value == 'seed') {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Generando datos de prueba...'),
-                    ),
-                  );
-                  try {
-                    await DataSeeder().seedAll();
-                    ref.invalidate(periodosProvider);
-                    ref.invalidate(dashboardStatsProvider);
-                    ref.invalidate(patientsProvider);
-                    ref.invalidate(allTratamientosRichProvider);
-                    ref.invalidate(allSesionesProvider);
-
-                    if (selectedPeriodId != null) {
-                      ref.invalidate(
-                        clinicasByPeriodoProvider(selectedPeriodId),
-                      );
-                    }
-
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Datos generados correctamente'),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                    }
-                  }
-                }
-              },
-              itemBuilder:
-                  (context) => [
-                    const PopupMenuItem(
-                      value: 'seed',
-                      child: Row(
-                        children: [
-                          Icon(Icons.science, color: Colors.grey),
-                          SizedBox(width: 8),
-                          Text('Generar Datos de Prueba'),
-                        ],
-                      ),
-                    ),
-                  ],
-            ),
           ),
           periodosAsync.when(
             data: (periodos) {
