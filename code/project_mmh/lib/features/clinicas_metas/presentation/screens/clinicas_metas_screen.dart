@@ -439,94 +439,19 @@ class _ClinicasList extends ConsumerWidget {
                         clinica.idClinica!,
                         clinica.nombreClinica,
                       ),
-                  trailing: PopupMenuButton<String>(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    offset: const Offset(0, 48),
-                    elevation: 1,
+                  trailing: IconButton(
                     icon: Icon(
                       Icons.more_horiz,
                       color: Theme.of(context).disabledColor,
                     ),
-                    onSelected: (value) async {
-                      if (value == 'edit') {
-                        _showEditClinicaDialog(context, ref, clinica, clinicas);
-                      } else if (value == 'delete') {
-                        // Delete logic
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder:
-                              (context) => AlertDialog(
-                                title: const Text('Eliminar Clínica'),
-                                content: const Text(
-                                  '¿Estás seguro? Esto eliminará todos los objetivos de esta clínica.',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.pop(context, false),
-                                    child: const Text('Cancelar'),
-                                  ),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    onPressed:
-                                        () => Navigator.pop(context, true),
-                                    child: const Text('Eliminar'),
-                                  ),
-                                ],
-                              ),
-                        );
-
-                        if (confirm == true) {
-                          await ref
-                              .read(
-                                clinicasByPeriodoProvider(idPeriodo).notifier,
-                              )
-                              .deleteClinica(clinica.idClinica!);
-                        }
-                      }
-                    },
-                    itemBuilder:
-                        (context) => [
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.edit_outlined,
-                                  size: 20,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(width: 12),
-                                const Text('Editar'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.delete_outline,
-                                  color: Theme.of(context).colorScheme.error,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Eliminar',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                    onPressed:
+                        () => _showClinicOptions(
+                          context,
+                          ref,
+                          clinica,
+                          clinicas,
+                          idPeriodo,
+                        ),
                   ),
                 ),
               );
@@ -565,6 +490,79 @@ class _ClinicasList extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, s) => Text('Error: $e'),
+    );
+  }
+
+  void _showClinicOptions(
+    BuildContext context,
+    WidgetRef ref,
+    Clinica clinica,
+    List<Clinica> clinicas,
+    int idPeriodo,
+  ) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder:
+          (BuildContext sheetContext) => CupertinoActionSheet(
+            title: Text(clinica.nombreClinica),
+            message: const Text('Selecciona una opción'),
+            actions: <CupertinoActionSheetAction>[
+              CupertinoActionSheetAction(
+                child: const Text('Editar'),
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  _showEditClinicaDialog(context, ref, clinica, clinicas);
+                },
+              ),
+              CupertinoActionSheetAction(
+                isDestructiveAction: true,
+                onPressed: () async {
+                  Navigator.pop(sheetContext);
+                  // Delete logic
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder:
+                        (dialogContext) => AlertDialog(
+                          title: const Text('Eliminar Clínica'),
+                          content: const Text(
+                            '¿Estás seguro? Esto eliminará todos los objetivos de esta clínica.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed:
+                                  () => Navigator.pop(dialogContext, false),
+                              child: const Text('Cancelar'),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed:
+                                  () => Navigator.pop(dialogContext, true),
+                              child: const Text('Eliminar'),
+                            ),
+                          ],
+                        ),
+                  );
+
+                  if (confirm == true) {
+                    await ref
+                        .read(clinicasByPeriodoProvider(idPeriodo).notifier)
+                        .deleteClinica(clinica.idClinica!);
+                  }
+                },
+                child: const Text('Eliminar'),
+              ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              isDefaultAction: true,
+              onPressed: () {
+                Navigator.pop(sheetContext);
+              },
+              child: const Text('Cancelar'),
+            ),
+          ),
     );
   }
 

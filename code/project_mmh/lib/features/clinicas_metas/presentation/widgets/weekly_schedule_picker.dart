@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 
@@ -137,13 +138,13 @@ class _WeeklySchedulePickerState extends State<WeeklySchedulePicker> {
                         Expanded(
                           child: InkWell(
                             onTap: () async {
-                              final time = await showTimePicker(
-                                context: context,
-                                initialTime: startTime,
+                              await _showCupertinoTimePicker(
+                                context,
+                                startTime,
+                                (newTime) {
+                                  setStateDialog(() => startTime = newTime);
+                                },
                               );
-                              if (time != null) {
-                                setStateDialog(() => startTime = time);
-                              }
                             },
                             child: InputDecorator(
                               decoration: const InputDecoration(
@@ -157,13 +158,11 @@ class _WeeklySchedulePickerState extends State<WeeklySchedulePicker> {
                         Expanded(
                           child: InkWell(
                             onTap: () async {
-                              final time = await showTimePicker(
-                                context: context,
-                                initialTime: endTime,
-                              );
-                              if (time != null) {
-                                setStateDialog(() => endTime = time);
-                              }
+                              await _showCupertinoTimePicker(context, endTime, (
+                                newTime,
+                              ) {
+                                setStateDialog(() => endTime = newTime);
+                              });
                             },
                             child: InputDecorator(
                               decoration: const InputDecoration(
@@ -198,6 +197,56 @@ class _WeeklySchedulePickerState extends State<WeeklySchedulePicker> {
                 ],
               );
             },
+          ),
+    );
+  }
+
+  Future<void> _showCupertinoTimePicker(
+    BuildContext context,
+    TimeOfDay initialTime,
+    ValueChanged<TimeOfDay> onTimeChanged,
+  ) {
+    final now = DateTime.now();
+    final initialDateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      initialTime.hour,
+      initialTime.minute,
+    );
+
+    return showCupertinoModalPopup<void>(
+      context: context,
+      builder:
+          (BuildContext context) => Container(
+            height: 250,
+            padding: const EdgeInsets.only(top: 6.0),
+            margin: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            color: CupertinoColors.systemBackground.resolveFrom(context),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.time,
+                      use24hFormat: false,
+                      initialDateTime: initialDateTime,
+                      onDateTimeChanged: (DateTime newDateTime) {
+                        onTimeChanged(
+                          TimeOfDay(
+                            hour: newDateTime.hour,
+                            minute: newDateTime.minute,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
     );
   }
