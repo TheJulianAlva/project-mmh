@@ -38,14 +38,12 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
 
       try {
         final formData = _formKey.currentState!.value;
-
-        // Note: New images are added via Detail Screen mostly,
-        // but if we were to support adding here, we'd need ImageService.
-        // For now, we only handle UPDATING TEXT fields and DELETING existing images
-        // as per the user plan "functionality to eliminate uploaded images".
-        // Adding images is explicitly requested for the Detail Screen.
+        final newId = formData['id_expediente'] as String;
+        final oldId = widget.patient.idExpediente;
+        final isIdChanged = newId != oldId;
 
         final updatedPatient = widget.patient.copyWith(
+          idExpediente: newId,
           nombre: formData['nombre'],
           primerApellido: formData['primer_apellido'],
           segundoApellido: formData['segundo_apellido'],
@@ -54,10 +52,20 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
           telefono: formData['telefono'],
           padecimientoRelevante: formData['padecimiento_relevante'],
           informacionAdicional: formData['informacion_adicional'],
-          imagenesPaths: _currentImagePaths, // Use the modified list
+          imagenesPaths: _currentImagePaths,
         );
 
-        await ref.read(patientsProvider.notifier).updatePatient(updatedPatient);
+        if (isIdChanged) {
+          // Transactional update for ID change
+          await ref
+              .read(patientsProvider.notifier)
+              .updatePatientId(oldId, updatedPatient);
+        } else {
+          // Standard update
+          await ref
+              .read(patientsProvider.notifier)
+              .updatePatient(updatedPatient);
+        }
 
         if (mounted) {
           context.pop(); // Go back
@@ -73,6 +81,55 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
           setState(() {
             _isSaving = false;
           });
+        }
+      }
+    }
+  }
+
+  Future<void> _deletePatient() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('¿Eliminar Paciente?'),
+            content: const Text(
+              'Esta acción eliminará al paciente de la lista. '
+              'Si tiene tratamientos, estos se conservarán en el historial pero el paciente no será visible. '
+              'Si fue un error de registro (sin tratamientos), se borrará permanentemente.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Eliminar'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isSaving = true);
+      try {
+        await ref
+            .read(patientsProvider.notifier)
+            .deletePatient(widget.patient.idExpediente);
+        if (mounted) {
+          // Pop twice: 1. Edit Screen, 2. Detail Screen -> Back to List
+          // Or just pop to list.
+          // Since we are in Edit Screen, we pushed from Detail Screen.
+          // So we need to go back to Patients List.
+          context.go('/pacientes');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error al eliminar: $e')));
+          setState(() => _isSaving = false);
         }
       }
     }
@@ -136,10 +193,16 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
                             FormBuilderTextField(
                               name: 'id_expediente',
                               decoration: _getInputDecoration(
-                                'No. Expediente (No editable)',
+                                'No. Expediente (Ten cuidado al editar)',
                               ),
-                              readOnly: true,
-                              enabled: false,
+                              // Version 2: Allow editing ID
+                              readOnly: false,
+                              enabled: true,
+                              validator: (val) {
+                                if (val == null || val.isEmpty)
+                                  return 'Requerido';
+                                return null;
+                              },
                             ),
                             const SizedBox(height: 12),
                             FormBuilderTextField(
@@ -329,6 +392,23 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
                                 },
                               ),
                             ],
+                            const SizedBox(height: 48),
+                            Center(
+                              child: TextButton.icon(
+                                onPressed: _isSaving ? null : _deletePatient,
+                                icon: const Icon(Icons.delete_forever),
+                                label: const Text('Eliminar Paciente'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor:
+                                      Theme.of(context).colorScheme.error,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
                           ],
                         ),
                       ),

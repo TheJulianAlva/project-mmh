@@ -30,6 +30,14 @@ class PatientsNotifier extends AsyncNotifier<List<Patient>> {
     await future;
   }
 
+  Future<void> updatePatientId(String oldId, Patient newPatientData) async {
+    await ref
+        .read(patientRepositoryProvider)
+        .updatePatientId(oldId, newPatientData);
+    ref.invalidateSelf();
+    await future;
+  }
+
   Future<void> deletePatient(String idExpediente) async {
     await ref.read(patientRepositoryProvider).deletePatient(idExpediente);
     ref.invalidateSelf();

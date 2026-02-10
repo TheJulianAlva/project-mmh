@@ -21,10 +21,21 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'odontologia_student.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // Increment version for migration
       onCreate: _onCreate,
       onConfigure: _onConfigure,
+      onUpgrade: _onUpgrade, // Add upgrade handler
     );
+  }
+
+  // Handle migrations
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add deleted_at column for Soft Delete (Patient Management V2)
+      // This is safe for existing data (defaults to NULL)
+      await db.execute('ALTER TABLE pacientes ADD COLUMN deleted_at TEXT');
+      print("Migration V2: 'deleted_at' column added to 'pacientes' table.");
+    }
   }
 
   Future<void> _onConfigure(Database db) async {

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Patient {
 
-@JsonKey(name: 'id_expediente') String get idExpediente;@JsonKey(name: 'nombre') String get nombre;@JsonKey(name: 'primer_apellido') String get primerApellido;@JsonKey(name: 'segundo_apellido') String? get segundoApellido;@JsonKey(name: 'edad') int get edad;@JsonKey(name: 'sexo') String get sexo;@JsonKey(name: 'telefono') String? get telefono;@JsonKey(name: 'padecimiento_relevante') String? get padecimientoRelevante;@JsonKey(name: 'informacion_adicional') String? get informacionAdicional;@JsonKey(name: 'imagenes_paths', fromJson: _parseImages) List<String> get imagenesPaths;
+@JsonKey(name: 'id_expediente') String get idExpediente;@JsonKey(name: 'nombre') String get nombre;@JsonKey(name: 'primer_apellido') String get primerApellido;@JsonKey(name: 'segundo_apellido') String? get segundoApellido;@JsonKey(name: 'edad') int get edad;@JsonKey(name: 'sexo') String get sexo;@JsonKey(name: 'telefono') String? get telefono;@JsonKey(name: 'padecimiento_relevante') String? get padecimientoRelevante;@JsonKey(name: 'informacion_adicional') String? get informacionAdicional;@JsonKey(name: 'imagenes_paths', fromJson: _parseImages) List<String> get imagenesPaths;@JsonKey(name: 'deleted_at') DateTime? get deletedAt;
 /// Create a copy of Patient
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $PatientCopyWith<Patient> get copyWith => _$PatientCopyWithImpl<Patient>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Patient&&(identical(other.idExpediente, idExpediente) || other.idExpediente == idExpediente)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.primerApellido, primerApellido) || other.primerApellido == primerApellido)&&(identical(other.segundoApellido, segundoApellido) || other.segundoApellido == segundoApellido)&&(identical(other.edad, edad) || other.edad == edad)&&(identical(other.sexo, sexo) || other.sexo == sexo)&&(identical(other.telefono, telefono) || other.telefono == telefono)&&(identical(other.padecimientoRelevante, padecimientoRelevante) || other.padecimientoRelevante == padecimientoRelevante)&&(identical(other.informacionAdicional, informacionAdicional) || other.informacionAdicional == informacionAdicional)&&const DeepCollectionEquality().equals(other.imagenesPaths, imagenesPaths));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Patient&&(identical(other.idExpediente, idExpediente) || other.idExpediente == idExpediente)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.primerApellido, primerApellido) || other.primerApellido == primerApellido)&&(identical(other.segundoApellido, segundoApellido) || other.segundoApellido == segundoApellido)&&(identical(other.edad, edad) || other.edad == edad)&&(identical(other.sexo, sexo) || other.sexo == sexo)&&(identical(other.telefono, telefono) || other.telefono == telefono)&&(identical(other.padecimientoRelevante, padecimientoRelevante) || other.padecimientoRelevante == padecimientoRelevante)&&(identical(other.informacionAdicional, informacionAdicional) || other.informacionAdicional == informacionAdicional)&&const DeepCollectionEquality().equals(other.imagenesPaths, imagenesPaths)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,idExpediente,nombre,primerApellido,segundoApellido,edad,sexo,telefono,padecimientoRelevante,informacionAdicional,const DeepCollectionEquality().hash(imagenesPaths));
+int get hashCode => Object.hash(runtimeType,idExpediente,nombre,primerApellido,segundoApellido,edad,sexo,telefono,padecimientoRelevante,informacionAdicional,const DeepCollectionEquality().hash(imagenesPaths),deletedAt);
 
 @override
 String toString() {
-  return 'Patient(idExpediente: $idExpediente, nombre: $nombre, primerApellido: $primerApellido, segundoApellido: $segundoApellido, edad: $edad, sexo: $sexo, telefono: $telefono, padecimientoRelevante: $padecimientoRelevante, informacionAdicional: $informacionAdicional, imagenesPaths: $imagenesPaths)';
+  return 'Patient(idExpediente: $idExpediente, nombre: $nombre, primerApellido: $primerApellido, segundoApellido: $segundoApellido, edad: $edad, sexo: $sexo, telefono: $telefono, padecimientoRelevante: $padecimientoRelevante, informacionAdicional: $informacionAdicional, imagenesPaths: $imagenesPaths, deletedAt: $deletedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $PatientCopyWith<$Res>  {
   factory $PatientCopyWith(Patient value, $Res Function(Patient) _then) = _$PatientCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'id_expediente') String idExpediente,@JsonKey(name: 'nombre') String nombre,@JsonKey(name: 'primer_apellido') String primerApellido,@JsonKey(name: 'segundo_apellido') String? segundoApellido,@JsonKey(name: 'edad') int edad,@JsonKey(name: 'sexo') String sexo,@JsonKey(name: 'telefono') String? telefono,@JsonKey(name: 'padecimiento_relevante') String? padecimientoRelevante,@JsonKey(name: 'informacion_adicional') String? informacionAdicional,@JsonKey(name: 'imagenes_paths', fromJson: _parseImages) List<String> imagenesPaths
+@JsonKey(name: 'id_expediente') String idExpediente,@JsonKey(name: 'nombre') String nombre,@JsonKey(name: 'primer_apellido') String primerApellido,@JsonKey(name: 'segundo_apellido') String? segundoApellido,@JsonKey(name: 'edad') int edad,@JsonKey(name: 'sexo') String sexo,@JsonKey(name: 'telefono') String? telefono,@JsonKey(name: 'padecimiento_relevante') String? padecimientoRelevante,@JsonKey(name: 'informacion_adicional') String? informacionAdicional,@JsonKey(name: 'imagenes_paths', fromJson: _parseImages) List<String> imagenesPaths,@JsonKey(name: 'deleted_at') DateTime? deletedAt
 });
 
 
@@ -65,7 +65,7 @@ class _$PatientCopyWithImpl<$Res>
 
 /// Create a copy of Patient
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? idExpediente = null,Object? nombre = null,Object? primerApellido = null,Object? segundoApellido = freezed,Object? edad = null,Object? sexo = null,Object? telefono = freezed,Object? padecimientoRelevante = freezed,Object? informacionAdicional = freezed,Object? imagenesPaths = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? idExpediente = null,Object? nombre = null,Object? primerApellido = null,Object? segundoApellido = freezed,Object? edad = null,Object? sexo = null,Object? telefono = freezed,Object? padecimientoRelevante = freezed,Object? informacionAdicional = freezed,Object? imagenesPaths = null,Object? deletedAt = freezed,}) {
   return _then(_self.copyWith(
 idExpediente: null == idExpediente ? _self.idExpediente : idExpediente // ignore: cast_nullable_to_non_nullable
 as String,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
@@ -77,7 +77,8 @@ as String,telefono: freezed == telefono ? _self.telefono : telefono // ignore: c
 as String?,padecimientoRelevante: freezed == padecimientoRelevante ? _self.padecimientoRelevante : padecimientoRelevante // ignore: cast_nullable_to_non_nullable
 as String?,informacionAdicional: freezed == informacionAdicional ? _self.informacionAdicional : informacionAdicional // ignore: cast_nullable_to_non_nullable
 as String?,imagenesPaths: null == imagenesPaths ? _self.imagenesPaths : imagenesPaths // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,deletedAt: freezed == deletedAt ? _self.deletedAt : deletedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -162,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'nombre')  String nombre, @JsonKey(name: 'primer_apellido')  String primerApellido, @JsonKey(name: 'segundo_apellido')  String? segundoApellido, @JsonKey(name: 'edad')  int edad, @JsonKey(name: 'sexo')  String sexo, @JsonKey(name: 'telefono')  String? telefono, @JsonKey(name: 'padecimiento_relevante')  String? padecimientoRelevante, @JsonKey(name: 'informacion_adicional')  String? informacionAdicional, @JsonKey(name: 'imagenes_paths', fromJson: _parseImages)  List<String> imagenesPaths)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'nombre')  String nombre, @JsonKey(name: 'primer_apellido')  String primerApellido, @JsonKey(name: 'segundo_apellido')  String? segundoApellido, @JsonKey(name: 'edad')  int edad, @JsonKey(name: 'sexo')  String sexo, @JsonKey(name: 'telefono')  String? telefono, @JsonKey(name: 'padecimiento_relevante')  String? padecimientoRelevante, @JsonKey(name: 'informacion_adicional')  String? informacionAdicional, @JsonKey(name: 'imagenes_paths', fromJson: _parseImages)  List<String> imagenesPaths, @JsonKey(name: 'deleted_at')  DateTime? deletedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Patient() when $default != null:
-return $default(_that.idExpediente,_that.nombre,_that.primerApellido,_that.segundoApellido,_that.edad,_that.sexo,_that.telefono,_that.padecimientoRelevante,_that.informacionAdicional,_that.imagenesPaths);case _:
+return $default(_that.idExpediente,_that.nombre,_that.primerApellido,_that.segundoApellido,_that.edad,_that.sexo,_that.telefono,_that.padecimientoRelevante,_that.informacionAdicional,_that.imagenesPaths,_that.deletedAt);case _:
   return orElse();
 
 }
@@ -183,10 +184,10 @@ return $default(_that.idExpediente,_that.nombre,_that.primerApellido,_that.segun
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'nombre')  String nombre, @JsonKey(name: 'primer_apellido')  String primerApellido, @JsonKey(name: 'segundo_apellido')  String? segundoApellido, @JsonKey(name: 'edad')  int edad, @JsonKey(name: 'sexo')  String sexo, @JsonKey(name: 'telefono')  String? telefono, @JsonKey(name: 'padecimiento_relevante')  String? padecimientoRelevante, @JsonKey(name: 'informacion_adicional')  String? informacionAdicional, @JsonKey(name: 'imagenes_paths', fromJson: _parseImages)  List<String> imagenesPaths)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'nombre')  String nombre, @JsonKey(name: 'primer_apellido')  String primerApellido, @JsonKey(name: 'segundo_apellido')  String? segundoApellido, @JsonKey(name: 'edad')  int edad, @JsonKey(name: 'sexo')  String sexo, @JsonKey(name: 'telefono')  String? telefono, @JsonKey(name: 'padecimiento_relevante')  String? padecimientoRelevante, @JsonKey(name: 'informacion_adicional')  String? informacionAdicional, @JsonKey(name: 'imagenes_paths', fromJson: _parseImages)  List<String> imagenesPaths, @JsonKey(name: 'deleted_at')  DateTime? deletedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Patient():
-return $default(_that.idExpediente,_that.nombre,_that.primerApellido,_that.segundoApellido,_that.edad,_that.sexo,_that.telefono,_that.padecimientoRelevante,_that.informacionAdicional,_that.imagenesPaths);case _:
+return $default(_that.idExpediente,_that.nombre,_that.primerApellido,_that.segundoApellido,_that.edad,_that.sexo,_that.telefono,_that.padecimientoRelevante,_that.informacionAdicional,_that.imagenesPaths,_that.deletedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +204,10 @@ return $default(_that.idExpediente,_that.nombre,_that.primerApellido,_that.segun
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'nombre')  String nombre, @JsonKey(name: 'primer_apellido')  String primerApellido, @JsonKey(name: 'segundo_apellido')  String? segundoApellido, @JsonKey(name: 'edad')  int edad, @JsonKey(name: 'sexo')  String sexo, @JsonKey(name: 'telefono')  String? telefono, @JsonKey(name: 'padecimiento_relevante')  String? padecimientoRelevante, @JsonKey(name: 'informacion_adicional')  String? informacionAdicional, @JsonKey(name: 'imagenes_paths', fromJson: _parseImages)  List<String> imagenesPaths)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'nombre')  String nombre, @JsonKey(name: 'primer_apellido')  String primerApellido, @JsonKey(name: 'segundo_apellido')  String? segundoApellido, @JsonKey(name: 'edad')  int edad, @JsonKey(name: 'sexo')  String sexo, @JsonKey(name: 'telefono')  String? telefono, @JsonKey(name: 'padecimiento_relevante')  String? padecimientoRelevante, @JsonKey(name: 'informacion_adicional')  String? informacionAdicional, @JsonKey(name: 'imagenes_paths', fromJson: _parseImages)  List<String> imagenesPaths, @JsonKey(name: 'deleted_at')  DateTime? deletedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Patient() when $default != null:
-return $default(_that.idExpediente,_that.nombre,_that.primerApellido,_that.segundoApellido,_that.edad,_that.sexo,_that.telefono,_that.padecimientoRelevante,_that.informacionAdicional,_that.imagenesPaths);case _:
+return $default(_that.idExpediente,_that.nombre,_that.primerApellido,_that.segundoApellido,_that.edad,_that.sexo,_that.telefono,_that.padecimientoRelevante,_that.informacionAdicional,_that.imagenesPaths,_that.deletedAt);case _:
   return null;
 
 }
@@ -218,7 +219,7 @@ return $default(_that.idExpediente,_that.nombre,_that.primerApellido,_that.segun
 @JsonSerializable()
 
 class _Patient implements Patient {
-  const _Patient({@JsonKey(name: 'id_expediente') required this.idExpediente, @JsonKey(name: 'nombre') required this.nombre, @JsonKey(name: 'primer_apellido') required this.primerApellido, @JsonKey(name: 'segundo_apellido') this.segundoApellido, @JsonKey(name: 'edad') required this.edad, @JsonKey(name: 'sexo') required this.sexo, @JsonKey(name: 'telefono') this.telefono, @JsonKey(name: 'padecimiento_relevante') this.padecimientoRelevante, @JsonKey(name: 'informacion_adicional') this.informacionAdicional, @JsonKey(name: 'imagenes_paths', fromJson: _parseImages) final  List<String> imagenesPaths = const []}): _imagenesPaths = imagenesPaths;
+  const _Patient({@JsonKey(name: 'id_expediente') required this.idExpediente, @JsonKey(name: 'nombre') required this.nombre, @JsonKey(name: 'primer_apellido') required this.primerApellido, @JsonKey(name: 'segundo_apellido') this.segundoApellido, @JsonKey(name: 'edad') required this.edad, @JsonKey(name: 'sexo') required this.sexo, @JsonKey(name: 'telefono') this.telefono, @JsonKey(name: 'padecimiento_relevante') this.padecimientoRelevante, @JsonKey(name: 'informacion_adicional') this.informacionAdicional, @JsonKey(name: 'imagenes_paths', fromJson: _parseImages) final  List<String> imagenesPaths = const [], @JsonKey(name: 'deleted_at') this.deletedAt}): _imagenesPaths = imagenesPaths;
   factory _Patient.fromJson(Map<String, dynamic> json) => _$PatientFromJson(json);
 
 @override@JsonKey(name: 'id_expediente') final  String idExpediente;
@@ -237,6 +238,7 @@ class _Patient implements Patient {
   return EqualUnmodifiableListView(_imagenesPaths);
 }
 
+@override@JsonKey(name: 'deleted_at') final  DateTime? deletedAt;
 
 /// Create a copy of Patient
 /// with the given fields replaced by the non-null parameter values.
@@ -251,16 +253,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Patient&&(identical(other.idExpediente, idExpediente) || other.idExpediente == idExpediente)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.primerApellido, primerApellido) || other.primerApellido == primerApellido)&&(identical(other.segundoApellido, segundoApellido) || other.segundoApellido == segundoApellido)&&(identical(other.edad, edad) || other.edad == edad)&&(identical(other.sexo, sexo) || other.sexo == sexo)&&(identical(other.telefono, telefono) || other.telefono == telefono)&&(identical(other.padecimientoRelevante, padecimientoRelevante) || other.padecimientoRelevante == padecimientoRelevante)&&(identical(other.informacionAdicional, informacionAdicional) || other.informacionAdicional == informacionAdicional)&&const DeepCollectionEquality().equals(other._imagenesPaths, _imagenesPaths));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Patient&&(identical(other.idExpediente, idExpediente) || other.idExpediente == idExpediente)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.primerApellido, primerApellido) || other.primerApellido == primerApellido)&&(identical(other.segundoApellido, segundoApellido) || other.segundoApellido == segundoApellido)&&(identical(other.edad, edad) || other.edad == edad)&&(identical(other.sexo, sexo) || other.sexo == sexo)&&(identical(other.telefono, telefono) || other.telefono == telefono)&&(identical(other.padecimientoRelevante, padecimientoRelevante) || other.padecimientoRelevante == padecimientoRelevante)&&(identical(other.informacionAdicional, informacionAdicional) || other.informacionAdicional == informacionAdicional)&&const DeepCollectionEquality().equals(other._imagenesPaths, _imagenesPaths)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,idExpediente,nombre,primerApellido,segundoApellido,edad,sexo,telefono,padecimientoRelevante,informacionAdicional,const DeepCollectionEquality().hash(_imagenesPaths));
+int get hashCode => Object.hash(runtimeType,idExpediente,nombre,primerApellido,segundoApellido,edad,sexo,telefono,padecimientoRelevante,informacionAdicional,const DeepCollectionEquality().hash(_imagenesPaths),deletedAt);
 
 @override
 String toString() {
-  return 'Patient(idExpediente: $idExpediente, nombre: $nombre, primerApellido: $primerApellido, segundoApellido: $segundoApellido, edad: $edad, sexo: $sexo, telefono: $telefono, padecimientoRelevante: $padecimientoRelevante, informacionAdicional: $informacionAdicional, imagenesPaths: $imagenesPaths)';
+  return 'Patient(idExpediente: $idExpediente, nombre: $nombre, primerApellido: $primerApellido, segundoApellido: $segundoApellido, edad: $edad, sexo: $sexo, telefono: $telefono, padecimientoRelevante: $padecimientoRelevante, informacionAdicional: $informacionAdicional, imagenesPaths: $imagenesPaths, deletedAt: $deletedAt)';
 }
 
 
@@ -271,7 +273,7 @@ abstract mixin class _$PatientCopyWith<$Res> implements $PatientCopyWith<$Res> {
   factory _$PatientCopyWith(_Patient value, $Res Function(_Patient) _then) = __$PatientCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'id_expediente') String idExpediente,@JsonKey(name: 'nombre') String nombre,@JsonKey(name: 'primer_apellido') String primerApellido,@JsonKey(name: 'segundo_apellido') String? segundoApellido,@JsonKey(name: 'edad') int edad,@JsonKey(name: 'sexo') String sexo,@JsonKey(name: 'telefono') String? telefono,@JsonKey(name: 'padecimiento_relevante') String? padecimientoRelevante,@JsonKey(name: 'informacion_adicional') String? informacionAdicional,@JsonKey(name: 'imagenes_paths', fromJson: _parseImages) List<String> imagenesPaths
+@JsonKey(name: 'id_expediente') String idExpediente,@JsonKey(name: 'nombre') String nombre,@JsonKey(name: 'primer_apellido') String primerApellido,@JsonKey(name: 'segundo_apellido') String? segundoApellido,@JsonKey(name: 'edad') int edad,@JsonKey(name: 'sexo') String sexo,@JsonKey(name: 'telefono') String? telefono,@JsonKey(name: 'padecimiento_relevante') String? padecimientoRelevante,@JsonKey(name: 'informacion_adicional') String? informacionAdicional,@JsonKey(name: 'imagenes_paths', fromJson: _parseImages) List<String> imagenesPaths,@JsonKey(name: 'deleted_at') DateTime? deletedAt
 });
 
 
@@ -288,7 +290,7 @@ class __$PatientCopyWithImpl<$Res>
 
 /// Create a copy of Patient
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? idExpediente = null,Object? nombre = null,Object? primerApellido = null,Object? segundoApellido = freezed,Object? edad = null,Object? sexo = null,Object? telefono = freezed,Object? padecimientoRelevante = freezed,Object? informacionAdicional = freezed,Object? imagenesPaths = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? idExpediente = null,Object? nombre = null,Object? primerApellido = null,Object? segundoApellido = freezed,Object? edad = null,Object? sexo = null,Object? telefono = freezed,Object? padecimientoRelevante = freezed,Object? informacionAdicional = freezed,Object? imagenesPaths = null,Object? deletedAt = freezed,}) {
   return _then(_Patient(
 idExpediente: null == idExpediente ? _self.idExpediente : idExpediente // ignore: cast_nullable_to_non_nullable
 as String,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
@@ -300,7 +302,8 @@ as String,telefono: freezed == telefono ? _self.telefono : telefono // ignore: c
 as String?,padecimientoRelevante: freezed == padecimientoRelevante ? _self.padecimientoRelevante : padecimientoRelevante // ignore: cast_nullable_to_non_nullable
 as String?,informacionAdicional: freezed == informacionAdicional ? _self.informacionAdicional : informacionAdicional // ignore: cast_nullable_to_non_nullable
 as String?,imagenesPaths: null == imagenesPaths ? _self._imagenesPaths : imagenesPaths // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,deletedAt: freezed == deletedAt ? _self.deletedAt : deletedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 

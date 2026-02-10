@@ -19,6 +19,7 @@ abstract class Patient with _$Patient {
     @JsonKey(name: 'imagenes_paths', fromJson: _parseImages)
     @Default([])
     List<String> imagenesPaths,
+    @JsonKey(name: 'deleted_at') DateTime? deletedAt, // Soft Delete support
   }) = _Patient;
 
   factory Patient.fromJson(Map<String, dynamic> json) =>

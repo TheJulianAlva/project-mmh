@@ -20,6 +20,10 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
       json['imagenes_paths'] == null
           ? const []
           : _parseImages(json['imagenes_paths']),
+  deletedAt:
+      json['deleted_at'] == null
+          ? null
+          : DateTime.parse(json['deleted_at'] as String),
 );
 
 Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
@@ -33,4 +37,5 @@ Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
   'padecimiento_relevante': instance.padecimientoRelevante,
   'informacion_adicional': instance.informacionAdicional,
   'imagenes_paths': instance.imagenesPaths,
+  'deleted_at': instance.deletedAt?.toIso8601String(),
 };
