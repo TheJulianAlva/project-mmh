@@ -72,9 +72,11 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
         }
       } catch (e) {
         if (mounted) {
+          // Extract message if it's an Exception to show cleaner text
+          final message = e.toString().replaceAll('Exception: ', '');
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('Error al actualizar: $e')));
+          ).showSnackBar(SnackBar(content: Text('Error: $message')));
         }
       } finally {
         if (mounted) {

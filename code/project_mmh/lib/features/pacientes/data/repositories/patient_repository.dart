@@ -77,6 +77,21 @@ class PatientRepository {
   /// Transactionally updates a Patient's ID and all related records.
   Future<void> updatePatientId(String oldId, Patient newPatientData) async {
     final db = await _dbHelper.database;
+
+    // Validation: Check if new ID already exists (and is not the same as old ID)
+    if (oldId != newPatientData.idExpediente) {
+      final existing = await db.query(
+        _tableName,
+        where: 'id_expediente = ?',
+        whereArgs: [newPatientData.idExpediente],
+      );
+      if (existing.isNotEmpty) {
+        throw Exception(
+          'El expediente ${newPatientData.idExpediente} ya existe.',
+        );
+      }
+    }
+
     await db.transaction((txn) async {
       // 1. Insert new patient record with new ID
       // We use the new data provided (which should have the new ID)
