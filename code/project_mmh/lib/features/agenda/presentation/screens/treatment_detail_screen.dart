@@ -43,7 +43,8 @@ class TreatmentDetailScreen extends ConsumerWidget {
       body: CustomScrollView(
         slivers: [
           CupertinoSliverNavigationBar(
-            largeTitle: const Text('Detalle'),
+            largeTitle: const Text('Tratamiento'),
+            previousPageTitle: 'Atrás',
             backgroundColor: Theme.of(
               context,
             ).colorScheme.surface.withValues(alpha: 0.9),

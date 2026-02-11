@@ -240,6 +240,20 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const Divider(height: 1, indent: 16, endIndent: 16),
               ListTile(
+                leading: const Icon(CupertinoIcons.bell_fill, size: 28),
+                title: const Text('Recordatorios de Agenda'),
+                subtitle: const Text('Notificaciones diarias de tus citas'),
+                trailing: const Icon(
+                  CupertinoIcons.chevron_forward,
+                  size: 16,
+                  color: CupertinoColors.systemGrey3,
+                ),
+                onTap: () {
+                  context.go('/settings/recordatorios');
+                },
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
                 leading: const Icon(Icons.school, size: 28),
                 title: const Text('Gestión Académica'),
                 subtitle: const Text('Administrar clínicas y metas'),

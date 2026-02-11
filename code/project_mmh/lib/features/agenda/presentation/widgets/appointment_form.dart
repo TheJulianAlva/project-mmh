@@ -79,6 +79,7 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             ),
+            previousPageTitle: 'Atrás',
           ),
           SliverToBoxAdapter(
             child: Padding(

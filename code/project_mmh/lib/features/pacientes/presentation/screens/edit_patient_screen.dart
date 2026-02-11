@@ -165,6 +165,7 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             ),
+            previousPageTitle: 'Atrás',
           ),
           SliverToBoxAdapter(
             child:

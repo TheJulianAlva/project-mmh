@@ -22,7 +22,7 @@ class PatientDetailScreen extends ConsumerWidget {
       body: CustomScrollView(
         slivers: [
           CupertinoSliverNavigationBar(
-            largeTitle: const Text('Detalle'),
+            largeTitle: const Text('Paciente'),
             backgroundColor: Theme.of(
               context,
             ).colorScheme.surface.withValues(alpha: 0.9),
@@ -49,6 +49,7 @@ class PatientDetailScreen extends ConsumerWidget {
               loading: () => null,
               error: (_, __) => null,
             ),
+            previousPageTitle: 'Atrás',
           ),
           SliverToBoxAdapter(
             child: patientsAsync.when(

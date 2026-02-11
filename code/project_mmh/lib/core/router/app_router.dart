@@ -13,6 +13,7 @@ import 'package:project_mmh/features/dashboard/presentation/screens/dashboard_sc
 import 'package:project_mmh/features/pacientes/presentation/screens/patient_detail_screen.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/appointment_form.dart';
 import 'package:project_mmh/features/settings/presentation/screens/settings_screen.dart';
+import 'package:project_mmh/features/settings/presentation/screens/reminders_settings_screen.dart';
 import 'package:project_mmh/features/diagnosis/presentation/screens/diagnosis_wizard_screen.dart';
 
 final appRouter = GoRouter(
@@ -99,6 +100,10 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: 'clinicas-metas',
                   builder: (context, state) => const ClinicasMetasScreen(),
+                ),
+                GoRoute(
+                  path: 'recordatorios',
+                  builder: (context, state) => const RemindersSettingsScreen(),
                 ),
               ],
             ),

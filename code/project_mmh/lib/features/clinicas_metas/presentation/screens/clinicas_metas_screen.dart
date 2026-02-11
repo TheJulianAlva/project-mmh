@@ -34,6 +34,7 @@ class ClinicasMetasScreen extends ConsumerWidget {
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             ),
+            previousPageTitle: 'Configuración',
           ),
           periodosAsync.when(
             data: (periodos) {
