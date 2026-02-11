@@ -24,7 +24,12 @@ class TreatmentDetailScreen extends ConsumerWidget {
     final sesionesAsync = ref.watch(
       sesionesByTratamientoProvider(tratamientoId),
     );
-    final patientsAsync = ref.watch(patientsProvider);
+    final patientAsync =
+        tratamientoAsync.value != null
+            ? ref.watch(
+              patientByIdProvider(tratamientoAsync.value!.idExpediente),
+            )
+            : const AsyncValue.data(null);
 
     // Watch clinic if treatment is loaded
     final clinicAsync =
@@ -67,17 +72,20 @@ class TreatmentDetailScreen extends ConsumerWidget {
 
                 // Find patient name
                 String patientName = 'Cargando...';
-                if (patientsAsync.hasValue && patientsAsync.value != null) {
-                  try {
-                    final p = patientsAsync.value!.firstWhere(
-                      (p) => p.idExpediente == tratamiento.idExpediente,
-                    );
+
+                if (patientAsync.hasValue) {
+                  final p = patientAsync.value;
+                  if (p != null) {
                     patientName =
                         '${p.nombre} ${p.primerApellido} (${p.idExpediente})';
-                  } catch (e) {
+                  } else {
                     patientName =
                         'Paciente no encontrado (${tratamiento.idExpediente})';
                   }
+                } else if (patientAsync.isLoading) {
+                  patientName = 'Cargando...';
+                } else if (patientAsync.hasError) {
+                  patientName = 'Error al cargar paciente';
                 }
 
                 return Padding(

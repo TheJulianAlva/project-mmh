@@ -60,15 +60,20 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
           await ref
               .read(patientsProvider.notifier)
               .updatePatientId(oldId, updatedPatient);
+
+          if (mounted) {
+            // Navigate to the new patient detail screen
+            context.go('/pacientes/$newId');
+          }
         } else {
           // Standard update
           await ref
               .read(patientsProvider.notifier)
               .updatePatient(updatedPatient);
-        }
 
-        if (mounted) {
-          context.pop(); // Go back
+          if (mounted) {
+            context.pop(); // Go back
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -203,6 +208,18 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
                               validator: (val) {
                                 if (val == null || val.isEmpty)
                                   return 'Requerido';
+
+                                final patientsList =
+                                    ref.read(patientsProvider).value;
+                                if (patientsList != null) {
+                                  final exists = patientsList.any(
+                                    (p) => p.idExpediente == val,
+                                  );
+                                  if (exists &&
+                                      val != widget.patient.idExpediente) {
+                                    return 'El expediente ya existe';
+                                  }
+                                }
                                 return null;
                               },
                             ),

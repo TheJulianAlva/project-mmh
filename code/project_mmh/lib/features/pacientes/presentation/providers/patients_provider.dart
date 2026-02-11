@@ -12,6 +12,11 @@ final patientsProvider = AsyncNotifierProvider<PatientsNotifier, List<Patient>>(
   PatientsNotifier.new,
 );
 
+// Single Patient Provider (Fetches by ID, includes soft-deleted)
+final patientByIdProvider = FutureProvider.family<Patient?, String>((ref, id) {
+  return ref.watch(patientRepositoryProvider).getPatientById(id);
+});
+
 class PatientsNotifier extends AsyncNotifier<List<Patient>> {
   @override
   Future<List<Patient>> build() async {
