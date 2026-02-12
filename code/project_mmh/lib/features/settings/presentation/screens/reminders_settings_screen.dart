@@ -1,9 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:project_mmh/features/settings/presentation/providers/reminder_settings_provider.dart';
 
-/// UI-only prototype for the Reminders settings screen.
-/// All state is local (no persistence yet). Phase 2 will wire up real logic.
 class RemindersSettingsScreen extends ConsumerStatefulWidget {
   const RemindersSettingsScreen({super.key});
 
@@ -14,12 +13,6 @@ class RemindersSettingsScreen extends ConsumerStatefulWidget {
 
 class _RemindersSettingsScreenState
     extends ConsumerState<RemindersSettingsScreen> {
-  bool _remindersEnabled = false;
-  bool _summaryToday = true;
-  bool _summaryTomorrow = false;
-  bool _summaryDayAfter = false;
-  TimeOfDay _reminderTime = const TimeOfDay(hour: 7, minute: 0);
-
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   String _formatTime(TimeOfDay t) {
@@ -30,14 +23,8 @@ class _RemindersSettingsScreenState
   }
 
   void _showTimePicker() {
-    // Start with a DateTime that matches _reminderTime
-    DateTime initial = DateTime(
-      2026,
-      1,
-      1,
-      _reminderTime.hour,
-      _reminderTime.minute,
-    );
+    final settings = ref.read(reminderSettingsProvider);
+    DateTime initial = DateTime(2026, 1, 1, settings.hour, settings.minute);
 
     showCupertinoModalPopup(
       context: context,
@@ -52,7 +39,6 @@ class _RemindersSettingsScreenState
             ),
             child: Column(
               children: [
-                // Header bar with Done button
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   height: 50,
@@ -84,25 +70,27 @@ class _RemindersSettingsScreenState
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        onPressed: () => Navigator.pop(ctx),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          // Refresh notifications after time change
+                          ref
+                              .read(reminderSettingsProvider.notifier)
+                              .refreshNotifications();
+                        },
                       ),
                     ],
                   ),
                 ),
                 const Divider(height: 1),
-                // Cupertino Time Picker
                 Expanded(
                   child: CupertinoDatePicker(
                     mode: CupertinoDatePickerMode.time,
                     initialDateTime: initial,
                     use24hFormat: false,
                     onDateTimeChanged: (DateTime dt) {
-                      setState(() {
-                        _reminderTime = TimeOfDay(
-                          hour: dt.hour,
-                          minute: dt.minute,
-                        );
-                      });
+                      ref
+                          .read(reminderSettingsProvider.notifier)
+                          .setTime(dt.hour, dt.minute);
                     },
                   ),
                 ),
@@ -116,6 +104,8 @@ class _RemindersSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(reminderSettingsProvider);
+    final notifier = ref.read(reminderSettingsProvider.notifier);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -134,9 +124,7 @@ class _RemindersSettingsScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Header icon + description ──
                   _buildHeaderCard(colorScheme, textTheme, isDark),
-
                   const SizedBox(height: 24),
 
                   // ── Master Switch ──
@@ -149,8 +137,13 @@ class _RemindersSettingsScreenState
                         iconColor: colorScheme.primary,
                         title: 'Activar recordatorios',
                         subtitle: 'Recibe notificaciones diarias de tu agenda',
-                        value: _remindersEnabled,
-                        onChanged: (v) => setState(() => _remindersEnabled = v),
+                        value: settings.enabled,
+                        onChanged: (v) async {
+                          await notifier.setEnabled(v);
+                          if (v) {
+                            await notifier.refreshNotifications();
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -163,7 +156,9 @@ class _RemindersSettingsScreenState
                   _buildSection(
                     colorScheme: colorScheme,
                     isDark: isDark,
-                    children: [_buildTimeTile(colorScheme, textTheme)],
+                    children: [
+                      _buildTimeTile(colorScheme, textTheme, settings),
+                    ],
                   ),
 
                   const SizedBox(height: 20),
@@ -184,8 +179,12 @@ class _RemindersSettingsScreenState
                         iconColor: colorScheme.primary,
                         title: 'Eventos de hoy',
                         subtitle: 'Resumen del día actual',
-                        value: _summaryToday,
-                        onChanged: (v) => setState(() => _summaryToday = v),
+                        value: settings.summaryToday,
+                        enabled: settings.enabled,
+                        onChanged: (v) async {
+                          await notifier.setSummaryToday(v);
+                          await notifier.refreshNotifications();
+                        },
                       ),
                       _buildDivider(),
                       _buildCheckTile(
@@ -193,8 +192,12 @@ class _RemindersSettingsScreenState
                         iconColor: colorScheme.secondary,
                         title: 'Eventos de mañana',
                         subtitle: 'Anticipa tus citas del siguiente día',
-                        value: _summaryTomorrow,
-                        onChanged: (v) => setState(() => _summaryTomorrow = v),
+                        value: settings.summaryTomorrow,
+                        enabled: settings.enabled,
+                        onChanged: (v) async {
+                          await notifier.setSummaryTomorrow(v);
+                          await notifier.refreshNotifications();
+                        },
                       ),
                       _buildDivider(),
                       _buildCheckTile(
@@ -202,8 +205,12 @@ class _RemindersSettingsScreenState
                         iconColor: const Color(0xFF7C4DFF),
                         title: 'Eventos en 2 días',
                         subtitle: 'Planifica con anticipación',
-                        value: _summaryDayAfter,
-                        onChanged: (v) => setState(() => _summaryDayAfter = v),
+                        value: settings.summaryDayAfter,
+                        enabled: settings.enabled,
+                        onChanged: (v) async {
+                          await notifier.setSummaryDayAfter(v);
+                          await notifier.refreshNotifications();
+                        },
                       ),
                     ],
                   ),
@@ -211,7 +218,7 @@ class _RemindersSettingsScreenState
                   const SizedBox(height: 24),
 
                   // ── Preview Card ──
-                  _buildPreviewCard(colorScheme, textTheme, isDark),
+                  _buildPreviewCard(colorScheme, textTheme, isDark, settings),
 
                   const SizedBox(height: 40),
                 ],
@@ -312,7 +319,7 @@ class _RemindersSettingsScreenState
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surface : colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: colorScheme.onSurface.withValues(alpha: isDark ? 0.08 : 0.06),
@@ -384,9 +391,13 @@ class _RemindersSettingsScreenState
     );
   }
 
-  Widget _buildTimeTile(ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildTimeTile(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    ReminderSettings settings,
+  ) {
     return InkWell(
-      onTap: _remindersEnabled ? _showTimePicker : null,
+      onTap: settings.enabled ? _showTimePicker : null,
       borderRadius: BorderRadius.circular(14),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -402,7 +413,7 @@ class _RemindersSettingsScreenState
                 CupertinoIcons.clock_fill,
                 size: 20,
                 color:
-                    _remindersEnabled
+                    settings.enabled
                         ? colorScheme.secondary
                         : colorScheme.onSurface.withValues(alpha: 0.3),
               ),
@@ -417,7 +428,7 @@ class _RemindersSettingsScreenState
                     style: textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w500,
                       color:
-                          _remindersEnabled
+                          settings.enabled
                               ? null
                               : colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
@@ -427,7 +438,7 @@ class _RemindersSettingsScreenState
                     'Se enviará a la hora seleccionada',
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurface.withValues(
-                        alpha: _remindersEnabled ? 0.55 : 0.3,
+                        alpha: settings.enabled ? 0.55 : 0.3,
                       ),
                     ),
                   ),
@@ -438,17 +449,17 @@ class _RemindersSettingsScreenState
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color:
-                    _remindersEnabled
+                    settings.enabled
                         ? colorScheme.primary.withValues(alpha: 0.1)
                         : colorScheme.onSurface.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                _formatTime(_reminderTime),
+                _formatTime(settings.timeOfDay),
                 style: textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color:
-                      _remindersEnabled
+                      settings.enabled
                           ? colorScheme.primary
                           : colorScheme.onSurface.withValues(alpha: 0.35),
                 ),
@@ -466,13 +477,13 @@ class _RemindersSettingsScreenState
     required String title,
     required String subtitle,
     required bool value,
+    required bool enabled,
     required ValueChanged<bool> onChanged,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isEnabled = _remindersEnabled;
 
     return InkWell(
-      onTap: isEnabled ? () => onChanged(!value) : null,
+      onTap: enabled ? () => onChanged(!value) : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -480,15 +491,16 @@ class _RemindersSettingsScreenState
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (isEnabled ? iconColor : colorScheme.onSurface)
-                    .withValues(alpha: isEnabled ? 0.12 : 0.06),
+                color: (enabled ? iconColor : colorScheme.onSurface).withValues(
+                  alpha: enabled ? 0.12 : 0.06,
+                ),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
                 size: 18,
                 color:
-                    isEnabled
+                    enabled
                         ? iconColor
                         : colorScheme.onSurface.withValues(alpha: 0.3),
               ),
@@ -503,7 +515,7 @@ class _RemindersSettingsScreenState
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w500,
                       color:
-                          isEnabled
+                          enabled
                               ? null
                               : colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
@@ -513,20 +525,19 @@ class _RemindersSettingsScreenState
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurface.withValues(
-                        alpha: isEnabled ? 0.55 : 0.3,
+                        alpha: enabled ? 0.55 : 0.3,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            // Cupertino-style checkbox using CupertinoSwitch (smaller)
             Transform.scale(
               scale: 0.8,
               child: CupertinoSwitch(
                 value: value,
                 activeTrackColor: iconColor,
-                onChanged: isEnabled ? onChanged : null,
+                onChanged: enabled ? onChanged : null,
               ),
             ),
           ],
@@ -548,18 +559,19 @@ class _RemindersSettingsScreenState
     ColorScheme colorScheme,
     TextTheme textTheme,
     bool isDark,
+    ReminderSettings settings,
   ) {
-    if (!_remindersEnabled) return const SizedBox.shrink();
+    if (!settings.enabled) return const SizedBox.shrink();
 
     final activeScopes = <String>[];
-    if (_summaryToday) activeScopes.add('hoy');
-    if (_summaryTomorrow) activeScopes.add('mañana');
-    if (_summaryDayAfter) activeScopes.add('pasado mañana');
+    if (settings.summaryToday) activeScopes.add('hoy');
+    if (settings.summaryTomorrow) activeScopes.add('mañana');
+    if (settings.summaryDayAfter) activeScopes.add('pasado mañana');
 
     final scopeText =
         activeScopes.isEmpty
             ? 'Selecciona al menos un tipo de resumen.'
-            : 'Recibirás un resumen de tus eventos de ${activeScopes.join(', ')} a las ${_formatTime(_reminderTime)}.';
+            : 'Recibirás un resumen de tus eventos de ${activeScopes.join(', ')} a las ${_formatTime(settings.timeOfDay)}.';
 
     return Container(
       padding: const EdgeInsets.all(16),

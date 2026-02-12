@@ -2,22 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:project_mmh/core/router/app_router.dart';
 import 'package:project_mmh/core/theme/app_theme.dart';
+import 'package:project_mmh/core/services/notification_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
 import 'package:project_mmh/features/core/presentation/providers/theme_provider.dart';
+import 'package:project_mmh/features/settings/presentation/providers/reminder_settings_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_ES', null);
+  await NotificationService.instance.init();
   final prefs = await SharedPreferences.getInstance();
 
+  final container = ProviderContainer(
+    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+  );
+
+  // Refresh scheduled notifications on app start
+  final reminderNotifier = container.read(reminderSettingsProvider.notifier);
+  await reminderNotifier.refreshNotifications();
+
   runApp(
-    ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      child: const MainApp(),
-    ),
+    UncontrolledProviderScope(container: container, child: const MainApp()),
   );
 }
 
