@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -13,9 +14,18 @@ class NotificationService {
 
   bool _initialized = false;
 
+  /// Callback invoked when the user taps a notification.
+  /// Set via [init] so the router can navigate to the agenda.
+  void Function(String? payload)? _onNotificationTap;
+
   /// Initialize the notification plugin and timezone data.
-  Future<void> init() async {
+  ///
+  /// [onNotificationTap] is called when the user taps a notification,
+  /// both from a background state and a cold start (app was killed).
+  Future<void> init({void Function(String? payload)? onNotificationTap}) async {
     if (_initialized) return;
+
+    _onNotificationTap = onNotificationTap;
 
     tz.initializeTimeZones();
     final currentTimeZone = await FlutterTimezone.getLocalTimezone();
@@ -35,8 +45,25 @@ class NotificationService {
       iOS: iosSettings,
     );
 
-    await _plugin.initialize(initSettings);
+    await _plugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _handleNotificationTap,
+    );
+
+    // Handle cold-start: app was opened by tapping a notification
+    final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+    if (launchDetails != null &&
+        launchDetails.didNotificationLaunchApp &&
+        launchDetails.notificationResponse != null) {
+      _handleNotificationTap(launchDetails.notificationResponse!);
+    }
+
     _initialized = true;
+  }
+
+  /// Internal handler for notification tap events.
+  void _handleNotificationTap(NotificationResponse response) {
+    _onNotificationTap?.call(response.payload);
   }
 
   /// Request permission on Android 13+ (POST_NOTIFICATIONS).
@@ -103,28 +130,41 @@ class NotificationService {
       // Skip if the time has already passed today
       if (scheduleDate.isBefore(now)) continue;
 
-      // Build the notification body for THIS day's notification
-      final bodyParts = <String>[];
+      // Build the notification lines for InboxStyle
+      final lines = <String>[];
       for (final scope in enabledScopes.toList()..sort()) {
         final actualDay = dayOffset + scope;
         final count = sessionsByDay[actualDay] ?? 0;
-        final label = _scopeLabel(scope);
-        if (count > 0) {
-          bodyParts.add('$label: $count ${count == 1 ? 'cita' : 'citas'}');
+        final label = _scopeEmojiLabel(scope);
+
+        String indicator;
+        if (count == 0) {
+          indicator = '✨';
+        } else if (count <= 1) {
+          indicator = '🟢';
+        } else if (count <= 3) {
+          indicator = '🟡';
         } else {
-          bodyParts.add('$label: sin citas');
+          indicator = '🔴';
+        }
+
+        if (count > 0) {
+          lines.add(
+            '<b>$label</b>: $indicator $count ${count == 1 ? 'cita' : 'citas'}',
+          );
+        } else {
+          lines.add('<b>$label</b>: $indicator sin citas');
         }
       }
 
-      final body = bodyParts.join(' · ');
-      final title = '📋 Agenda Klinik';
+      const title = '¡Tu agenda está lista! 📋';
 
       await _plugin.zonedSchedule(
         100 + dayOffset, // Unique ID per day
         title,
-        body,
+        '¡No olvides confirmar tus citas para tener una jornada exitosa!', // Fallback text
         scheduleDate,
-        const NotificationDetails(
+        NotificationDetails(
           android: AndroidNotificationDetails(
             'agenda_reminders',
             'Recordatorios de Agenda',
@@ -132,8 +172,17 @@ class NotificationService {
             importance: Importance.high,
             priority: Priority.high,
             icon: '@mipmap/launcher_icon',
+            color: const Color(0xFFFC4391), // Color rosa premium de la app
+            styleInformation: InboxStyleInformation(
+              lines,
+              contentTitle: '<b>$title</b>',
+              summaryText: 'Resumen de los próximos días',
+              htmlFormatLines: true,
+              htmlFormatContentTitle: true,
+              htmlFormatSummaryText: true,
+            ),
           ),
-          iOS: DarwinNotificationDetails(
+          iOS: const DarwinNotificationDetails(
             presentAlert: true,
             presentBadge: true,
             presentSound: true,
@@ -145,22 +194,22 @@ class NotificationService {
     }
   }
 
-  /// Cancel all scheduled notifications.
-  Future<void> cancelAll() async {
-    await _plugin.cancelAll();
-  }
-
-  String _scopeLabel(int scope) {
+  String _scopeEmojiLabel(int scope) {
     switch (scope) {
       case 0:
         return 'Hoy';
       case 1:
         return 'Mañana';
       case 2:
-        return 'Pasado mañana';
+        return 'En 2 días';
       default:
         return 'Día +$scope';
     }
+  }
+
+  /// Cancel all scheduled notifications.
+  Future<void> cancelAll() async {
+    await _plugin.cancelAll();
   }
 
   /// Compute session counts per day for the next 10 days from the repository data.

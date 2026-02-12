@@ -86,7 +86,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen> {
       body: CustomScrollView(
         slivers: [
           CupertinoSliverNavigationBar(
-            largeTitle: const Text('Agenda y Citas'),
+            largeTitle: const Text('Agenda'),
             backgroundColor: Theme.of(
               context,
             ).colorScheme.surface.withValues(alpha: 0.9),
