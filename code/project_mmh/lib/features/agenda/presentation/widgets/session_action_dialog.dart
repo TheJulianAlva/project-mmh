@@ -1,11 +1,13 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_edit_dialog.dart';
-
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
+import 'package:intl/intl.dart';
 
 class SessionActionSheet extends ConsumerWidget {
   final Sesion sesion;
@@ -18,6 +20,8 @@ class SessionActionSheet extends ConsumerWidget {
       tratamientoByIdProvider(sesion.idTratamiento),
     );
     final patientsAsync = ref.watch(patientsProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return tratamientoAsync.when(
       data: (tratamiento) {
@@ -29,40 +33,30 @@ class SessionActionSheet extends ConsumerWidget {
         }
         final fechaInicio = DateTime.parse(sesion.fechaInicio);
         final fechaFin = DateTime.parse(sesion.fechaFin);
+        final duration = fechaFin.difference(fechaInicio);
+        final durationStr = '${duration.inHours}h ${duration.inMinutes % 60}m';
 
         String patientName = 'Cargando...';
         if (patientsAsync.hasValue && patientsAsync.value != null) {
-          try {
-            final p = patientsAsync.value!.firstWhere(
-              (p) => p.idExpediente == tratamiento.idExpediente,
-            );
-            patientName = '${p.nombre} ${p.primerApellido} (${p.idExpediente})';
-          } catch (e) {
-            patientName =
-                'Paciente no encontrado (${tratamiento.idExpediente})';
-          }
+          final p =
+              patientsAsync.value!
+                  .where((p) => p.idExpediente == tratamiento.idExpediente)
+                  .firstOrNull;
+          patientName =
+              p != null
+                  ? '${p.nombre} ${p.primerApellido}'
+                  : 'Expediente ${tratamiento.idExpediente}';
         }
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 8),
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).dividerColor.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+
+              // ── Title ──
               Text(
                 'Detalles de la Cita',
                 style: Theme.of(
@@ -72,142 +66,156 @@ class SessionActionSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
 
-              // Info Card
+              // ── Info Card ──
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  color:
+                      isDark
+                          ? colorScheme.surface
+                          : colorScheme.primary.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).dividerColor.withValues(alpha: 0.1),
+                    color:
+                        isDark
+                            ? Colors.white.withValues(alpha: 0.06)
+                            : colorScheme.primary.withValues(alpha: 0.08),
                   ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      tratamiento.nombreTratamiento,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    // Treatment name — tappable link to detail
+                    GestureDetector(
+                      onTap:
+                          () => _goToTreatment(context, sesion.idTratamiento),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              tratamiento.nombreTratamiento,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            CupertinoIcons.chevron_right,
+                            size: 14,
+                            color: colorScheme.primary.withValues(alpha: 0.5),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.person, size: 16),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            patientName,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 10),
+                    // Patient
+                    _buildInfoRow(
+                      context,
+                      CupertinoIcons.person,
+                      patientName,
+                      colorScheme,
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.calendar_today, size: 16),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${fechaInicio.day}/${fechaInicio.month}/${fechaInicio.year}',
-                        ),
-                      ],
+                    const SizedBox(height: 6),
+                    // Date
+                    _buildInfoRow(
+                      context,
+                      CupertinoIcons.calendar,
+                      DateFormat(
+                        "EEEE d 'de' MMMM, yyyy",
+                        'es_ES',
+                      ).format(fechaInicio),
+                      colorScheme,
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.access_time, size: 16),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${fechaInicio.hour.toString().padLeft(2, '0')}:${fechaInicio.minute.toString().padLeft(2, '0')} - ${fechaFin.hour.toString().padLeft(2, '0')}:${fechaFin.minute.toString().padLeft(2, '0')}',
-                        ),
-                      ],
+                    const SizedBox(height: 6),
+                    // Time
+                    _buildInfoRow(
+                      context,
+                      CupertinoIcons.clock,
+                      '${DateFormat('HH:mm').format(fechaInicio)} – ${DateFormat('HH:mm').format(fechaFin)}  ·  $durationStr',
+                      colorScheme,
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 24),
-              const Text(
-                'Estado de Asistencia',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
 
-              // Status Buttons Row
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _StatusButton(
-                      label: 'Asistió',
-                      color: Colors.green,
-                      isSelected: sesion.estadoAsistencia == 'asistio',
-                      onPressed: () => _updateStatus(context, ref, 'asistio'),
-                    ),
-                    const SizedBox(width: 12),
-                    _StatusButton(
-                      label: 'No Asistió',
-                      color: Colors.orange,
-                      isSelected: sesion.estadoAsistencia == 'falto',
-                      onPressed: () => _updateStatus(context, ref, 'falto'),
-                    ),
-                    const SizedBox(width: 12),
-                    _StatusButton(
+              // ── Status Section ──
+              Text(
+                'Estado de Asistencia',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Status Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: _StatusChip(
                       label: 'Programada',
-                      color: Colors.grey,
+                      icon: CupertinoIcons.circle,
+                      color: colorScheme.primary,
                       isSelected:
                           sesion.estadoAsistencia == 'programada' ||
                           sesion.estadoAsistencia == null,
-                      onPressed:
-                          () => _updateStatus(context, ref, 'programada'),
+                      onTap: () => _updateStatus(context, ref, 'programada'),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _StatusChip(
+                      label: 'Asistió',
+                      icon: CupertinoIcons.checkmark_alt,
+                      color: colorScheme.secondary,
+                      isSelected: sesion.estadoAsistencia == 'asistio',
+                      onTap: () => _updateStatus(context, ref, 'asistio'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _StatusChip(
+                      label: 'No Asistió',
+                      icon: CupertinoIcons.person_badge_minus,
+                      color: Colors.orange,
+                      isSelected: sesion.estadoAsistencia == 'falto',
+                      onTap: () => _updateStatus(context, ref, 'falto'),
+                    ),
+                  ),
+                ],
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
 
-              const SizedBox(height: 32),
-
-              // Actions
+              // ── Actions ──
               OutlinedButton.icon(
                 onPressed: () => _reprogramar(context, ref),
-                icon: const Icon(Icons.edit_calendar, size: 18),
+                icon: const Icon(CupertinoIcons.calendar_badge_plus, size: 18),
                 label: const Text('Reprogramar'),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: const StadiumBorder(),
                   side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.5),
+                    color: colorScheme.primary.withValues(alpha: 0.3),
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               TextButton.icon(
                 onPressed: () => _confirmDelete(context, ref),
-                icon: const Icon(Icons.delete_outline, size: 18),
+                icon: const Icon(CupertinoIcons.trash, size: 16),
                 label: const Text('Eliminar Sesión'),
                 style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: colorScheme.error,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
-              const SizedBox(height: 4),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  'Cerrar',
-                  style: TextStyle(color: Theme.of(context).disabledColor),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
             ],
           ),
         );
@@ -223,18 +231,52 @@ class SessionActionSheet extends ConsumerWidget {
     );
   }
 
+  Widget _buildInfoRow(
+    BuildContext context,
+    IconData icon,
+    String text,
+    ColorScheme colorScheme,
+  ) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 15,
+          color: colorScheme.onSurface.withValues(alpha: 0.4),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _goToTreatment(BuildContext context, int idTratamiento) {
+    Navigator.of(context).pop(); // Close bottom sheet
+    context.push('/tratamientos/$idTratamiento');
+  }
+
   void _updateStatus(BuildContext context, WidgetRef ref, String status) async {
     final repo = ref.read(agendaRepositoryProvider);
     await repo.updateSesionStatus(sesion.idSesion!, status);
+
+    // Invalidate ALL relevant providers so timeline + lists refresh
     ref.invalidate(allSesionesProvider);
+    ref.invalidate(enrichedSesionesProvider);
     ref.invalidate(allTratamientosRichProvider);
+
     if (context.mounted) Navigator.of(context).pop();
   }
 
   void _reprogramar(BuildContext context, WidgetRef ref) async {
-    Navigator.of(context).pop(); // Close current sheet
-
-    // Show SessionEditSheet
+    Navigator.of(context).pop();
     showCustomBottomSheet(
       context: context,
       child: SessionEditSheet(
@@ -245,32 +287,30 @@ class SessionActionSheet extends ConsumerWidget {
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) {
-    showDialog(
+    showCupertinoDialog(
       context: context,
       builder:
-          (ctx) => AlertDialog(
+          (ctx) => CupertinoAlertDialog(
             title: const Text('Eliminar Sesión'),
             content: const Text(
               '¿Estás seguro de que deseas eliminar esta sesión?',
             ),
             actions: [
-              TextButton(
+              CupertinoDialogAction(
                 onPressed: () => Navigator.of(ctx).pop(),
                 child: const Text('Cancelar'),
               ),
-              TextButton(
+              CupertinoDialogAction(
+                isDestructiveAction: true,
                 onPressed: () async {
-                  Navigator.of(ctx).pop(); // Close confirm
+                  Navigator.of(ctx).pop();
                   final repo = ref.read(agendaRepositoryProvider);
-                  // Close sheet if mounted
                   await repo.deleteSesion(sesion.idSesion!);
                   ref.invalidate(allSesionesProvider);
+                  ref.invalidate(enrichedSesionesProvider);
                   if (context.mounted) Navigator.of(context).pop();
                 },
-                child: const Text(
-                  'Eliminar',
-                  style: TextStyle(color: Colors.red),
-                ),
+                child: const Text('Eliminar'),
               ),
             ],
           ),
@@ -278,44 +318,63 @@ class SessionActionSheet extends ConsumerWidget {
   }
 }
 
-class _StatusButton extends StatelessWidget {
+// ──────────────────────────────────────────────────────────────────────────────
+// Status Chip — animated selection with icon
+// ──────────────────────────────────────────────────────────────────────────────
+
+class _StatusChip extends StatelessWidget {
   final String label;
+  final IconData icon;
   final Color color;
   final bool isSelected;
-  final VoidCallback onPressed;
+  final VoidCallback onTap;
 
-  const _StatusButton({
+  const _StatusChip({
     required this.label,
+    required this.icon,
     required this.color,
     required this.isSelected,
-    required this.onPressed,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: ShapeDecoration(
-          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-          shape: StadiumBorder(
-            side: BorderSide(
-              color:
-                  isSelected
-                      ? color
-                      : Theme.of(context).dividerColor.withValues(alpha: 0.2),
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color:
+              isSelected ? color.withValues(alpha: 0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                isSelected
+                    ? color
+                    : Theme.of(context).dividerColor.withValues(alpha: 0.15),
+            width: isSelected ? 1.5 : 1,
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? color : Theme.of(context).disabledColor,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 13,
-          ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? color : Theme.of(context).disabledColor,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? color : Theme.of(context).disabledColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

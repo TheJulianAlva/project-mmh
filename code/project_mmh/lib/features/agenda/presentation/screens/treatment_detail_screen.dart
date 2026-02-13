@@ -407,10 +407,8 @@ class TreatmentDetailScreen extends ConsumerWidget {
 
   Color _getStatusColor(BuildContext context, String? status) {
     switch (status) {
-      case 'concluido':
+      case 'asistio':
         return Colors.green;
-      case 'cancelo':
-        return Colors.red;
       case 'falto':
         return Colors.orange;
       default:
@@ -420,10 +418,8 @@ class TreatmentDetailScreen extends ConsumerWidget {
 
   IconData _getStatusIcon(String? status) {
     switch (status) {
-      case 'concluido':
+      case 'asistio':
         return Icons.check;
-      case 'cancelo':
-        return Icons.close;
       case 'falto':
         return Icons.person_off;
       default:

@@ -4,6 +4,7 @@ import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento_rich_model.dart';
+import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 
 class AgendaRepository {
@@ -158,6 +159,47 @@ class AgendaRepository {
     });
 
     return richList;
+  }
+
+  // --- Enriched Sesiones (for Agenda Timeline) ---
+
+  Future<List<SesionRichModel>> getEnrichedSesiones() async {
+    final db = await _dbHelper.database;
+
+    final result = await db.rawQuery('''
+      SELECT
+        s.id_sesion,
+        s.id_tratamiento,
+        s.fecha_inicio,
+        s.fecha_fin,
+        s.estado_asistencia,
+        t.nombre_tratamiento,
+        p.nombre || ' ' || p.primer_apellido AS nombre_paciente,
+        c.nombre_clinica,
+        c.color AS color_clinica
+      FROM sesiones s
+      INNER JOIN tratamientos t ON s.id_tratamiento = t.id_tratamiento
+      INNER JOIN pacientes p ON t.id_expediente = p.id_expediente
+      INNER JOIN clinicas c ON t.id_clinica = c.id_clinica
+      ORDER BY s.fecha_inicio ASC
+    ''');
+
+    return result.map((row) {
+      final sesion = Sesion(
+        idSesion: row['id_sesion'] as int?,
+        idTratamiento: row['id_tratamiento'] as int,
+        fechaInicio: row['fecha_inicio'] as String,
+        fechaFin: row['fecha_fin'] as String,
+        estadoAsistencia: row['estado_asistencia'] as String?,
+      );
+      return SesionRichModel(
+        sesion: sesion,
+        nombreTratamiento: row['nombre_tratamiento'] as String,
+        nombrePaciente: row['nombre_paciente'] as String,
+        nombreClinica: row['nombre_clinica'] as String,
+        colorClinica: row['color_clinica'] as String,
+      );
+    }).toList();
   }
 
   // --- Sesiones ---

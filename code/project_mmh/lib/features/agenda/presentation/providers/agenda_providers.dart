@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:project_mmh/features/agenda/data/repositories/agenda_repository.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
+import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento_rich_model.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
@@ -45,6 +46,62 @@ final sessionsOnSelectedDateProvider = Provider.autoDispose<List<Sesion>>((
     error: (_, __) => [],
   );
 });
+
+// --- Enriched Sesiones (for Timeline Cards) ---
+
+// Status filter: null = show all, otherwise filter by estadoAsistencia value
+final statusFilterProvider = StateProvider<String?>((ref) => null);
+
+final enrichedSesionesProvider =
+    FutureProvider.autoDispose<List<SesionRichModel>>((ref) async {
+      final repo = ref.watch(agendaRepositoryProvider);
+      return await repo.getEnrichedSesiones();
+    });
+
+final enrichedSessionsOnSelectedDateProvider =
+    Provider.autoDispose<List<SesionRichModel>>((ref) {
+      final enrichedAsync = ref.watch(enrichedSesionesProvider);
+      final selectedDate = ref.watch(selectedDateProvider);
+      final statusFilter = ref.watch(statusFilterProvider);
+
+      return enrichedAsync.when(
+        data: (sessions) {
+          var filtered =
+              sessions.where((s) {
+                final sesionDate = DateTime.parse(s.sesion.fechaInicio);
+                return isSameDay(sesionDate, selectedDate);
+              }).toList();
+
+          // Apply status filter
+          if (statusFilter != null) {
+            if (statusFilter == 'programada') {
+              filtered =
+                  filtered
+                      .where(
+                        (s) =>
+                            s.sesion.estadoAsistencia == null ||
+                            s.sesion.estadoAsistencia == 'programada' ||
+                            s.sesion.estadoAsistencia!.isEmpty,
+                      )
+                      .toList();
+            } else {
+              filtered =
+                  filtered
+                      .where((s) => s.sesion.estadoAsistencia == statusFilter)
+                      .toList();
+            }
+          }
+
+          // Sort by start time
+          filtered.sort(
+            (a, b) => a.sesion.fechaInicio.compareTo(b.sesion.fechaInicio),
+          );
+          return filtered;
+        },
+        loading: () => [],
+        error: (_, __) => [],
+      );
+    });
 
 // Helper for same day check
 bool isSameDay(DateTime? a, DateTime? b) {

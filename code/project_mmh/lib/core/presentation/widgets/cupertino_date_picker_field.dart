@@ -40,10 +40,10 @@ class CupertinoDatePickerField extends FormBuilderField<DateTime> {
              final dateFormat =
                  format ??
                  (pickerType == CupertinoDatePickerType.time
-                     ? DateFormat.jm()
+                     ? DateFormat.jm('es_ES')
                      : (pickerType == CupertinoDatePickerType.date
-                         ? DateFormat.yMMMMd()
-                         : DateFormat.yMMMMd().add_jm()));
+                         ? DateFormat.yMMMMd('es_ES')
+                         : DateFormat.yMMMMd('es_ES').add_jm()));
              displayText = dateFormat.format(field.value!);
            }
 
