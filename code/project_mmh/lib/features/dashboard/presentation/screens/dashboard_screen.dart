@@ -69,17 +69,26 @@ class DashboardScreen extends ConsumerWidget {
 
               return SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 8),
+
                       // Period Selector
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'Periodo Actual',
-                            style: Theme.of(context).textTheme.titleMedium,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                           _PeriodSelectorTrigger(
                             periodos: periodos,
@@ -94,99 +103,100 @@ class DashboardScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 28),
 
-                      // Clinics Horizontal List
+                      // Clinics Section
                       Text(
                         'Mis Clínicas',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       _ClinicsHorizontalList(periodId: validPeriodId),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
-                      // Content
+                      // Stats Content
                       if (selectedClinicId == null)
-                        const Center(
-                          child: Text(
-                            'Selecciona una clínica para ver el progreso.',
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                              'Selecciona una clínica para ver el progreso.',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.45),
+                              ),
+                            ),
                           ),
                         )
                       else
                         const _DashboardStats(),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
                       // Quick Actions
                       Text(
                         'Accesos Directos',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _ActionButton(
-                            icon: Icons.person_add,
-                            label: 'Nuevo Paciente',
-                            onPressed: () {
-                              context.push('/patient-create');
-                            },
-                          ),
-                          const SizedBox(height: 6),
-                          _ActionButton(
-                            icon: Icons.medical_services,
-                            label: 'Agregar Tratamiento',
-                            overflow: true,
-                            onPressed: () {
-                              final clinicasState = ref.read(clinicasProvider);
-
-                              clinicasState.when(
-                                data: (clinicas) {
-                                  if (clinicas.isEmpty) {
-                                    showDialog(
-                                      context: context,
-                                      builder:
-                                          (context) => AlertDialog(
-                                            title: const Text('Sin Clínicas'),
-                                            content: const Text(
-                                              'No se pueden crear tratamientos sin clínicas registradas. Por favor, registre una clínica primero en Configuración.',
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed:
-                                                    () =>
-                                                        Navigator.pop(context),
-                                                child: const Text('OK'),
-                                              ),
-                                            ],
-                                          ),
-                                    );
-                                  } else {
-                                    context.push('/treatment-create');
-                                  }
-                                },
-                                loading:
-                                    () => context.push('/treatment-create'),
-                                error:
-                                    (_, __) =>
-                                        context.push('/treatment-create'),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 6),
-                          _ActionButton(
-                            icon:
-                                Icons
-                                    .psychology_rounded, // or any other suitable icon like settings_suggest or healing
-                            label: 'Diagnóstico Pulpar',
-                            onPressed: () {
-                              context.push('/diagnosis');
-                            },
-                          ),
-                        ],
+                      const SizedBox(height: 14),
+                      _ActionTile(
+                        icon: CupertinoIcons.person_add,
+                        label: 'Nuevo Paciente',
+                        subtitle: 'Registrar paciente',
+                        onPressed: () {
+                          context.push('/patient-create');
+                        },
                       ),
-                      // Add extra padding at the bottom for better scrolling
+                      const SizedBox(height: 10),
+                      _ActionTile(
+                        icon: CupertinoIcons.heart_fill,
+                        label: 'Agregar Tratamiento',
+                        subtitle: 'Nuevo tratamiento',
+                        onPressed: () {
+                          final clinicasState = ref.read(clinicasProvider);
+
+                          clinicasState.when(
+                            data: (clinicas) {
+                              if (clinicas.isEmpty) {
+                                showDialog(
+                                  context: context,
+                                  builder:
+                                      (context) => AlertDialog(
+                                        title: const Text('Sin Clínicas'),
+                                        content: const Text(
+                                          'No se pueden crear tratamientos sin clínicas registradas. Por favor, registre una clínica primero en Configuración.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed:
+                                                () => Navigator.pop(context),
+                                            child: const Text('OK'),
+                                          ),
+                                        ],
+                                      ),
+                                );
+                              } else {
+                                context.push('/treatment-create');
+                              }
+                            },
+                            loading: () => context.push('/treatment-create'),
+                            error: (_, __) => context.push('/treatment-create'),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      _ActionTile(
+                        icon: Icons.psychology_rounded,
+                        label: 'Diagnóstico Pulpar',
+                        subtitle: 'Asistente de diagnóstico',
+                        onPressed: () {
+                          context.push('/diagnosis');
+                        },
+                      ),
+                      // Extra padding at the bottom for better scrolling
                       const SizedBox(height: 48),
                     ],
                   ),
@@ -209,6 +219,8 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 }
+
+// ─── Clinics Horizontal List ───────────────────────────────────────────────────
 
 class _ClinicsHorizontalList extends ConsumerWidget {
   final int? periodId;
@@ -253,7 +265,6 @@ class _ClinicsHorizontalList extends ConsumerWidget {
 
         // Auto-select first clinic if available and (none selected OR selected is invalid)
         if (!isSelectedValid && clinicas.isNotEmpty) {
-          // Avoid immediate state change during build
           Future.microtask(() {
             ref.read(activeClinicIdProvider.notifier).state =
                 clinicas.first.idClinica;
@@ -261,7 +272,7 @@ class _ClinicsHorizontalList extends ConsumerWidget {
         }
 
         return SizedBox(
-          height: 160, // Fixed height for cards
+          height: 160,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: clinicas.length,
@@ -270,7 +281,7 @@ class _ClinicsHorizontalList extends ConsumerWidget {
               final clinica = clinicas[index];
               final isSelected = clinica.idClinica == selectedClinicId;
 
-              Color clinicColor = Colors.teal; // Default
+              Color clinicColor = Colors.teal;
               try {
                 String colorStr = clinica.color;
                 if (colorStr.startsWith('Color(')) {
@@ -367,79 +378,175 @@ class _ClinicsHorizontalList extends ConsumerWidget {
   }
 }
 
+// ─── Dashboard Stats (Progress Bars) ───────────────────────────────────────────
+
 class _DashboardStats extends ConsumerWidget {
   const _DashboardStats();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(dashboardStatsProvider);
-    //final statsAsync = const AsyncValue.loading(); // Forced loading for testing
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return statsAsync.when(
       data: (objetivos) {
         if (objetivos.isEmpty) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(
-                child: Text('No hay metas definidas para esta clínica.'),
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color:
+                    isDark
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : Colors.black.withValues(alpha: 0.04),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                'No hay metas definidas para esta clínica.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
               ),
             ),
           );
         }
 
-        return Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Progreso de Metas',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 16),
-                ...objetivos.map((obj) {
-                  final progress =
-                      obj.cantidadMeta > 0
-                          ? (obj.cantidadActual / obj.cantidadMeta).clamp(
-                            0.0,
-                            1.0,
-                          )
-                          : 0.0;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(obj.nombreTratamiento),
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color:
+                  isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.black.withValues(alpha: 0.04),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    isDark
+                        ? Colors.black.withValues(alpha: 0.2)
+                        : Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      CupertinoIcons.chart_bar_alt_fill,
+                      color: colorScheme.primary,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Progreso de Metas',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ...objetivos.map((obj) {
+                final progress =
+                    obj.cantidadMeta > 0
+                        ? (obj.cantidadActual / obj.cantidadMeta).clamp(
+                          0.0,
+                          1.0,
+                        )
+                        : 0.0;
+                final progressColor = _getProgressColor(progress);
+                final isComplete = progress >= 1.0;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              obj.nombreTratamiento,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (isComplete)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    CupertinoIcons.checkmark_alt,
+                                    color: Colors.green,
+                                    size: 13,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '${obj.cantidadActual}/${obj.cantidadMeta}',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelSmall?.copyWith(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
                             Text(
                               '${obj.cantidadActual} / ${obj.cantidadMeta}',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.6,
+                                ),
+                              ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 8,
-                          borderRadius: BorderRadius.circular(4),
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.12),
-                          color: _getProgressColor(progress),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _GradientProgressBar(
+                        progress: progress,
+                        color: progressColor,
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
           ),
         );
       },
@@ -448,7 +555,7 @@ class _DashboardStats extends ConsumerWidget {
             elevation: 0,
             color: Theme.of(context).cardTheme.color,
             child: Container(
-              height: 250, // Approximate height of the content
+              height: 250,
               padding: const EdgeInsets.all(16.0),
               width: double.infinity,
               child: Column(
@@ -457,9 +564,10 @@ class _DashboardStats extends ConsumerWidget {
                   Container(
                     width: 120,
                     height: 20,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.05),
+                    decoration: BoxDecoration(
+                      color: colorScheme.onSurface.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Expanded(
@@ -468,33 +576,45 @@ class _DashboardStats extends ConsumerWidget {
                         Container(
                           width: double.infinity,
                           height: 16,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          decoration: BoxDecoration(
+                            color: colorScheme.onSurface.withValues(
+                              alpha: 0.05,
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Container(
                           width: double.infinity,
                           height: 8,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          decoration: BoxDecoration(
+                            color: colorScheme.onSurface.withValues(
+                              alpha: 0.05,
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Container(
                           width: double.infinity,
                           height: 16,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          decoration: BoxDecoration(
+                            color: colorScheme.onSurface.withValues(
+                              alpha: 0.05,
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Container(
                           width: double.infinity,
                           height: 8,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          decoration: BoxDecoration(
+                            color: colorScheme.onSurface.withValues(
+                              alpha: 0.05,
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                         ),
                       ],
                     ),
@@ -513,6 +633,56 @@ class _DashboardStats extends ConsumerWidget {
     return Colors.blue;
   }
 }
+
+// ─── Gradient Progress Bar ─────────────────────────────────────────────────────
+
+class _GradientProgressBar extends StatelessWidget {
+  final double progress;
+  final Color color;
+
+  const _GradientProgressBar({required this.progress, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          height: 8,
+          decoration: BoxDecoration(
+            color:
+                isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: progress),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, _) {
+                return Container(
+                  width: constraints.maxWidth * value,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    gradient: LinearGradient(
+                      colors: [color.withValues(alpha: 0.7), color],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─── Period Picker ──────────────────────────────────────────────────────────────
 
 void _showPeriodPicker(
   BuildContext context,
@@ -601,6 +771,8 @@ void _showPeriodPicker(
   );
 }
 
+// ─── Period Selector Trigger ────────────────────────────────────────────────────
+
 class _PeriodSelectorTrigger extends StatelessWidget {
   final List<Periodo> periodos;
   final int? selectedPeriodId;
@@ -626,36 +798,39 @@ class _PeriodSelectorTrigger extends StatelessWidget {
       }
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
+    //final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+          color: colorScheme.primary.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.15),
+            color: colorScheme.primary.withValues(alpha: 0.15),
             width: 1,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Icon(CupertinoIcons.calendar, color: colorScheme.primary, size: 16),
+            const SizedBox(width: 8),
             Text(
               selectedPeriod?.nombrePeriodo ?? 'Seleccionar',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.primary,
+                color: colorScheme.primary,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: Theme.of(context).colorScheme.primary,
-              size: 20,
+              CupertinoIcons.chevron_down,
+              color: colorScheme.primary,
+              size: 14,
             ),
           ],
         ),
@@ -664,35 +839,93 @@ class _PeriodSelectorTrigger extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
+// ─── Action Tile (premium list-style buttons) ──────────────────────────────────
+
+class _ActionTile extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String subtitle;
   final VoidCallback onPressed;
-  final bool overflow;
 
-  const _ActionButton({
+  const _ActionTile({
     required this.icon,
     required this.label,
+    required this.subtitle,
     required this.onPressed,
-    this.overflow = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color:
+                  isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.black.withValues(alpha: 0.05),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    isDark
+                        ? Colors.black.withValues(alpha: 0.15)
+                        : Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: colorScheme.primary, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                CupertinoIcons.chevron_right,
+                color: colorScheme.onSurface.withValues(alpha: 0.3),
+                size: 16,
+              ),
+            ],
           ),
         ),
       ),
-      onPressed: onPressed,
-      icon: Icon(icon),
-      label: Text(label, overflow: overflow ? TextOverflow.ellipsis : null),
     );
   }
 }
