@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../lib/assets/klinik-icon.png" alt="Klinik Logo" width="120" height="120" />
+  <img src="code/project_mmh/lib/assets/klinik-icon.png" alt="Klinik Logo" width="120" height="120" />
 </p>
 
 <h1 align="center">Klinik</h1>
@@ -15,8 +15,7 @@
   <a href="#tech-stack">Tech Stack</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#project-structure">Project Structure</a> •
-  <a href="#contributing">Contributing</a> •
-  <a href="#license">License</a>
+  <a href="#contributing">Contributing</a>
 </p>
 
 <p align="center">
