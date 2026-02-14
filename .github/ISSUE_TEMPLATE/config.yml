@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/TheJulianAlva/project-mmh/tree/main/code/project_mmh/docs
+    about: Check the project documentation before opening an issue.
+  - name: 💬 Questions & Discussions
+    url: https://github.com/TheJulianAlva/project-mmh/discussions
+    about: Ask questions or start a discussion instead of opening an issue.

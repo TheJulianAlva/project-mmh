@@ -23,7 +23,7 @@
   <img src="https://img.shields.io/badge/Dart-3.7.2+-0175C2?logo=dart" alt="Dart Version" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS-brightgreen" alt="Platform" />
   <img src="https://img.shields.io/badge/Architecture-Clean%20%2B%20Feature--First-blueviolet" alt="Architecture" />
-  <img src="https://img.shields.io/badge/License-Proprietary-lightgrey" alt="License" />
+  <img src="https://img.shields.io/badge/License-Proprietary-red" alt="License" />
 </p>
 
 ---
