@@ -179,12 +179,8 @@ class _RemindersSettingsScreenState
                         iconColor: colorScheme.primary,
                         title: 'Eventos de hoy',
                         subtitle: 'Resumen del día actual',
-                        value: settings.summaryToday,
+                        value: true,
                         enabled: settings.enabled,
-                        onChanged: (v) async {
-                          await notifier.setSummaryToday(v);
-                          await notifier.refreshNotifications();
-                        },
                       ),
                       _buildDivider(),
                       _buildCheckTile(
@@ -478,12 +474,12 @@ class _RemindersSettingsScreenState
     required String subtitle,
     required bool value,
     required bool enabled,
-    required ValueChanged<bool> onChanged,
+    ValueChanged<bool>? onChanged,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return InkWell(
-      onTap: enabled ? () => onChanged(!value) : null,
+      onTap: (enabled && onChanged != null) ? () => onChanged(!value) : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -532,14 +528,15 @@ class _RemindersSettingsScreenState
                 ],
               ),
             ),
-            Transform.scale(
-              scale: 0.8,
-              child: CupertinoSwitch(
-                value: value,
-                activeTrackColor: iconColor,
-                onChanged: enabled ? onChanged : null,
+            if (onChanged != null)
+              Transform.scale(
+                scale: 0.8,
+                child: CupertinoSwitch(
+                  value: value,
+                  activeTrackColor: iconColor,
+                  onChanged: enabled ? onChanged : null,
+                ),
               ),
-            ),
           ],
         ),
       ),

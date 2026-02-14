@@ -1,7 +1,7 @@
 name: project_mmh
-description: "A new Flutter project."
+description: "Asistente integral de gestión académica y clínica, diseñado para optimizar el seguimiento de metas, agendas y expedientes en el ámbito de la salud."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.2+1
 
 environment:
   sdk: ^3.7.2
@@ -34,6 +34,7 @@ dependencies:
   modal_bottom_sheet: ^3.0.0
   cupertino_calendar_picker: ^2.2.6
   flutter_timezone: ^5.0.1
+  package_info_plus: ^9.0.0
 
 
 dev_dependencies:

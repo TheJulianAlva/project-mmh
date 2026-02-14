@@ -73,7 +73,7 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
       enabled: _prefs.getBool(_keyEnabled) ?? false,
       hour: _prefs.getInt(_keyHour) ?? 7,
       minute: _prefs.getInt(_keyMinute) ?? 0,
-      summaryToday: _prefs.getBool(_keySummaryToday) ?? true,
+      summaryToday: true, // Always true
       summaryTomorrow: _prefs.getBool(_keySummaryTomorrow) ?? false,
       summaryDayAfter: _prefs.getBool(_keySummaryDayAfter) ?? false,
     );
@@ -83,7 +83,7 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
     await _prefs.setBool(_keyEnabled, state.enabled);
     await _prefs.setInt(_keyHour, state.hour);
     await _prefs.setInt(_keyMinute, state.minute);
-    await _prefs.setBool(_keySummaryToday, state.summaryToday);
+    await _prefs.setBool(_keySummaryToday, true);
     await _prefs.setBool(_keySummaryTomorrow, state.summaryTomorrow);
     await _prefs.setBool(_keySummaryDayAfter, state.summaryDayAfter);
   }
@@ -106,7 +106,8 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
   }
 
   Future<void> setSummaryToday(bool value) async {
-    state = state.copyWith(summaryToday: value);
+    // Keep it always true as per requirements
+    state = state.copyWith(summaryToday: true);
     await _save();
   }
 

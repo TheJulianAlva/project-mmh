@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/features/core/presentation/providers/package_info_provider.dart';
 import 'package:project_mmh/features/core/presentation/providers/theme_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -136,19 +137,44 @@ class SettingsScreen extends ConsumerWidget {
                         const SizedBox(height: 24),
                         const Divider(),
                         const SizedBox(height: 24),
-                        Text(
-                          'Klinik',
-                          textAlign: TextAlign.center,
-                          style: CupertinoTheme.of(
-                            context,
-                          ).textTheme.textStyle.copyWith(
-                            color: CupertinoColors.tertiaryLabel.resolveFrom(
-                              context,
-                            ),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1,
-                          ),
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final packageInfo = ref.watch(packageInfoProvider);
+                            final version = packageInfo.when(
+                              data: (info) => 'v${info.version}',
+                              loading: () => '',
+                              error: (_, __) => '',
+                            );
+                            return Column(
+                              children: [
+                                Text(
+                                  'Klinik',
+                                  textAlign: TextAlign.center,
+                                  style: CupertinoTheme.of(
+                                    context,
+                                  ).textTheme.textStyle.copyWith(
+                                    color: CupertinoColors.tertiaryLabel
+                                        .resolveFrom(context),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                                if (version.isNotEmpty)
+                                  Text(
+                                    version,
+                                    textAlign: TextAlign.center,
+                                    style: CupertinoTheme.of(
+                                      context,
+                                    ).textTheme.textStyle.copyWith(
+                                      color: CupertinoColors.tertiaryLabel
+                                          .resolveFrom(context),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),
