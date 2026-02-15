@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_action_dialog.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
+import 'package:project_mmh/features/core/presentation/widgets/app_entity_card.dart';
 import 'package:intl/intl.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -449,135 +450,69 @@ class _TimelineSessionCard extends StatelessWidget {
     final durationStr = "${duration.inHours}h ${duration.inMinutes % 60}m";
     final clinicColor = _parseColor(session.colorClinica);
 
-    return GestureDetector(
+    return AppEntityCard(
+      accentColor: clinicColor,
       onTap: () {
         showCustomBottomSheet(
           context: context,
           child: SessionActionSheet(sesion: session.sesion),
         );
       },
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(0, 5, 16, 5),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color:
-                isDark
-                    ? Colors.white.withValues(alpha: 0.06)
-                    : Colors.black.withValues(alpha: 0.04),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Treatment name
+          Text(
+            session.nombreTratamiento,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
-          boxShadow: [
-            BoxShadow(
-              color:
-                  isDark
-                      ? Colors.black.withValues(alpha: 0.2)
-                      : Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Accent bar
-                Container(width: 4, color: clinicColor),
-                // Content
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Treatment name
-                        Text(
-                          session.nombreTratamiento,
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 4),
-                        // Time + duration
-                        Row(
-                          children: [
-                            Icon(
-                              CupertinoIcons.clock,
-                              size: 12,
-                              color: colorScheme.onSurface.withValues(
-                                alpha: 0.45,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${DateFormat('HH:mm').format(startTime)} – ${DateFormat('HH:mm').format(endTime)}  ·  $durationStr',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurface.withValues(
-                                  alpha: 0.55,
-                                ),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
-                        // Patient + clinic
-                        Row(
-                          children: [
-                            Icon(
-                              CupertinoIcons.person,
-                              size: 12,
-                              color: colorScheme.onSurface.withValues(
-                                alpha: 0.45,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                '${session.nombrePaciente}  ·  ${session.nombreClinica}',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurface.withValues(
-                                    alpha: 0.55,
-                                  ),
-                                  fontSize: 12,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        // Status badge
-                        _buildStatusBadge(
-                          context,
-                          session.sesion.estadoAsistencia,
-                        ),
-                      ],
-                    ),
-                  ),
+          const SizedBox(height: 4),
+          // Time + duration
+          Row(
+            children: [
+              Icon(
+                CupertinoIcons.clock,
+                size: 12,
+                color: colorScheme.onSurface.withValues(alpha: 0.45),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '${DateFormat('HH:mm').format(startTime)} – ${DateFormat('HH:mm').format(endTime)}  ·  $durationStr',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.55),
+                  fontSize: 12,
                 ),
-                // Chevron
-                Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Icon(
-                    CupertinoIcons.chevron_right,
-                    size: 14,
-                    color: colorScheme.onSurface.withValues(alpha: 0.2),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 3),
+          // Patient + clinic
+          Row(
+            children: [
+              Icon(
+                CupertinoIcons.person,
+                size: 12,
+                color: colorScheme.onSurface.withValues(alpha: 0.45),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  '${session.nombrePaciente}  ·  ${session.nombreClinica}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.55),
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Status badge
+          _buildStatusBadge(context, session.sesion.estadoAsistencia),
+        ],
       ),
     );
   }

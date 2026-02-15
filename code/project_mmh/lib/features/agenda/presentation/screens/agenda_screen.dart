@@ -7,6 +7,7 @@ import 'package:project_mmh/features/agenda/presentation/widgets/timeline_sessio
 import 'package:table_calendar/table_calendar.dart' hide isSameDay;
 import 'package:table_calendar/table_calendar.dart' as tc show isSameDay;
 import 'package:intl/intl.dart';
+import 'package:project_mmh/features/core/presentation/widgets/app_filter_chip.dart';
 
 class AgendaScreen extends ConsumerStatefulWidget {
   final String? initialAction;
@@ -392,53 +393,15 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
           final filter = filters[index];
           final isActive = activeFilter == filter.value;
 
-          return GestureDetector(
-            onTap: () {
-              ref.read(statusFilterProvider.notifier).state = filter.value;
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color:
-                    isActive
-                        ? colorScheme.primary
-                        : colorScheme.primary.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color:
-                      isActive
-                          ? colorScheme.primary
-                          : colorScheme.primary.withValues(alpha: 0.15),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    filter.icon,
-                    size: 12,
-                    color:
-                        isActive
-                            ? colorScheme.onPrimary
-                            : colorScheme.primary.withValues(alpha: 0.7),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    filter.label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                      color:
-                          isActive
-                              ? colorScheme.onPrimary
-                              : colorScheme.primary.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ],
-              ),
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: AppFilterChip(
+              label: filter.label,
+              icon: filter.icon,
+              isActive: isActive,
+              onTap: () {
+                ref.read(statusFilterProvider.notifier).state = filter.value;
+              },
             ),
           );
         },

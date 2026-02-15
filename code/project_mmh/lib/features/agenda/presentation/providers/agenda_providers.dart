@@ -160,3 +160,11 @@ final sesionesByTratamientoProvider = FutureProvider.autoDispose
       final repo = ref.watch(agendaRepositoryProvider);
       return await repo.getSesionesByTratamiento(idTratamiento);
     });
+
+// --- Treatments Screen Local State ---
+
+// Local state for the selected period in Treatments Screen
+final treatmentsActivePeriodIdProvider = StateProvider<int?>((ref) => null);
+
+// Local state for the selected clinic in Treatments Screen
+final treatmentsActiveClinicIdProvider = StateProvider<int?>((ref) => null);
