@@ -119,8 +119,9 @@ class AgendaRepository {
       // Find next session
       final sesionesMap = await db.query(
         'sesiones',
-        where: 'id_tratamiento = ? AND fecha_inicio >= ?',
-        whereArgs: [t.idTratamiento, now.toIso8601String()],
+        where:
+            'id_tratamiento = ? AND fecha_inicio >= ? AND (estado_asistencia IS NULL OR estado_asistencia = ? OR estado_asistencia = ?)',
+        whereArgs: [t.idTratamiento, now.toIso8601String(), 'programada', ''],
         orderBy: 'fecha_inicio ASC',
         limit: 1,
       );

@@ -595,7 +595,7 @@ class _TreatmentCard extends StatelessWidget {
                 Text(
                   nextSession != null
                       ? 'Próxima: ${dateFormat.format(nextSession)}'
-                      : 'Sin sesiones',
+                      : 'Sin sesiones próximas',
                   style: TextStyle(
                     fontSize: 12,
                     color:
