@@ -48,14 +48,14 @@ class TreatmentActionBar extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(32),
               ),
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             icon: const Icon(CupertinoIcons.add, size: 20),
             label: const Text(
-              'Agendar Sesión',
+              'Agregar Sesión',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
@@ -91,7 +91,7 @@ class TreatmentActionBar extends StatelessWidget {
   ButtonStyle _secondaryButtonStyle(BuildContext context) {
     return OutlinedButton.styleFrom(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       side: BorderSide(
         color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
       ),

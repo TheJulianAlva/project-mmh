@@ -27,7 +27,7 @@ class AppEntityCard extends StatelessWidget {
         margin: margin,
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
               color:
@@ -50,7 +50,7 @@ class AppEntityCard extends StatelessWidget {
             // Status Indicator (Color Dot/Bar)
             Container(
               width: 4,
-              height: 48,
+              height: 72,
               decoration: BoxDecoration(
                 color: accentColor,
                 borderRadius: BorderRadius.circular(2),

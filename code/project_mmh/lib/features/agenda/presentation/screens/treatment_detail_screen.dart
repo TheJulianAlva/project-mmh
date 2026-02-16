@@ -166,7 +166,18 @@ class TreatmentDetailScreen extends ConsumerWidget {
                           // Usually timelines are newest top, but agenda is often oldest top?
                           // Let's assume the provider gives them in correct order.
 
-                          return TreatmentTimelineList(sessions: richSessions);
+                          return TreatmentTimelineList(
+                            sessions: richSessions,
+                            onRefresh: () {
+                              ref.invalidate(
+                                sesionesByTratamientoProvider(tratamientoId),
+                              );
+                              ref.invalidate(
+                                tratamientoByIdProvider(tratamientoId),
+                              );
+                              ref.invalidate(allTratamientosRichProvider);
+                            },
+                          );
                         },
                         loading:
                             () => const Center(

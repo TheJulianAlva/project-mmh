@@ -544,14 +544,24 @@ class _TreatmentCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            item.tratamiento.nombreTratamiento,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              letterSpacing: -0.5,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              Text(
+                item.tratamiento.nombreTratamiento,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Spacer(),
+              Icon(
+                CupertinoIcons.chevron_right,
+                size: 20,
+                color: colorScheme.onSurface.withValues(alpha: 0.2),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -599,14 +609,6 @@ class _TreatmentCard extends StatelessWidget {
                   ),
                 ),
             ],
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Icon(
-              CupertinoIcons.chevron_right,
-              size: 20,
-              color: colorScheme.onSurface.withValues(alpha: 0.2),
-            ),
           ),
         ],
       ),

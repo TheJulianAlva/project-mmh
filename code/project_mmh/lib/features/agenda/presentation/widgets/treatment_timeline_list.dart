@@ -63,8 +63,13 @@ List<DateGroup> groupByDate(List<SesionRichModel> sessions) {
 
 class TreatmentTimelineList extends StatefulWidget {
   final List<SesionRichModel> sessions;
+  final VoidCallback? onRefresh;
 
-  const TreatmentTimelineList({super.key, required this.sessions});
+  const TreatmentTimelineList({
+    super.key,
+    required this.sessions,
+    this.onRefresh,
+  });
 
   @override
   State<TreatmentTimelineList> createState() => _TreatmentTimelineListState();
@@ -178,6 +183,7 @@ class _TreatmentTimelineListState extends State<TreatmentTimelineList>
                     leftPadding: _timelineLeftPadding,
                     nodeRadius: _nodeRadius,
                     showDate: false, // Date is in header
+                    onRefresh: widget.onRefresh,
                   );
                 }
                 return FadeTransition(
@@ -196,6 +202,7 @@ class _TreatmentTimelineListState extends State<TreatmentTimelineList>
                       leftPadding: _timelineLeftPadding,
                       nodeRadius: _nodeRadius,
                       showDate: false,
+                      onRefresh: widget.onRefresh,
                     ),
                   ),
                 );
@@ -216,33 +223,20 @@ class _DateHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isPast = group.date.isBefore(
-      DateTime.now().subtract(const Duration(days: 1)),
-    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color:
-                  isPast
-                      ? colorScheme.surfaceContainerHighest
-                      : colorScheme.primaryContainer,
+              color: colorScheme.surface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               group.label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color:
-                    isPast
-                        ? colorScheme.onSurfaceVariant
-                        : colorScheme.onPrimaryContainer,
-              ),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 8),
@@ -267,6 +261,7 @@ class _TimelineRow extends StatelessWidget {
   final double leftPadding;
   final double nodeRadius;
   final bool showDate;
+  final VoidCallback? onRefresh;
 
   const _TimelineRow({
     required this.session,
@@ -278,6 +273,7 @@ class _TimelineRow extends StatelessWidget {
     required this.leftPadding,
     required this.nodeRadius,
     required this.showDate,
+    this.onRefresh,
   });
 
   @override
@@ -301,13 +297,6 @@ class _TimelineRow extends StatelessWidget {
                   bottom: 0,
                   child: Container(
                     width: 1.5,
-                    color:
-                        isLast
-                            ? Colors.transparent
-                            : colorScheme.primary.withValues(
-                              alpha: isDark ? 0.10 : 0.15,
-                            ),
-                    // Gradient?
                     decoration:
                         isLast
                             ? BoxDecoration(
@@ -320,7 +309,11 @@ class _TimelineRow extends StatelessWidget {
                                 ],
                               ),
                             )
-                            : null,
+                            : BoxDecoration(
+                              color: colorScheme.primary.withValues(
+                                alpha: isDark ? 0.10 : 0.15,
+                              ),
+                            ),
                   ),
                 ),
                 // Time label
@@ -367,6 +360,7 @@ class _TimelineRow extends StatelessWidget {
                 session: session,
                 colorScheme: colorScheme,
                 isDark: isDark,
+                onRefresh: onRefresh,
               ),
             ),
           ),
@@ -378,9 +372,9 @@ class _TimelineRow extends StatelessWidget {
   Color _getNodeColor() {
     switch (session.sesion.estadoAsistencia) {
       case 'asistio':
-        return Colors.green;
+        return colorScheme.secondary;
       case 'falto':
-        return Colors.redAccent;
+        return Colors.orange;
       case 'programada':
       default:
         return colorScheme.primary;
@@ -392,11 +386,13 @@ class _TimelineSessionCard extends StatelessWidget {
   final SesionRichModel session;
   final ColorScheme colorScheme;
   final bool isDark;
+  final VoidCallback? onRefresh;
 
   const _TimelineSessionCard({
     required this.session,
     required this.colorScheme,
     required this.isDark,
+    this.onRefresh,
   });
 
   @override
@@ -408,27 +404,21 @@ class _TimelineSessionCard extends StatelessWidget {
 
     return AppEntityCard(
       accentColor: _getNodeColor(),
-      onTap: () {
-        showCustomBottomSheet(
+      onTap: () async {
+        await showCustomBottomSheet(
           context: context,
           child: SessionActionSheet(sesion: session.sesion),
         );
+        onRefresh?.call();
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Sesión de ${session.nombreTratamiento}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-              _buildStatusPill(context, session.sesion.estadoAsistencia),
-            ],
+          Text(
+            'Sesión de ${session.nombreTratamiento}',
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
           Row(
@@ -447,6 +437,8 @@ class _TimelineSessionCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          _buildStatusBadge(context, session.sesion.estadoAsistencia),
         ],
       ),
     );
@@ -455,41 +447,58 @@ class _TimelineSessionCard extends StatelessWidget {
   Color _getNodeColor() {
     switch (session.sesion.estadoAsistencia) {
       case 'asistio':
-        return Colors.green;
+        return colorScheme.secondary;
       case 'falto':
-        return Colors.redAccent;
+        return Colors.orange;
       default:
         return colorScheme.primary;
     }
   }
 
-  Widget _buildStatusPill(BuildContext context, String? status) {
-    Color color;
-    String text;
-    if (status == 'asistio') {
-      color = Colors.green;
-      text = 'Asistió';
-    } else if (status == 'falto') {
-      color = Colors.redAccent;
-      text = 'Faltó';
-    } else {
-      color = colorScheme.primary;
-      text = 'Programada';
+  Widget _buildStatusBadge(BuildContext context, String? status) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    late Color color;
+    late String label;
+    late IconData icon;
+
+    switch (status) {
+      case 'asistio':
+        color = colorScheme.secondary;
+        label = 'ASISTIÓ';
+        icon = CupertinoIcons.checkmark_alt;
+        break;
+      case 'falto':
+        color = Colors.orange;
+        label = 'NO ASISTIÓ';
+        icon = CupertinoIcons.person_badge_minus;
+        break;
+      default:
+        color = colorScheme.primary;
+        label = 'PROGRAMADA';
+        icon = CupertinoIcons.circle_fill;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(
-        text.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 8,
-          fontWeight: FontWeight.bold,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
