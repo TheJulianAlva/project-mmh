@@ -229,11 +229,18 @@ class _AppointmentCreateScreenState
                                                 context,
                                                 name: 'nombre_tratamiento',
                                                 label: 'Nombre',
-                                                placeholder:
-                                                    'Ej. Endodoncia #14',
+                                                placeholder: 'Ej. Endodoncia',
                                                 icon:
                                                     CupertinoIcons
                                                         .doc_text_fill,
+                                                maxLength: 20,
+                                                validator: (val) {
+                                                  if (val == null ||
+                                                      val.trim().isEmpty) {
+                                                    return 'Nombre inválido';
+                                                  }
+                                                  return null;
+                                                },
                                               ),
                                             ],
                                           );
@@ -442,6 +449,27 @@ class _AppointmentCreateScreenState
                           ],
                         ),
                         onPressed: () {
+                          // Check session limit (1 initial + additional)
+                          if (1 + _additionalSessions.length >= 12) {
+                            showCupertinoDialog(
+                              context: context,
+                              builder:
+                                  (ctx) => CupertinoAlertDialog(
+                                    title: const Text('Límite Alcanzado'),
+                                    content: const Text(
+                                      'No se pueden agregar más de 12 sesiones a un tratamiento.',
+                                    ),
+                                    actions: [
+                                      CupertinoDialogAction(
+                                        child: const Text('OK'),
+                                        onPressed: () => Navigator.pop(ctx),
+                                      ),
+                                    ],
+                                  ),
+                            );
+                            return;
+                          }
+
                           setState(() {
                             _additionalSessions.add({});
                           });
@@ -577,6 +605,8 @@ class _AppointmentCreateScreenState
     String? placeholder,
     IconData? icon,
     int maxLines = 1,
+    int? maxLength,
+    FormFieldValidator<String>? validator,
   }) {
     final theme = Theme.of(context);
     return Padding(
@@ -609,6 +639,8 @@ class _AppointmentCreateScreenState
                 fillColor: Colors.transparent,
               ),
               maxLines: maxLines,
+              maxLength: maxLength,
+              validator: validator,
               style: theme.textTheme.bodyLarge,
             ),
           ),
@@ -833,7 +865,10 @@ class _AppointmentCreateScreenState
   }
 
   void _saveAppointment() async {
-    _formKey.currentState?.save();
+    // Return if validation fails
+    if (!(_formKey.currentState?.saveAndValidate() ?? false)) {
+      return;
+    }
 
     // Manual Validation for Custom Selectors
     if (_selectedPatientId == null) {
@@ -850,10 +885,12 @@ class _AppointmentCreateScreenState
     }
 
     final values = _formKey.currentState!.value;
-    if (values['nombre_tratamiento'] == null ||
-        values['nombre_tratamiento'].toString().isEmpty) {
+    final nombre = values['nombre_tratamiento'];
+    if (nombre == null || nombre.toString().trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingrese el nombre del tratamiento')),
+        const SnackBar(
+          content: Text('Ingrese un nombre válido del tratamiento'),
+        ),
       );
       return;
     }
@@ -865,7 +902,8 @@ class _AppointmentCreateScreenState
       idClinica: _selectedClinicaId!,
       idExpediente: _selectedPatientId!,
       idObjetivo: _selectedObjetivo?.idObjetivo,
-      nombreTratamiento: values['nombre_tratamiento'],
+      nombreTratamiento:
+          nombre.toString().trim(), // Ensure trimmed value is saved
       fechaCreacion: DateTime.now().toIso8601String(),
       estado: 'pendiente',
     );

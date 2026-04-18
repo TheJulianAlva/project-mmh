@@ -341,7 +341,15 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
                                 decoration: _getInputDecoration(
                                   'Nombre del Tratamiento',
                                 ),
-                                validator: FormBuilderValidators.required(),
+                                validator: FormBuilderValidators.compose([
+                                  FormBuilderValidators.required(),
+                                  (val) {
+                                    if (val != null && val.trim().isEmpty) {
+                                      return 'El nombre no puede estar vacío';
+                                    }
+                                    return null;
+                                  },
+                                ]),
                               ),
                             ],
                           ),
@@ -401,13 +409,24 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
   void _saveChanges() async {
     if (_formKey.currentState?.saveAndValidate() ?? false) {
       final values = _formKey.currentState!.value;
+
+      final nombre = values['nombre_tratamiento'] as String?;
+      if (nombre == null || nombre.trim().isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('El nombre no puede estar vacío')),
+          );
+        }
+        return;
+      }
+
       final repo = ref.read(agendaRepositoryProvider);
 
       final updatedTratamiento = widget.tratamiento.copyWith(
         idExpediente: values['id_expediente'] as String,
         idClinica: values['id_clinica'] as int,
         idObjetivo: values['id_objetivo'] as int?,
-        nombreTratamiento: values['nombre_tratamiento'] as String,
+        nombreTratamiento: nombre.trim(), // Ensure trimmed
       );
 
       await repo.updateTratamiento(updatedTratamiento);

@@ -106,7 +106,12 @@ class TreatmentDetailScreen extends ConsumerWidget {
                       // 2. Action Bar
                       TreatmentActionBar(
                         isConcluded: isConcluded,
-                        onAddSession: () => _addSesion(context, tratamientoId),
+                        onAddSession:
+                            () => _addSesion(
+                              context,
+                              tratamientoId,
+                              sesionesAsync.value?.length ?? 0,
+                            ),
                         onEdit: () => _editTreatment(context, tratamiento),
                         onFinalize:
                             isConcluded
@@ -257,7 +262,31 @@ class TreatmentDetailScreen extends ConsumerWidget {
 
   // ─── Actions ───
 
-  void _addSesion(BuildContext context, int idTratamiento) {
+  void _addSesion(
+    BuildContext context,
+    int idTratamiento,
+    int currentSessionCount,
+  ) {
+    if (currentSessionCount >= 12) {
+      showCupertinoDialog(
+        context: context,
+        builder:
+            (ctx) => CupertinoAlertDialog(
+              title: const Text('Límite Alcanzado'),
+              content: const Text(
+                'No se pueden agregar más de 12 sesiones a un tratamiento.',
+              ),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+      );
+      return;
+    }
+
     showCustomBottomSheet(
       context: context,
       child: SessionEditSheet(idTratamiento: idTratamiento),
