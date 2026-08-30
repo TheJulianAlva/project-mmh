@@ -5,7 +5,6 @@ import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento_rich_model.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
-import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
 
 // Repository Provider
@@ -26,25 +25,6 @@ final allSesionesProvider = FutureProvider.autoDispose<List<Sesion>>((
 ) async {
   final repo = ref.watch(agendaRepositoryProvider);
   return await repo.getAllSesiones();
-});
-
-// Filtered sessions for the selected date
-final sessionsOnSelectedDateProvider = Provider.autoDispose<List<Sesion>>((
-  ref,
-) {
-  final allSesionesAsync = ref.watch(allSesionesProvider);
-  final selectedDate = ref.watch(selectedDateProvider);
-
-  return allSesionesAsync.when(
-    data: (sesiones) {
-      return sesiones.where((sesion) {
-        final sesionDate = DateTime.parse(sesion.fechaInicio);
-        return isSameDay(sesionDate, selectedDate);
-      }).toList();
-    },
-    loading: () => [],
-    error: (_, __) => [],
-  );
 });
 
 // --- Enriched Sesiones (for Timeline Cards) ---
@@ -117,12 +97,6 @@ final clinicasProvider = FutureProvider.autoDispose<List<Clinica>>((ref) async {
   final repo = ref.watch(agendaRepositoryProvider);
   return await repo.getAllClinicas();
 });
-
-final objetivosByClinicaProvider = FutureProvider.autoDispose
-    .family<List<Objetivo>, int>((ref, idClinica) async {
-      final repo = ref.watch(agendaRepositoryProvider);
-      return await repo.getObjetivosByClinica(idClinica);
-    });
 
 // Provider to get full Tratamiento details for a Sesion
 final tratamientoByIdProvider = FutureProvider.family<Tratamiento?, int>((

@@ -23,34 +23,33 @@ class PatientsNotifier extends AsyncNotifier<List<Patient>> {
     return ref.watch(patientRepositoryProvider).getAllPatients();
   }
 
+  // Relee la lista desde el repositorio y actualiza el estado sin pasar por
+  // AsyncLoading (evita el parpadeo a spinner de todas las pantallas).
+  Future<void> _reloadInPlace() async {
+    final patients =
+        await ref.read(patientRepositoryProvider).getAllPatients();
+    state = AsyncData(patients);
+  }
+
   Future<void> addPatient(Patient patient) async {
     await ref.read(patientRepositoryProvider).insertPatient(patient);
-    ref.invalidateSelf();
-    await future;
+    await _reloadInPlace();
   }
 
   Future<void> updatePatient(Patient patient) async {
     await ref.read(patientRepositoryProvider).updatePatient(patient);
-    ref.invalidateSelf();
-    await future;
+    await _reloadInPlace();
   }
 
   Future<void> updatePatientId(String oldId, Patient newPatientData) async {
     await ref
         .read(patientRepositoryProvider)
         .updatePatientId(oldId, newPatientData);
-    ref.invalidateSelf();
-    await future;
+    await _reloadInPlace();
   }
 
   Future<void> deletePatient(String idExpediente) async {
     await ref.read(patientRepositoryProvider).deletePatient(idExpediente);
-    ref.invalidateSelf();
-    await future;
-  }
-
-  // Future method to reload/refresh if needed manually, though invalidateSelf does it.
-  Future<void> refresh() async {
-    ref.invalidateSelf();
+    await _reloadInPlace();
   }
 }

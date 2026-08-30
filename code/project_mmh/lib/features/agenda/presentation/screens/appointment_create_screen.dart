@@ -42,9 +42,14 @@ class _AppointmentCreateScreenState
   String? _selectedPatientId;
   Patient? _selectedPatient;
   Objetivo? _selectedObjetivo;
+  bool _isSaving = false;
 
-  // Track sessions
-  final List<Map<String, dynamic>> _additionalSessions = [];
+  // Sesiones adicionales con clave estable (no depende del índice en la lista).
+  final List<_SessionDraft> _additionalSessions = [];
+  int _sessionKeyCounter = 0;
+
+  static const int _maxSesiones = 12;
+  static const Duration _duracionSesionDefault = Duration(hours: 1);
 
   @override
   void initState() {
@@ -64,6 +69,15 @@ class _AppointmentCreateScreenState
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    // Si no hay periodo previo guardado, seleccionar el primero disponible.
+    ref.listen(periodosProvider, (_, next) {
+      next.whenData((periodos) {
+        if (_selectedPeriodId == null && periodos.isNotEmpty && mounted) {
+          setState(() => _selectedPeriodId = periodos.first.idPeriodo);
+        }
+      });
+    });
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -71,9 +85,9 @@ class _AppointmentCreateScreenState
             largeTitle: const Text('Nuevo Tratamiento'),
             backgroundColor: colorScheme.surface.withValues(alpha: 0.9),
             trailing: TextButton(
-              onPressed: _saveAppointment,
+              onPressed: _isSaving ? null : _saveAppointment,
               child: Text(
-                'Guardar',
+                _isSaving ? 'Guardando…' : 'Guardar',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -245,9 +259,16 @@ class _AppointmentCreateScreenState
                                             ],
                                           );
                                         },
-                                        loading: () => const SizedBox.shrink(),
+                                        loading:
+                                            () => _buildLoadingRow(
+                                              context,
+                                              'Cargando objetivos...',
+                                            ),
                                         error:
-                                            (_, __) => const SizedBox.shrink(),
+                                            (_, __) => _buildErrorRow(
+                                              context,
+                                              'Error al cargar objetivos',
+                                            ),
                                       );
                                     },
                                   ),
@@ -260,8 +281,26 @@ class _AppointmentCreateScreenState
                               ],
                             );
                           },
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const SizedBox.shrink(),
+                          loading:
+                              () => _buildGroupedSection(
+                                context,
+                                children: [
+                                  _buildLoadingRow(
+                                    context,
+                                    'Cargando clínicas...',
+                                  ),
+                                ],
+                              ),
+                          error:
+                              (_, __) => _buildGroupedSection(
+                                context,
+                                children: [
+                                  _buildErrorRow(
+                                    context,
+                                    'Error al cargar clínicas',
+                                  ),
+                                ],
+                              ),
                         );
                       },
                     ),
@@ -342,9 +381,9 @@ class _AppointmentCreateScreenState
                     _buildSectionHeader(context, 'SESIONES ADICIONALES'),
                     ..._additionalSessions.asMap().entries.map((entry) {
                       final index = entry.key;
-                      final i = index;
-                      // Reuse simplified logic for now, or just a clear "Remove" button
+                      final draft = entry.value;
                       return Padding(
+                        key: ValueKey(draft.key),
                         padding: const EdgeInsets.only(bottom: 12.0),
                         child: _buildGroupedSection(
                           context,
@@ -367,7 +406,7 @@ class _AppointmentCreateScreenState
                                   GestureDetector(
                                     onTap: () {
                                       setState(() {
-                                        _additionalSessions.removeAt(index);
+                                        _additionalSessions.remove(draft);
                                       });
                                     },
                                     child: Icon(
@@ -380,42 +419,35 @@ class _AppointmentCreateScreenState
                               ),
                             ),
                             _buildDivider(context),
-                            FormBuilderField<DateTime>(
-                              name: 'sesion_${i}_inicio',
-                              initialValue: DateTime.now().add(
-                                Duration(days: 7 * (index + 1)),
+                            _buildLinkRow(
+                              context,
+                              label: 'Empieza',
+                              value: DateFormat(
+                                'EEE, d MMM HH:mm',
+                                'es_ES',
+                              ).format(draft.inicio),
+                              onTap: () => _pickDraftDate(
+                                draft.inicio,
+                                (val) => setState(() {
+                                  draft.inicio = val;
+                                  if (!draft.fin.isAfter(val)) {
+                                    draft.fin = val.add(_duracionSesionDefault);
+                                  }
+                                }),
                               ),
-                              builder:
-                                  (field) => _buildLinkRow(
-                                    context,
-                                    label: 'Empieza',
-                                    value: DateFormat(
-                                      'EEE, d MMM HH:mm',
-                                      'es_ES',
-                                    ).format(field.value!),
-                                    onTap:
-                                        () =>
-                                            _showDateTimePicker(context, field),
-                                  ),
                             ),
                             _buildDivider(context),
-                            FormBuilderField<DateTime>(
-                              name: 'sesion_${i}_fin',
-                              initialValue: DateTime.now().add(
-                                Duration(days: 7 * (index + 1), hours: 1),
+                            _buildLinkRow(
+                              context,
+                              label: 'Termina',
+                              value: DateFormat(
+                                'EEE, d MMM HH:mm',
+                                'es_ES',
+                              ).format(draft.fin),
+                              onTap: () => _pickDraftDate(
+                                draft.fin,
+                                (val) => setState(() => draft.fin = val),
                               ),
-                              builder:
-                                  (field) => _buildLinkRow(
-                                    context,
-                                    label: 'Termina',
-                                    value: DateFormat(
-                                      'EEE, d MMM HH:mm',
-                                      'es_ES',
-                                    ).format(field.value!),
-                                    onTap:
-                                        () =>
-                                            _showDateTimePicker(context, field),
-                                  ),
                             ),
                           ],
                         ),
@@ -449,15 +481,16 @@ class _AppointmentCreateScreenState
                           ],
                         ),
                         onPressed: () {
-                          // Check session limit (1 initial + additional)
-                          if (1 + _additionalSessions.length >= 12) {
+                          // Límite: 1 sesión inicial + adicionales.
+                          if (1 + _additionalSessions.length >= _maxSesiones) {
                             showCupertinoDialog(
                               context: context,
                               builder:
                                   (ctx) => CupertinoAlertDialog(
                                     title: const Text('Límite Alcanzado'),
-                                    content: const Text(
-                                      'No se pueden agregar más de 12 sesiones a un tratamiento.',
+                                    content: Text(
+                                      'No se pueden agregar más de $_maxSesiones '
+                                      'sesiones a un tratamiento.',
                                     ),
                                     actions: [
                                       CupertinoDialogAction(
@@ -471,7 +504,22 @@ class _AppointmentCreateScreenState
                           }
 
                           setState(() {
-                            _additionalSessions.add({});
+                            final base = _additionalSessions.isNotEmpty
+                                ? _additionalSessions.last.inicio
+                                : (_formKey.currentState
+                                            ?.fields['fecha_inicio']
+                                            ?.value
+                                        as DateTime? ??
+                                    widget.initialDate ??
+                                    DateTime.now());
+                            final inicio = base.add(const Duration(days: 7));
+                            _additionalSessions.add(
+                              _SessionDraft(
+                                key: _sessionKeyCounter++,
+                                inicio: inicio,
+                                fin: inicio.add(_duracionSesionDefault),
+                              ),
+                            );
                           });
                         },
                       ),
@@ -695,52 +743,75 @@ class _AppointmentCreateScreenState
             maxChildSize: 0.95,
             expand: false,
             builder: (context, scrollController) {
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      'Seleccionar Paciente',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: CupertinoSearchTextField(
-                      placeholder: 'Buscar paciente...',
-                      onChanged: (val) {
-                        // This would need a smarter state management for the modal content
-                        // For now, simple list
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: ListView.separated(
-                      controller: scrollController,
-                      itemCount: patients.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final p = patients[index];
-                        return ListTile(
-                          leading: CircleAvatar(child: Text(p.nombre[0])),
-                          title: Text('${p.nombre} ${p.primerApellido}'),
-                          subtitle: Text(p.idExpediente),
-                          onTap: () {
-                            setState(() {
-                              _selectedPatient = p;
-                              _selectedPatientId = p.idExpediente;
-                              // Ideally update form field too if we used one
-                              _formKey.currentState?.fields['id_expediente']
-                                  ?.didChange(p.idExpediente);
-                            });
-                            Navigator.pop(context);
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
+              String query = '';
+              return StatefulBuilder(
+                builder: (context, setModalState) {
+                  final filtered = query.trim().isEmpty
+                      ? patients
+                      : patients.where((p) {
+                          final q = query.toLowerCase();
+                          return '${p.nombre} ${p.primerApellido} '
+                                      '${p.segundoApellido ?? ''}'
+                                  .toLowerCase()
+                                  .contains(q) ||
+                              p.idExpediente.toLowerCase().contains(q);
+                        }).toList();
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Seleccionar Paciente',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: CupertinoSearchTextField(
+                          placeholder: 'Buscar paciente...',
+                          onChanged: (val) =>
+                              setModalState(() => query = val),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: filtered.isEmpty
+                            ? const Center(
+                                child: Text('Sin coincidencias'),
+                              )
+                            : ListView.separated(
+                                controller: scrollController,
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final p = filtered[index];
+                                  return ListTile(
+                                    leading: CircleAvatar(
+                                      child: Text(p.nombre[0]),
+                                    ),
+                                    title: Text(
+                                      '${p.nombre} ${p.primerApellido}',
+                                    ),
+                                    subtitle: Text(p.idExpediente),
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedPatient = p;
+                                        _selectedPatientId = p.idExpediente;
+                                        _formKey
+                                            .currentState
+                                            ?.fields['id_expediente']
+                                            ?.didChange(p.idExpediente);
+                                      });
+                                      Navigator.pop(context);
+                                    },
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  );
+                },
               );
             },
           );
@@ -846,18 +917,20 @@ class _AppointmentCreateScreenState
     BuildContext context,
     FormFieldState<DateTime> field,
   ) {
+    _pickDraftDate(field.value ?? DateTime.now(), field.didChange);
+  }
+
+  void _pickDraftDate(DateTime initial, ValueChanged<DateTime> onChanged) {
     showModalBottomSheet(
       context: context,
       builder: (context) {
         return SizedBox(
           height: 300,
           child: CupertinoDatePicker(
-            initialDateTime: field.value ?? DateTime.now(),
+            initialDateTime: initial,
             mode: CupertinoDatePickerMode.dateAndTime,
             use24hFormat: true,
-            onDateTimeChanged: (val) {
-              field.didChange(val);
-            },
+            onDateTimeChanged: onChanged,
           ),
         );
       },
@@ -865,6 +938,8 @@ class _AppointmentCreateScreenState
   }
 
   void _saveAppointment() async {
+    if (_isSaving) return;
+
     // Return if validation fails
     if (!(_formKey.currentState?.saveAndValidate() ?? false)) {
       return;
@@ -895,6 +970,32 @@ class _AppointmentCreateScreenState
       return;
     }
 
+    // Sesión inicial: validar que termina después de que empieza.
+    final s0Start = values['fecha_inicio'] as DateTime? ?? DateTime.now();
+    final s0End =
+        values['fecha_fin'] as DateTime? ??
+        s0Start.add(_duracionSesionDefault);
+    if (!s0End.isAfter(s0Start)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La sesión inicial debe terminar después de empezar'),
+        ),
+      );
+      return;
+    }
+    for (final d in _additionalSessions) {
+      if (!d.fin.isAfter(d.inicio)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cada sesión debe terminar después de empezar'),
+          ),
+        );
+        return;
+      }
+    }
+
+    setState(() => _isSaving = true);
+
     // Logic to save
     final repo = ref.read(agendaRepositoryProvider);
 
@@ -911,39 +1012,29 @@ class _AppointmentCreateScreenState
     try {
       final idTratamiento = await repo.createTratamiento(nuevoTratamiento);
 
-      // Sesion 1
-      final s1Start = values['fecha_inicio'] as DateTime? ?? DateTime.now();
-      final s1End =
-          values['fecha_fin'] as DateTime? ??
-          s1Start.add(const Duration(hours: 1));
-
       await repo.createSesion(
         Sesion(
           idTratamiento: idTratamiento,
-          fechaInicio: s1Start.toIso8601String(),
-          fechaFin: s1End.toIso8601String(),
+          fechaInicio: s0Start.toIso8601String(),
+          fechaFin: s0End.toIso8601String(),
           estadoAsistencia: 'programada',
         ),
       );
 
-      // Extra sessions
-      for (int i = 0; i < _additionalSessions.length; i++) {
-        final sStart = values['sesion_${i}_inicio'] as DateTime?;
-        final sEnd = values['sesion_${i}_fin'] as DateTime?;
-        if (sStart != null && sEnd != null) {
-          await repo.createSesion(
-            Sesion(
-              idTratamiento: idTratamiento,
-              fechaInicio: sStart.toIso8601String(),
-              fechaFin: sEnd.toIso8601String(),
-              estadoAsistencia: 'programada',
-            ),
-          );
-        }
+      for (final d in _additionalSessions) {
+        await repo.createSesion(
+          Sesion(
+            idTratamiento: idTratamiento,
+            fechaInicio: d.inicio.toIso8601String(),
+            fechaFin: d.fin.toIso8601String(),
+            estadoAsistencia: 'programada',
+          ),
+        );
       }
 
       ref.invalidate(allSesionesProvider);
       ref.invalidate(allTratamientosRichProvider);
+      ref.invalidate(enrichedSesionesProvider);
 
       if (mounted) {
         context.pop();
@@ -953,10 +1044,24 @@ class _AppointmentCreateScreenState
       }
     } catch (e) {
       if (mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
+        ).showSnackBar(SnackBar(content: Text('Error al guardar: $message')));
       }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
+}
+
+/// Borrador de una sesión adicional. La `key` es estable y no depende del
+/// índice en la lista, de modo que eliminar una sesión del medio no corrompe
+/// las demás.
+class _SessionDraft {
+  _SessionDraft({required this.key, required this.inicio, required this.fin});
+
+  final int key;
+  DateTime inicio;
+  DateTime fin;
 }

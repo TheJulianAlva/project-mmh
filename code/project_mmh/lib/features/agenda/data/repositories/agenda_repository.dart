@@ -283,16 +283,6 @@ class AgendaRepository {
 
   // --- Support Methods (Objectives, Clinicas) for Dropdowns ---
 
-  Future<List<Objetivo>> getObjetivosByClinica(int idClinica) async {
-    final db = await _dbHelper.database;
-    final result = await db.query(
-      'objetivos',
-      where: 'id_clinica = ?',
-      whereArgs: [idClinica],
-    );
-    return result.map((e) => Objetivo.fromJson(e)).toList();
-  }
-
   Future<int> incrementObjetivoProgress(int idObjetivo) async {
     final db = await _dbHelper.database;
     // Primero obtenemos el objetivo actual

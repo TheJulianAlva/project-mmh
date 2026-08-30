@@ -9,7 +9,6 @@ final clinicasRepositoryProvider = Provider<ClinicasRepository>((ref) {
 });
 
 // Global Active Context
-final activePeriodIdProvider = StateProvider<int?>((ref) => null);
 final activeClinicIdProvider = StateProvider<int?>((ref) => null);
 
 // Signal to notify other features (like Agenda) that clinics have changed
