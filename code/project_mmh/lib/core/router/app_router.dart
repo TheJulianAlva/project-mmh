@@ -16,6 +16,7 @@ import 'package:project_mmh/features/agenda/presentation/screens/appointment_cre
 import 'package:project_mmh/features/settings/presentation/screens/settings_screen.dart';
 import 'package:project_mmh/features/settings/presentation/screens/reminders_settings_screen.dart';
 import 'package:project_mmh/features/diagnosis/presentation/screens/diagnosis_wizard_screen.dart';
+import 'package:project_mmh/features/dev/presentation/style_guide_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/dashboard',
@@ -138,6 +139,12 @@ final appRouter = GoRouter(
       path: '/diagnosis',
       builder: (context, state) => const DiagnosisWizardScreen(),
     ),
+    // Catálogo visual del sistema de diseño. Solo accesible en debug.
+    if (kDebugMode)
+      GoRoute(
+        path: '/dev/style-guide',
+        builder: (context, state) => const StyleGuideScreen(),
+      ),
   ],
 );
 
