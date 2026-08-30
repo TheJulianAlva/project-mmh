@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:project_mmh/core/router/app_router.dart';
 import 'package:project_mmh/core/theme/app_theme.dart';
 import 'package:project_mmh/core/services/notification_service.dart';
@@ -13,6 +14,8 @@ import 'package:project_mmh/features/settings/presentation/providers/reminder_se
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // App offline-first: las fuentes van empaquetadas como asset, nunca por red.
+  GoogleFonts.config.allowRuntimeFetching = false;
   await initializeDateFormatting('es_ES', null);
   await ImageService.init();
   await NotificationService.instance.init(
