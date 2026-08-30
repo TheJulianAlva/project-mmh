@@ -11,6 +11,7 @@ import 'package:project_mmh/features/clinicas_metas/presentation/widgets/color_p
 import 'package:project_mmh/features/clinicas_metas/presentation/widgets/weekly_schedule_picker.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 
 class ClinicasMetasScreen extends ConsumerWidget {
@@ -132,8 +133,10 @@ class ClinicasMetasScreen extends ConsumerWidget {
                                         ),
                                         ElevatedButton(
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red,
-                                            foregroundColor: Colors.white,
+                                            backgroundColor:
+                                                Theme.of(context).colorScheme.error,
+                                            foregroundColor:
+                                                Theme.of(context).colorScheme.onError,
                                           ),
                                           onPressed:
                                               () =>
@@ -378,7 +381,7 @@ class _ClinicasList extends ConsumerWidget {
         return Column(
           children: [
             ...clinicas.map((clinica) {
-              final clinicColor = _parseColor(clinica.color);
+              final clinicColor = ClinicPalette.parse(clinica.color);
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
@@ -543,8 +546,10 @@ class _ClinicasList extends ConsumerWidget {
                             ),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
+                                backgroundColor:
+                                    Theme.of(dialogContext).colorScheme.error,
+                                foregroundColor:
+                                    Theme.of(dialogContext).colorScheme.onError,
                               ),
                               onPressed:
                                   () => Navigator.pop(dialogContext, true),
@@ -572,24 +577,6 @@ class _ClinicasList extends ConsumerWidget {
             ),
           ),
     );
-  }
-
-  Color _parseColor(String colorString) {
-    if (colorString.isEmpty) return const Color(0xFF007AFF);
-    try {
-      String cleanHex = colorString
-          .replaceAll('#', '')
-          .replaceAll('0x', '')
-          .replaceAll('0X', '');
-      if (cleanHex.length == 6) {
-        return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-      } else if (cleanHex.length == 8) {
-        return Color(int.parse(cleanHex, radix: 16));
-      }
-      return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-    } catch (_) {
-      return const Color(0xFF007AFF);
-    }
   }
 
   void _showAddClinicaDialog(

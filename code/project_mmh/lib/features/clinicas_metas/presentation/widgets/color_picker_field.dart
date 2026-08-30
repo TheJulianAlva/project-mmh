@@ -21,7 +21,7 @@ class ColorPickerField extends StatelessWidget {
       name: name,
       initialValue: initialValue ?? '#007AFF',
       builder: (FormFieldState<String> field) {
-        Color currentColor = _hexToColor(field.value);
+        final currentColor = ClinicPalette.parse(field.value);
 
         return InputDecorator(
           decoration: decoration.copyWith(errorText: field.errorText),
@@ -45,7 +45,7 @@ class ColorPickerField extends StatelessWidget {
               );
 
               if (pickedColor != null) {
-                field.didChange(_colorToHex(pickedColor));
+                field.didChange(ClinicPalette.toHex(pickedColor));
               }
             },
             child: Row(
@@ -55,7 +55,9 @@ class ColorPickerField extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: currentColor,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey),
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor,
+                    ),
                   ),
                   width: 24,
                   height: 24,
@@ -68,29 +70,4 @@ class ColorPickerField extends StatelessWidget {
     );
   }
 
-  Color _hexToColor(String? hex) {
-    if (hex == null || hex.isEmpty) return const Color(0xFF007AFF);
-    try {
-      String cleanHex = hex
-          .replaceAll('#', '')
-          .replaceAll('0x', '')
-          .replaceAll('0X', '');
-      if (cleanHex.length == 6) {
-        return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-      } else if (cleanHex.length == 8) {
-        return Color(int.parse(cleanHex, radix: 16));
-      }
-      return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-    } catch (_) {
-      return Colors.blue;
-    }
-  }
-
-  String _colorToHex(Color color) {
-    // Use .r, .g, .b (doubles 0.0-1.0) as color.value is deprecated
-    final r = (color.r * 255).round().toRadixString(16).padLeft(2, '0');
-    final g = (color.g * 255).round().toRadixString(16).padLeft(2, '0');
-    final b = (color.b * 255).round().toRadixString(16).padLeft(2, '0');
-    return '#$r$g$b'.toUpperCase();
-  }
 }

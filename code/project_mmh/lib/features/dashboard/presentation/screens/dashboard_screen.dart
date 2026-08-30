@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/theme/app_semantic_colors.dart';
+import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
 import 'package:project_mmh/features/dashboard/presentation/providers/dashboard_providers.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
@@ -285,32 +287,7 @@ class _ClinicsHorizontalList extends ConsumerWidget {
               final clinica = clinicas[index];
               final isSelected = clinica.idClinica == selectedClinicId;
 
-              Color clinicColor = Colors.teal;
-              try {
-                String colorStr = clinica.color;
-                if (colorStr.startsWith('Color(')) {
-                  String value = colorStr.split('(')[1].split(')')[0];
-                  clinicColor = Color(int.parse(value));
-                } else {
-                  String cleanHex = colorStr
-                      .replaceAll('#', '')
-                      .replaceAll('0x', '')
-                      .replaceAll('0X', '');
-                  if (cleanHex.length == 6) {
-                    clinicColor = Color(
-                      int.parse(cleanHex, radix: 16) + 0xFF000000,
-                    );
-                  } else if (cleanHex.length == 8) {
-                    clinicColor = Color(int.parse(cleanHex, radix: 16));
-                  } else {
-                    clinicColor = Color(
-                      int.parse(cleanHex, radix: 16) + 0xFF000000,
-                    );
-                  }
-                }
-              } catch (_) {
-                clinicColor = Colors.teal;
-              }
+              final clinicColor = ClinicPalette.parse(clinica.color);
 
               return GestureDetector(
                 onTap: () {
@@ -483,7 +460,7 @@ class _DashboardStats extends ConsumerWidget {
                           1.0,
                         )
                         : 0.0;
-                final progressColor = _getProgressColor(progress);
+                final progressColor = _getProgressColor(context, progress);
                 final isComplete = progress >= 1.0;
 
                 return Padding(
@@ -508,15 +485,16 @@ class _DashboardStats extends ConsumerWidget {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.12),
+                                color: context.semantic.success
+                                    .withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     CupertinoIcons.checkmark_alt,
-                                    color: Colors.green,
+                                    color: context.semantic.success,
                                     size: 13,
                                   ),
                                   const SizedBox(width: 3),
@@ -525,7 +503,7 @@ class _DashboardStats extends ConsumerWidget {
                                     style: Theme.of(
                                       context,
                                     ).textTheme.labelSmall?.copyWith(
-                                      color: Colors.green,
+                                      color: context.semantic.success,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -640,10 +618,11 @@ class _DashboardStats extends ConsumerWidget {
     );
   }
 
-  Color _getProgressColor(double progress) {
-    if (progress >= 1.0) return Colors.green;
-    if (progress >= 0.5) return Colors.orange;
-    return Colors.blue;
+  Color _getProgressColor(BuildContext context, double progress) {
+    final s = context.semantic;
+    if (progress >= 1.0) return s.success;
+    if (progress >= 0.5) return s.warning;
+    return s.info;
   }
 }
 

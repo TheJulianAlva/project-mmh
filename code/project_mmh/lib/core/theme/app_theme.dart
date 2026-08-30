@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_mmh/core/theme/app_semantic_colors.dart';
 
 class AppTheme {
+  /// Color de marca (rosa). Fuente única para notificaciones y acentos.
+  static const Color brandPink = _lightPrimary;
+
   // --- Paleta Claro ---
   static const Color _lightPrimary = Color(0xFFD81B60); // Pink Berry
   static const Color _lightPrimaryVariant = Color(0xFFF8BBD0); // Soft Pink
@@ -89,20 +93,39 @@ class AppTheme {
     );
   }
 
+  /// ColorScheme completo (todos los roles M3) derivado del color de marca,
+  /// con los roles de identidad forzados a la paleta de la app.
+  static ColorScheme _scheme(Brightness brightness) {
+    final isLight = brightness == Brightness.light;
+    final seeded = ColorScheme.fromSeed(
+      seedColor: _lightPrimary,
+      brightness: brightness,
+    );
+    return seeded.copyWith(
+      primary: isLight ? _lightPrimary : _darkPrimary,
+      onPrimary: isLight ? Colors.white : const Color(0xFF380016),
+      primaryContainer: isLight ? _lightPrimaryVariant : _darkPrimaryVariant,
+      secondary: isLight ? _lightSecondary : _darkSecondary,
+      onSecondary: isLight ? Colors.white : const Color(0xFF003731),
+      error: isLight ? _lightError : _darkError,
+      onError: isLight ? Colors.white : Colors.black,
+      surface: isLight ? _lightSurface : _darkSurface,
+      onSurface: isLight ? _lightText : _darkText,
+    );
+  }
+
   static ThemeData light() {
-    final base = ThemeData.light();
+    final base = ThemeData.light(useMaterial3: true);
+    final colorScheme = _scheme(Brightness.light);
     return base.copyWith(
-      colorScheme: const ColorScheme(
-        brightness: Brightness.light,
-        primary: _lightPrimary,
-        primaryContainer: _lightPrimaryVariant,
-        onPrimary: Colors.white,
-        secondary: _lightSecondary,
-        onSecondary: Colors.white,
-        error: _lightError,
-        onError: Colors.white,
-        surface: _lightSurface,
-        onSurface: _lightText,
+      colorScheme: colorScheme,
+      extensions: const [AppSemanticColors.light],
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: _lightSurface,
+        indicatorColor: _lightPrimary.withValues(alpha: 0.12),
+        labelTextStyle: WidgetStateProperty.all(
+          GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
       ),
       scaffoldBackgroundColor: _lightBackground,
       textTheme: _buildTextTheme(base.textTheme).apply(
@@ -163,19 +186,17 @@ class AppTheme {
   }
 
   static ThemeData dark() {
-    final base = ThemeData.dark();
+    final base = ThemeData.dark(useMaterial3: true);
+    final colorScheme = _scheme(Brightness.dark);
     return base.copyWith(
-      colorScheme: const ColorScheme(
-        brightness: Brightness.dark,
-        primary: _darkPrimary,
-        primaryContainer: _darkPrimaryVariant,
-        onPrimary: Color(0xFF380016), // Dark text on light primary
-        secondary: _darkSecondary,
-        onSecondary: Color(0xFF003731),
-        error: _darkError,
-        onError: Colors.black,
-        surface: _darkSurface,
-        onSurface: _darkText,
+      colorScheme: colorScheme,
+      extensions: const [AppSemanticColors.dark],
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: _darkSurface,
+        indicatorColor: _darkPrimary.withValues(alpha: 0.20),
+        labelTextStyle: WidgetStateProperty.all(
+          GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
       ),
       scaffoldBackgroundColor: _darkBackground,
       textTheme: _buildTextTheme(base.textTheme).apply(

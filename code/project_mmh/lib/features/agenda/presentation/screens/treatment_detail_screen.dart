@@ -12,6 +12,7 @@ import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 
 // Widgets
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/treatment_edit_dialog.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_edit_dialog.dart';
@@ -78,7 +79,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
               Color? clinicColor;
               if (clinicAsync.hasValue && clinicAsync.value != null) {
                 clinicName = clinicAsync.value!.nombreClinica;
-                clinicColor = _parseColor(clinicAsync.value!.color);
+                clinicColor = ClinicPalette.parse(clinicAsync.value!.color);
               }
 
               final isConcluded = tratamiento.estado == 'concluido';
@@ -244,29 +245,6 @@ class TreatmentDetailScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Color _parseColor(String colorStr) {
-    try {
-      if (colorStr.startsWith('Color(')) {
-        String value = colorStr.split('(')[1].split(')')[0];
-        return Color(int.parse(value));
-      } else {
-        String cleanHex = colorStr
-            .replaceAll('#', '')
-            .replaceAll('0x', '')
-            .replaceAll('0X', '');
-        if (cleanHex.length == 6) {
-          return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-        } else if (cleanHex.length == 8) {
-          return Color(int.parse(cleanHex, radix: 16));
-        } else {
-          return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-        }
-      }
-    } catch (_) {
-      return Colors.blue; // Fallback
-    }
   }
 
   // ─── Actions ───

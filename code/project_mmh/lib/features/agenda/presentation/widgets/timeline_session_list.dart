@@ -5,6 +5,7 @@ import 'package:project_mmh/features/agenda/presentation/widgets/session_action_
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_entity_card.dart';
 import 'package:intl/intl.dart';
+import 'package:project_mmh/core/theme/clinic_palette.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Period grouping for timeline sections
@@ -352,7 +353,7 @@ class _TimelineRow extends StatelessWidget {
       case 'asistio':
         return colorScheme.secondary;
       case 'falto':
-        return Colors.orange;
+        return colorScheme.error;
       default:
         return colorScheme.primary;
     }
@@ -448,7 +449,7 @@ class _TimelineSessionCard extends StatelessWidget {
     final endTime = DateTime.parse(session.sesion.fechaFin);
     final duration = endTime.difference(startTime);
     final durationStr = "${duration.inHours}h ${duration.inMinutes % 60}m";
-    final clinicColor = _parseColor(session.colorClinica);
+    final clinicColor = ClinicPalette.parse(session.colorClinica);
 
     return AppEntityCard(
       accentColor: clinicColor,
@@ -531,7 +532,7 @@ class _TimelineSessionCard extends StatelessWidget {
         icon = CupertinoIcons.checkmark_alt;
         break;
       case 'falto':
-        color = Colors.orange;
+        color = colorScheme.error;
         label = 'NO ASISTIÓ';
         icon = CupertinoIcons.person_badge_minus;
         break;
@@ -565,26 +566,5 @@ class _TimelineSessionCard extends StatelessWidget {
     );
   }
 
-  Color _parseColor(String colorStr) {
-    try {
-      if (colorStr.startsWith('Color(')) {
-        String value = colorStr.split('(')[1].split(')')[0];
-        return Color(int.parse(value));
-      } else {
-        String cleanHex = colorStr
-            .replaceAll('#', '')
-            .replaceAll('0x', '')
-            .replaceAll('0X', '');
-        if (cleanHex.length == 6) {
-          return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-        } else if (cleanHex.length == 8) {
-          return Color(int.parse(cleanHex, radix: 16));
-        } else {
-          return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-        }
-      }
-    } catch (_) {
-      return colorScheme.secondary;
-    }
-  }
+
 }

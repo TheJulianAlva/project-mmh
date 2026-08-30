@@ -1,5 +1,5 @@
-import 'dart:ui';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:project_mmh/core/theme/app_theme.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -172,7 +172,7 @@ class NotificationService {
             importance: Importance.high,
             priority: Priority.high,
             icon: '@mipmap/launcher_icon',
-            color: const Color(0xFFFC4391), // Color rosa premium de la app
+            color: AppTheme.brandPink,
             styleInformation: InboxStyleInformation(
               lines,
               contentTitle: '<b>$title</b>',

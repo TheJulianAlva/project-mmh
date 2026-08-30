@@ -9,6 +9,8 @@ import 'package:project_mmh/features/clinicas_metas/domain/periodo.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart'; // Implemented activeClinicIdProvider
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/theme/app_semantic_colors.dart';
+import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_filter_chip.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_entity_card.dart';
 
@@ -527,14 +529,7 @@ class _TreatmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color clinicaColor;
-    try {
-      clinicaColor = Color(
-        int.parse(item.colorClinica.replaceAll('#', '0xFF')),
-      );
-    } catch (_) {
-      clinicaColor = Theme.of(context).colorScheme.primary;
-    }
+    final clinicaColor = ClinicPalette.parse(item.colorClinica);
 
     final nextSession = item.proximaSesion;
     final isCompleted = item.tratamiento.estado == 'concluido';
@@ -594,7 +589,7 @@ class _TreatmentCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Colors.green, // Keep green for success
+                    color: context.semantic.success,
                   ),
                 )
               else

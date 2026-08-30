@@ -183,7 +183,7 @@ class SessionActionSheet extends ConsumerWidget {
                     child: _StatusChip(
                       label: 'No Asistió',
                       icon: CupertinoIcons.person_badge_minus,
-                      color: Colors.orange,
+                      color: colorScheme.error,
                       isSelected: sesion.estadoAsistencia == 'falto',
                       onTap: () => _updateStatus(context, ref, 'falto'),
                     ),

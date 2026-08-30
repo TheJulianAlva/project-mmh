@@ -374,7 +374,7 @@ class _TimelineRow extends StatelessWidget {
       case 'asistio':
         return colorScheme.secondary;
       case 'falto':
-        return Colors.orange;
+        return colorScheme.error;
       case 'programada':
       default:
         return colorScheme.primary;
@@ -449,7 +449,7 @@ class _TimelineSessionCard extends StatelessWidget {
       case 'asistio':
         return colorScheme.secondary;
       case 'falto':
-        return Colors.orange;
+        return colorScheme.error;
       default:
         return colorScheme.primary;
     }
@@ -469,7 +469,7 @@ class _TimelineSessionCard extends StatelessWidget {
         icon = CupertinoIcons.checkmark_alt;
         break;
       case 'falto':
-        color = Colors.orange;
+        color = colorScheme.error;
         label = 'NO ASISTIÓ';
         icon = CupertinoIcons.person_badge_minus;
         break;

@@ -720,7 +720,10 @@ class _AppointmentCreateScreenState
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Center(
-        child: Text(message, style: const TextStyle(color: Colors.red)),
+        child: Text(
+          message,
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
       ),
     );
   }
