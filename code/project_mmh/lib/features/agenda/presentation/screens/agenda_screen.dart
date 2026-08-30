@@ -21,6 +21,7 @@ class AgendaScreen extends ConsumerStatefulWidget {
 class _AgendaScreenState extends ConsumerState<AgendaScreen>
     with SingleTickerProviderStateMixin {
   CalendarFormat _calendarFormat = CalendarFormat.month;
+  DateTime _focusedDay = DateTime.now();
 
   @override
   void initState() {
@@ -90,6 +91,13 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
   @override
   Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedDateProvider);
+    // Mantener la página del calendario sincronizada si la fecha seleccionada
+    // cambia desde fuera (p. ej. al abrir la agenda desde una notificación).
+    ref.listen(selectedDateProvider, (_, next) {
+      if (!tc.isSameDay(_focusedDay, next)) {
+        setState(() => _focusedDay = next);
+      }
+    });
     final sessionsAsync = ref.watch(allSesionesProvider);
     final enrichedToday = ref.watch(enrichedSessionsOnSelectedDateProvider);
     final statusFilter = ref.watch(statusFilterProvider);
@@ -136,8 +144,13 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                             locale: 'es_ES',
                             firstDay: DateTime.utc(2020, 1, 1),
                             lastDay: DateTime.utc(2030, 12, 31),
-                            focusedDay: selectedDate,
+                            focusedDay: _focusedDay,
                             calendarFormat: _calendarFormat,
+                            onPageChanged: (focusedDay) {
+                              // No usar setState aquí (recomendación de
+                              // table_calendar): solo persistir la página.
+                              _focusedDay = focusedDay;
+                            },
                             startingDayOfWeek: StartingDayOfWeek.monday,
                             availableCalendarFormats: const {
                               CalendarFormat.month: 'Mes',
@@ -199,6 +212,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                             onDaySelected: (selectedDay, focusedDay) {
                               ref.read(selectedDateProvider.notifier).state =
                                   selectedDay;
+                              setState(() => _focusedDay = focusedDay);
                             },
                             onFormatChanged: (format) {
                               setState(() {

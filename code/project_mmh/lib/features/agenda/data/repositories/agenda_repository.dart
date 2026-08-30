@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:project_mmh/core/database/database_helper.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
@@ -12,6 +14,22 @@ class AgendaRepository {
 
   AgendaRepository({DatabaseHelper? dbHelper})
     : _dbHelper = dbHelper ?? DatabaseHelper();
+
+  /// Todas las fechas de `sesiones` se guardan como ISO-8601 en **hora local**
+  /// (sin sufijo `Z`). Para comparar en SQL usamos `now` truncado a segundos,
+  /// de forma que tenga la misma longitud/forma que las fechas guardadas por
+  /// los date pickers y la comparación lexicográfica sea fiable.
+  static String _nowIsoLocalSeconds() {
+    final n = DateTime.now();
+    return DateTime(
+      n.year,
+      n.month,
+      n.day,
+      n.hour,
+      n.minute,
+      n.second,
+    ).toIso8601String();
+  }
 
   // --- Tratamientos ---
 
@@ -118,30 +136,33 @@ class AgendaRepository {
         p.idExpediente: p,
     };
 
+    // Próxima sesión por tratamiento en una sola consulta (evita N+1).
+    final proximasMap = await db.rawQuery(
+      '''
+      SELECT id_tratamiento, MIN(fecha_inicio) AS proxima
+      FROM sesiones
+      WHERE fecha_inicio >= ?
+        AND (estado_asistencia IS NULL OR estado_asistencia = ''
+             OR estado_asistencia = 'programada')
+      GROUP BY id_tratamiento
+      ''',
+      [_nowIsoLocalSeconds()],
+    );
+    final proximaPorTratamiento = <int, DateTime>{
+      for (final row in proximasMap)
+        row['id_tratamiento'] as int:
+            DateTime.parse(row['proxima'] as String),
+    };
+
     final List<TratamientoRichModel> richList = [];
-    final now = DateTime.now();
+    var descartados = 0;
 
     for (var t in tratamientos) {
       final clinica = clinicas[t.idClinica];
       final paciente = pacientes[t.idExpediente];
-      if (clinica == null || paciente == null)
-        continue; // Should not happen with heavy constraints
-
-      // Find next session
-      final sesionesMap = await db.query(
-        'sesiones',
-        where:
-            'id_tratamiento = ? AND fecha_inicio >= ? AND (estado_asistencia IS NULL OR estado_asistencia = ? OR estado_asistencia = ?)',
-        whereArgs: [t.idTratamiento, now.toIso8601String(), 'programada', ''],
-        orderBy: 'fecha_inicio ASC',
-        limit: 1,
-      );
-
-      DateTime? proximaSesion;
-      if (sesionesMap.isNotEmpty) {
-        proximaSesion = DateTime.parse(
-          sesionesMap.first['fecha_inicio'] as String,
-        );
+      if (clinica == null || paciente == null) {
+        descartados++;
+        continue;
       }
 
       richList.add(
@@ -151,8 +172,15 @@ class AgendaRepository {
           colorClinica: clinica.color,
           nombrePaciente: '${paciente.nombre} ${paciente.primerApellido}',
           idExpediente: paciente.idExpediente,
-          proximaSesion: proximaSesion,
+          proximaSesion: proximaPorTratamiento[t.idTratamiento],
         ),
+      );
+    }
+
+    if (descartados > 0) {
+      debugPrint(
+        'getAllTratamientosRich: $descartados tratamiento(s) descartado(s) '
+        'por integridad referencial rota (clínica o paciente inexistente).',
       );
     }
 
@@ -195,6 +223,19 @@ class AgendaRepository {
       INNER JOIN clinicas c ON t.id_clinica = c.id_clinica
       ORDER BY s.fecha_inicio ASC
     ''');
+
+    if (kDebugMode) {
+      final total = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM sesiones'),
+      );
+      if (total != null && total != result.length) {
+        debugPrint(
+          'getEnrichedSesiones: ${total - result.length} sesión(es) '
+          'oculta(s) por integridad referencial rota (tratamiento/paciente/'
+          'clínica inexistente).',
+        );
+      }
+    }
 
     return result.map((row) {
       final sesion = Sesion(

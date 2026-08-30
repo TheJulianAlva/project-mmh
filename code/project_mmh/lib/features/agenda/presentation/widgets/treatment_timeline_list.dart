@@ -18,17 +18,14 @@ class DateGroup {
   DateGroup({required this.date, required this.sessions});
 
   String get label {
-    // Format: "Lunes, 12 Feb 2024"
-    final now = DateTime.now();
-    final isToday =
-        date.year == now.year && date.month == now.month && date.day == now.day;
-    final isTomorrow =
-        date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day + 1;
+    // Diferencia en días de calendario (robusto a fin de mes / año).
+    final today = DateUtils.dateOnly(DateTime.now());
+    final thisDay = DateUtils.dateOnly(date);
+    final diffDays = thisDay.difference(today).inDays;
 
-    if (isToday) return 'Hoy';
-    if (isTomorrow) return 'Mañana';
+    if (diffDays == 0) return 'Hoy';
+    if (diffDays == 1) return 'Mañana';
+    if (diffDays == -1) return 'Ayer';
 
     final str = DateFormat("EEEE d 'de' MMMM", 'es_ES').format(date);
     return str[0].toUpperCase() + str.substring(1);
