@@ -8,6 +8,7 @@ import 'package:project_mmh/features/agenda/presentation/providers/agenda_provid
 import 'package:project_mmh/features/clinicas_metas/domain/periodo.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart'; // Implemented activeClinicIdProvider
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_filter_chip.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_entity_card.dart';
 
@@ -281,7 +282,12 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
                 ),
             error:
                 (e, st) => SliverFillRemaining(
-                  child: Center(child: Text('Error: $e')),
+                  child: AppErrorView(
+                    message: 'No se pudieron cargar los tratamientos.',
+                    onRetry: () => ref.invalidate(
+                      allTratamientosRichProvider(activePeriodId),
+                    ),
+                  ),
                 ),
           ),
           // Bottom padding for scroll

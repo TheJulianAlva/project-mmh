@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/features/odontograma/domain/models/pieza_dental.dart';
 import 'package:project_mmh/features/odontograma/presentation/controllers/odontograma_controller.dart';
 import 'package:project_mmh/features/odontograma/presentation/widgets/tooth_widget.dart';
@@ -88,7 +89,14 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
           Expanded(
             child: odontogramaState.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, st) => Center(child: Text('Error: $e')),
+              error: (e, st) => AppErrorView(
+                message: 'No se pudo cargar el odontograma.',
+                onRetry: () => ref
+                    .read(
+                      odontogramaControllerProvider(widget.pacienteId).notifier,
+                    )
+                    .loadOdontograma(),
+              ),
               data: (piezas) {
                 return SingleChildScrollView(
                   scrollDirection: Axis.vertical,

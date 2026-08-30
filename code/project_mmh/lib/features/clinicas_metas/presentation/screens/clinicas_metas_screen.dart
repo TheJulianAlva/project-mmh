@@ -10,6 +10,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/widgets/color_picker_field.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/widgets/weekly_schedule_picker.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 
 class ClinicasMetasScreen extends ConsumerWidget {
@@ -164,7 +165,10 @@ class ClinicasMetasScreen extends ConsumerWidget {
                 ),
             error:
                 (err, stack) => SliverFillRemaining(
-                  child: Center(child: Text('Error: $err')),
+                  child: AppErrorView(
+                    message: 'No se pudieron cargar los periodos.',
+                    onRetry: () => ref.invalidate(periodosProvider),
+                  ),
                 ),
           ),
           const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
@@ -490,7 +494,10 @@ class _ClinicasList extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) => Text('Error: $e'),
+      error: (e, s) => const AppErrorView(
+        message: 'No se pudieron cargar las clínicas.',
+        compact: true,
+      ),
     );
   }
 
@@ -881,15 +888,8 @@ class _ObjetivosDialog extends ConsumerWidget {
                               size: 20,
                               color: Theme.of(context).colorScheme.error,
                             ),
-                            onPressed: () async {
-                              await ref
-                                  .read(
-                                    objetivosByClinicaProvider(
-                                      idClinica,
-                                    ).notifier,
-                                  )
-                                  .deleteObjetivo(obj.idObjetivo!);
-                            },
+                            onPressed: () =>
+                                _confirmDeleteObjetivo(context, ref, idClinica, obj),
                           ),
                         ],
                       ),
@@ -902,7 +902,13 @@ class _ObjetivosDialog extends ConsumerWidget {
                     height: 100,
                     child: Center(child: CircularProgressIndicator()),
                   ),
-              error: (e, s) => Text('Error: $e'),
+              error: (e, s) => const SizedBox(
+                height: 100,
+                child: AppErrorView(
+                  message: 'No se pudieron cargar los objetivos.',
+                  compact: true,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -922,6 +928,52 @@ class _ObjetivosDialog extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteObjetivo(
+    BuildContext context,
+    WidgetRef ref,
+    int idClinica,
+    Objetivo obj,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Eliminar objetivo?'),
+        content: Text(
+          'Se eliminará "${obj.nombreTratamiento}". Los tratamientos ya '
+          'registrados para este objetivo se conservarán, pero perderán el '
+          'vínculo y su aporte al progreso.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await ref
+          .read(objetivosByClinicaProvider(idClinica).notifier)
+          .deleteObjetivo(obj.idObjetivo!);
+    } catch (e) {
+      if (context.mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar el objetivo: $message')),
+        );
+      }
+    }
   }
 
   // New Edit Method

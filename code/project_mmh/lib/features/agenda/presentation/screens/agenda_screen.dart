@@ -7,6 +7,7 @@ import 'package:project_mmh/features/agenda/presentation/widgets/timeline_sessio
 import 'package:table_calendar/table_calendar.dart' hide isSameDay;
 import 'package:table_calendar/table_calendar.dart' as tc show isSameDay;
 import 'package:intl/intl.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_filter_chip.dart';
 
 class AgendaScreen extends ConsumerStatefulWidget {
@@ -266,7 +267,13 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                       ),
                   loading:
                       () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text('Error: $e')),
+                  error: (e, _) => AppErrorView(
+                    message: 'No se pudo cargar la agenda.',
+                    onRetry: () {
+                      ref.invalidate(allSesionesProvider);
+                      ref.invalidate(enrichedSesionesProvider);
+                    },
+                  ),
                 ),
               ),
             ),

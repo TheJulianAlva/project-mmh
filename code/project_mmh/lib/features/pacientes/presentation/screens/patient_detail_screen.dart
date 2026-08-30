@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/services/image_service.dart';
 
 class PatientDetailScreen extends ConsumerWidget {
@@ -74,7 +75,10 @@ class PatientDetailScreen extends ConsumerWidget {
                       child: CircularProgressIndicator(),
                     ),
                   ),
-              error: (e, s) => Center(child: Text('Error: $e')),
+              error: (e, s) => AppErrorView(
+                message: 'No se pudo cargar el paciente.',
+                onRetry: () => ref.invalidate(patientsProvider),
+              ),
             ),
           ),
         ],

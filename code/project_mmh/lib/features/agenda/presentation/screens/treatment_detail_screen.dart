@@ -11,6 +11,7 @@ import 'package:project_mmh/features/clinicas_metas/presentation/providers/clini
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 
 // Widgets
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/treatment_edit_dialog.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_edit_dialog.dart';
@@ -65,13 +66,11 @@ class TreatmentDetailScreen extends ConsumerWidget {
                 );
               }
 
-              // Determine Patient Name
-              String patientName = 'Cargando...';
+              // Nombre del paciente (no usar 'Cargando...'/'Error' como nombre real)
+              String patientName = '';
               if (patientAsync.hasValue && patientAsync.value != null) {
                 final p = patientAsync.value!;
                 patientName = '${p.nombre} ${p.primerApellido}';
-              } else if (patientAsync.hasError) {
-                patientName = 'Error al cargar paciente';
               }
 
               // Determine Clinic Info
@@ -96,7 +95,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
                       // 1. Info Card
                       TreatmentInfoCard(
                         treatmentName: tratamiento.nombreTratamiento,
-                        patientName: patientName,
+                        patientName: patientName.isEmpty ? '—' : patientName,
                         clinicName: clinicName,
                         status: tratamiento.estado,
                         clinicColor: clinicColor,
@@ -110,7 +109,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
                             () => _addSesion(
                               context,
                               tratamientoId,
-                              sesionesAsync.value?.length ?? 0,
+                              sesionesAsync.value?.length,
                             ),
                         onEdit: () => _editTreatment(context, tratamiento),
                         onFinalize:
@@ -188,7 +187,13 @@ class TreatmentDetailScreen extends ConsumerWidget {
                             () => const Center(
                               child: CircularProgressIndicator(),
                             ),
-                        error: (e, _) => Center(child: Text('Error: $e')),
+                        error: (e, _) => AppErrorView(
+                          message: 'No se pudieron cargar las sesiones.',
+                          compact: true,
+                          onRetry: () => ref.invalidate(
+                            sesionesByTratamientoProvider(tratamientoId),
+                          ),
+                        ),
                       ),
 
                       // Extra padding for safe area
@@ -204,7 +209,11 @@ class TreatmentDetailScreen extends ConsumerWidget {
                 ),
             error:
                 (e, _) => SliverFillRemaining(
-                  child: Center(child: Text('Error: $e')),
+                  child: AppErrorView(
+                    message: 'No se pudo cargar el tratamiento.',
+                    onRetry: () =>
+                        ref.invalidate(tratamientoByIdProvider(tratamientoId)),
+                  ),
                 ),
           ),
         ],
@@ -262,19 +271,30 @@ class TreatmentDetailScreen extends ConsumerWidget {
 
   // ─── Actions ───
 
+  static const int _maxSesiones = 12;
+
   void _addSesion(
     BuildContext context,
     int idTratamiento,
-    int currentSessionCount,
+    int? currentSessionCount,
   ) {
-    if (currentSessionCount >= 12) {
+    if (currentSessionCount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Espera a que carguen las sesiones e inténtalo de nuevo'),
+        ),
+      );
+      return;
+    }
+    if (currentSessionCount >= _maxSesiones) {
       showCupertinoDialog(
         context: context,
         builder:
             (ctx) => CupertinoAlertDialog(
               title: const Text('Límite Alcanzado'),
-              content: const Text(
-                'No se pueden agregar más de 12 sesiones a un tratamiento.',
+              content: Text(
+                'No se pueden agregar más de $_maxSesiones sesiones a un '
+                'tratamiento.',
               ),
               actions: [
                 CupertinoDialogAction(
@@ -326,7 +346,9 @@ class TreatmentDetailScreen extends ConsumerWidget {
           ),
     );
 
-    if (confirmed == true) {
+    if (confirmed != true) return;
+
+    try {
       final repo = ref.read(agendaRepositoryProvider);
       await repo.markTreatmentAsFinalized(tratamientoId);
       ref.invalidate(tratamientoByIdProvider(tratamientoId));
@@ -337,6 +359,13 @@ class TreatmentDetailScreen extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Tratamiento finalizado correctamente')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo finalizar: $message')),
         );
       }
     }
@@ -371,18 +400,29 @@ class TreatmentDetailScreen extends ConsumerWidget {
           ),
     );
 
-    if (confirmed == true) {
+    if (confirmed != true) return;
+
+    try {
       final repo = ref.read(agendaRepositoryProvider);
       await repo.deleteTratamiento(id);
 
       ref.invalidate(allTratamientosRichProvider);
       ref.invalidate(allSesionesProvider);
+      ref.invalidate(enrichedSesionesProvider);
+      ref.invalidate(dashboardStatsProvider);
 
       if (context.mounted) {
         if (Navigator.canPop(context)) Navigator.pop(context);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Tratamiento eliminado')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar: $message')),
+        );
       }
     }
   }

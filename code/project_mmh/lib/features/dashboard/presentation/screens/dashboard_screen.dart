@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
 import 'package:project_mmh/features/dashboard/presentation/providers/dashboard_providers.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
@@ -211,7 +212,10 @@ class DashboardScreen extends ConsumerWidget {
             error:
                 (e, s) => SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(child: Text('Error: $e')),
+                  child: AppErrorView(
+                    message: 'No se pudieron cargar los periodos.',
+                    onRetry: () => ref.invalidate(periodosProvider),
+                  ),
                 ),
           ),
         ],
@@ -370,9 +374,14 @@ class _ClinicsHorizontalList extends ConsumerWidget {
             child: Center(child: CircularProgressIndicator()),
           ),
       error:
-          (e, s) => const SizedBox(
-            height: 100,
-            child: Center(child: Text('Error al cargar clínicas')),
+          (e, s) => SizedBox(
+            height: 120,
+            child: AppErrorView(
+              message: 'No se pudieron cargar las clínicas.',
+              compact: true,
+              onRetry: () =>
+                  ref.invalidate(clinicasByPeriodoProvider(periodId!)),
+            ),
           ),
     );
   }
@@ -623,7 +632,11 @@ class _DashboardStats extends ConsumerWidget {
               ),
             ),
           ),
-      error: (e, s) => Text('Error: $e'),
+      error: (e, s) => AppErrorView(
+        message: 'No se pudieron cargar las estadísticas.',
+        compact: true,
+        onRetry: () => ref.invalidate(dashboardStatsProvider),
+      ),
     );
   }
 
