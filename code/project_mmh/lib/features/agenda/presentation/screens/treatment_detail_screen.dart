@@ -11,6 +11,7 @@ import 'package:project_mmh/features/clinicas_metas/presentation/providers/clini
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 
 // Widgets
+import 'package:project_mmh/core/constants/app_constants.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
@@ -249,8 +250,6 @@ class TreatmentDetailScreen extends ConsumerWidget {
 
   // ─── Actions ───
 
-  static const int _maxSesiones = 12;
-
   void _addSesion(
     BuildContext context,
     int idTratamiento,
@@ -264,15 +263,15 @@ class TreatmentDetailScreen extends ConsumerWidget {
       );
       return;
     }
-    if (currentSessionCount >= _maxSesiones) {
+    if (currentSessionCount >= kMaxSesionesPorTratamiento) {
       showCupertinoDialog(
         context: context,
         builder:
             (ctx) => CupertinoAlertDialog(
               title: const Text('Límite Alcanzado'),
               content: Text(
-                'No se pueden agregar más de $_maxSesiones sesiones a un '
-                'tratamiento.',
+                'No se pueden agregar más de $kMaxSesionesPorTratamiento '
+                'sesiones a un tratamiento.',
               ),
               actions: [
                 CupertinoDialogAction(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/utils/formatters.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
@@ -35,7 +36,7 @@ class SessionActionSheet extends ConsumerWidget {
         final fechaInicio = DateTime.parse(sesion.fechaInicio);
         final fechaFin = DateTime.parse(sesion.fechaFin);
         final duration = fechaFin.difference(fechaInicio);
-        final durationStr = '${duration.inHours}h ${duration.inMinutes % 60}m';
+        final durationStr = formatDuration(duration);
 
         String patientName = 'Cargando...';
         if (patientsAsync.hasValue && patientsAsync.value != null) {

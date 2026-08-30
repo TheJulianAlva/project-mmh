@@ -5,6 +5,7 @@ import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_action_dialog.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_entity_card.dart';
+import 'package:project_mmh/core/utils/formatters.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Date grouping for treatment timeline
@@ -400,7 +401,7 @@ class _TimelineSessionCard extends StatelessWidget {
     final startTime = DateTime.parse(session.sesion.fechaInicio);
     final endTime = DateTime.parse(session.sesion.fechaFin);
     final duration = endTime.difference(startTime);
-    final durationStr = "${duration.inHours}h ${duration.inMinutes % 60}m";
+    final durationStr = formatDuration(duration);
 
     return AppEntityCard(
       accentColor: _getNodeColor(),

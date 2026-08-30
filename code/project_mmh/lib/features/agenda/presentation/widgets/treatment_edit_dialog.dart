@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
+import 'package:project_mmh/core/constants/app_constants.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
@@ -338,6 +339,7 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
                               const SizedBox(height: 12),
                               FormBuilderTextField(
                                 name: 'nombre_tratamiento',
+                                maxLength: kMaxNombreTratamiento,
                                 decoration: _getInputDecoration(
                                   'Nombre del Tratamiento',
                                 ),

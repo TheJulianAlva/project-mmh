@@ -115,7 +115,7 @@ class PatientDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           Center(
             child: Text(
-              '${patient.nombre} ${patient.primerApellido} ${patient.segundoApellido ?? ''}',
+              patient.nombreCompleto,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),

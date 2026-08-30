@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_mmh/core/constants/app_constants.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,9 +48,6 @@ class _AppointmentCreateScreenState
   // Sesiones adicionales con clave estable (no depende del índice en la lista).
   final List<_SessionDraft> _additionalSessions = [];
   int _sessionKeyCounter = 0;
-
-  static const int _maxSesiones = 12;
-  static const Duration _duracionSesionDefault = Duration(hours: 1);
 
   @override
   void initState() {
@@ -247,7 +245,7 @@ class _AppointmentCreateScreenState
                                                 icon:
                                                     CupertinoIcons
                                                         .doc_text_fill,
-                                                maxLength: 20,
+                                                maxLength: kMaxNombreTratamiento,
                                                 validator: (val) {
                                                   if (val == null ||
                                                       val.trim().isEmpty) {
@@ -431,7 +429,7 @@ class _AppointmentCreateScreenState
                                 (val) => setState(() {
                                   draft.inicio = val;
                                   if (!draft.fin.isAfter(val)) {
-                                    draft.fin = val.add(_duracionSesionDefault);
+                                    draft.fin = val.add(kDuracionSesionDefault);
                                   }
                                 }),
                               ),
@@ -482,14 +480,14 @@ class _AppointmentCreateScreenState
                         ),
                         onPressed: () {
                           // Límite: 1 sesión inicial + adicionales.
-                          if (1 + _additionalSessions.length >= _maxSesiones) {
+                          if (1 + _additionalSessions.length >= kMaxSesionesPorTratamiento) {
                             showCupertinoDialog(
                               context: context,
                               builder:
                                   (ctx) => CupertinoAlertDialog(
                                     title: const Text('Límite Alcanzado'),
                                     content: Text(
-                                      'No se pueden agregar más de $_maxSesiones '
+                                      'No se pueden agregar más de $kMaxSesionesPorTratamiento '
                                       'sesiones a un tratamiento.',
                                     ),
                                     actions: [
@@ -517,7 +515,7 @@ class _AppointmentCreateScreenState
                               _SessionDraft(
                                 key: _sessionKeyCounter++,
                                 inicio: inicio,
-                                fin: inicio.add(_duracionSesionDefault),
+                                fin: inicio.add(kDuracionSesionDefault),
                               ),
                             );
                           });
@@ -977,7 +975,7 @@ class _AppointmentCreateScreenState
     final s0Start = values['fecha_inicio'] as DateTime? ?? DateTime.now();
     final s0End =
         values['fecha_fin'] as DateTime? ??
-        s0Start.add(_duracionSesionDefault);
+        s0Start.add(kDuracionSesionDefault);
     if (!s0End.isAfter(s0Start)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

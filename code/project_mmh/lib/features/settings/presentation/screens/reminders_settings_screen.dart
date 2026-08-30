@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:project_mmh/features/settings/presentation/providers/reminder_settings_provider.dart';
+import 'package:project_mmh/core/utils/formatters.dart';
 
 class RemindersSettingsScreen extends ConsumerStatefulWidget {
   const RemindersSettingsScreen({super.key});
@@ -14,13 +15,6 @@ class RemindersSettingsScreen extends ConsumerStatefulWidget {
 class _RemindersSettingsScreenState
     extends ConsumerState<RemindersSettingsScreen> {
   // ── Helpers ──────────────────────────────────────────────────────────────
-
-  String _formatTime(TimeOfDay t) {
-    final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
-    final m = t.minute.toString().padLeft(2, '0');
-    final period = t.period == DayPeriod.am ? 'AM' : 'PM';
-    return '$h:$m $period';
-  }
 
   void _showTimePicker() {
     final settings = ref.read(reminderSettingsProvider);
@@ -451,7 +445,7 @@ class _RemindersSettingsScreenState
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                _formatTime(settings.timeOfDay),
+                formatTimeOfDay(settings.timeOfDay),
                 style: textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color:
@@ -568,7 +562,7 @@ class _RemindersSettingsScreenState
     final scopeText =
         activeScopes.isEmpty
             ? 'Selecciona al menos un tipo de resumen.'
-            : 'Recibirás un resumen de tus eventos de ${activeScopes.join(', ')} a las ${_formatTime(settings.timeOfDay)}.';
+            : 'Recibirás un resumen de tus eventos de ${activeScopes.join(', ')} a las ${formatTimeOfDay(settings.timeOfDay)}.';
 
     return Container(
       padding: const EdgeInsets.all(16),

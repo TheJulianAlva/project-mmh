@@ -11,6 +11,7 @@ import 'package:project_mmh/features/clinicas_metas/presentation/widgets/color_p
 import 'package:project_mmh/features/clinicas_metas/presentation/widgets/weekly_schedule_picker.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/constants/app_constants.dart';
 import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 
@@ -201,7 +202,7 @@ class ClinicasMetasScreen extends ConsumerWidget {
               key: formKey,
               child: FormBuilderTextField(
                 name: 'nombre',
-                maxLength: 30,
+                maxLength: kMaxNombrePeriodo,
                 decoration: const InputDecoration(
                   labelText: 'Nombre del Periodo',
                   counterText: "",
@@ -280,7 +281,7 @@ class ClinicasMetasScreen extends ConsumerWidget {
               initialValue: {'nombre': periodo.nombrePeriodo},
               child: FormBuilderTextField(
                 name: 'nombre',
-                maxLength: 50,
+                maxLength: kMaxNombrePeriodo,
                 decoration: const InputDecoration(
                   labelText: 'Nombre del Periodo',
                   counterText: "",

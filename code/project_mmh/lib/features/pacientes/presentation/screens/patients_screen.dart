@@ -86,9 +86,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             data: (patients) {
               final filteredPatients =
                   patients.where((patient) {
-                    final fullName =
-                        '${patient.nombre} ${patient.primerApellido} ${patient.segundoApellido ?? ''}'
-                            .toLowerCase();
+                    final fullName = patient.nombreCompleto.toLowerCase();
                     return fullName.contains(_searchQuery) ||
                         patient.idExpediente.toLowerCase().contains(
                           _searchQuery,
@@ -124,7 +122,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                               : null,
                     ),
                     title: Text(
-                      '${patient.nombre} ${patient.primerApellido} ${patient.segundoApellido ?? ''}',
+                      patient.nombreCompleto,
                     ),
                     subtitle: Text('Exp: ${patient.idExpediente}'),
                     trailing: Row(
