@@ -49,6 +49,7 @@ class ToothWidget extends StatelessWidget {
   // Global / Extra
   final String globalState;
   final bool hasSellador; // Draws 'S'
+  final bool isBridgeStart; // Resalta la pieza elegida como inicio de puente
 
   // Callbacks
   final VoidCallback? onTapTop;
@@ -69,6 +70,7 @@ class ToothWidget extends StatelessWidget {
     this.stateCenter = 'Sano',
     this.globalState = 'Sano',
     this.hasSellador = false,
+    this.isBridgeStart = false,
     this.onTapTop,
     this.onTapBottom,
     this.onTapLeft,
@@ -90,9 +92,17 @@ class ToothWidget extends StatelessWidget {
             color: palette.label,
           ),
         ),
-        SizedBox(
+        Container(
           width: size,
           height: size,
+          decoration: isBridgeStart
+              ? BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.tertiary,
+                    width: 2,
+                  ),
+                )
+              : null,
           child: CustomPaint(
             painter: _ToothPainter(
               stateTop: stateTop,
@@ -345,15 +355,19 @@ class _ToothPainter extends CustomPainter {
           canvas.drawPath(path, redStroke);
         }
 
+        // Recortar al área de la superficie para que el zigzag no invada
+        // piezas/superficies vecinas.
+        canvas.save();
         if (rect != null) {
-          // Cross centered
+          canvas.clipRect(rect.deflate(1));
           drawZigzag(rect.topLeft, rect.bottomRight);
           drawZigzag(rect.topRight, rect.bottomLeft);
         } else {
-          // Simple Zigzag inside path bounds
+          canvas.clipPath(path);
           final bounds = path.getBounds();
           drawZigzag(bounds.topLeft, bounds.bottomRight);
         }
+        canvas.restore();
       }
     }
 
@@ -440,16 +454,20 @@ class _ToothPainter extends CustomPainter {
     }
 
     if (globalState == OdontogramaTools.protesisFija) {
-      // Brackets []
-      // Simple logic: Draw square bracket around
-      final blackStroke =
+      final stroke =
           Paint()
             ..color = palette.global
             ..strokeWidth = 2.0
             ..style = PaintingStyle.stroke;
-      final rect = Rect.fromLTWH(0, 0, w, h);
-      canvas.drawRect(rect, blackStroke);
-      // Maybe make it look more like a bracket [ ] ?
+      // Recuadro de la pieza (pilar/póntico).
+      canvas.drawRect(Rect.fromLTWH(1, 1, w - 2, h - 2), stroke);
+      // Barra conectora horizontal: las de piezas contiguas se encuentran en el
+      // borde compartido y el puente se lee como una unidad.
+      final bar = Paint()
+        ..color = palette.global
+        ..strokeWidth = 3.0
+        ..style = PaintingStyle.stroke;
+      canvas.drawLine(Offset(0, h / 2), Offset(w, h / 2), bar);
     }
 
     // Sellador (S) — escala con el tamaño de la pieza (antes 36 fijo se salía).

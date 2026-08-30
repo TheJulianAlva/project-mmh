@@ -12,7 +12,10 @@ final odontogramaRepositoryProvider = Provider<OdontogramaRepository>((ref) {
   return OdontogramaRepository(ref.watch(databaseHelperProvider));
 });
 
-final odontogramaControllerProvider = StateNotifierProvider.family<
+// autoDispose: al cerrar el odontograma el estado se libera y se relee de la BD
+// la próxima vez (evita mostrar datos obsoletos y no retiene un controller por
+// cada paciente visitado en la sesión).
+final odontogramaControllerProvider = StateNotifierProvider.autoDispose.family<
   OdontogramaController,
   AsyncValue<List<PiezaDental>>,
   String
@@ -23,7 +26,9 @@ final odontogramaControllerProvider = StateNotifierProvider.family<
   );
 });
 
-final selectedToolProvider = StateProvider<String>((ref) => 'Sano');
+// autoDispose: la herramienta seleccionada se reinicia a "Sano" al salir del
+// odontograma (antes persistía globalmente entre pacientes).
+final selectedToolProvider = StateProvider.autoDispose<String>((ref) => 'Sano');
 
 // Tools Constants
 // Tools Constants matching Design Doc
@@ -59,9 +64,9 @@ class OdontogramaController
   Future<void> loadOdontograma() async {
     try {
       final data = await _repository.getOdontograma(pacienteId);
-      state = AsyncValue.data(data);
+      if (mounted) state = AsyncValue.data(data);
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      if (mounted) state = AsyncValue.error(e, stack);
     }
   }
 
@@ -270,13 +275,21 @@ class OdontogramaController
 
   Future<void> _updateLocalAndDb(PiezaDental updated) async {
     // Optimistic Update
-    state.whenData((currentList) {
-      state = AsyncValue.data([
-        for (final p in currentList)
-          if (p.id == updated.id) updated else p,
-      ]);
-    });
+    if (mounted) {
+      state.whenData((currentList) {
+        state = AsyncValue.data([
+          for (final p in currentList)
+            if (p.id == updated.id) updated else p,
+        ]);
+      });
+    }
 
-    await _repository.updatePieza(updated);
+    try {
+      await _repository.updatePieza(updated);
+    } catch (_) {
+      // La escritura falló: revertir el cambio optimista releyendo de la BD
+      // para no dejar el estado local divergente.
+      if (mounted) await loadOdontograma();
+    }
   }
 }

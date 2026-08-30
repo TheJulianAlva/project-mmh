@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/features/odontograma/domain/models/pieza_dental.dart';
 import 'package:project_mmh/features/odontograma/presentation/controllers/odontograma_controller.dart';
@@ -50,13 +51,10 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Go back logic
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
+            if (context.canPop()) {
+              context.pop();
             } else {
-              // Fallback if GoRouter
-              // context.pop(); // Requires go_router import or context extension
-              Navigator.of(context).maybePop();
+              context.go('/pacientes/${widget.pacienteId}');
             }
           },
         ),
@@ -471,6 +469,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
 
           globalState: pieza.estadoGeneral,
           hasSellador: pieza.tieneSellador,
+          isBridgeStart: _bridgeStartPiece?.iso == pieza.iso,
 
           onTapTop: () => _handleTap(pieza, surfaceTopName, selectedTool),
           onTapBottom: () => _handleTap(pieza, surfaceBottomName, selectedTool),
@@ -480,7 +479,18 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
         ),
       );
     } catch (e) {
-      return SizedBox(width: 40 * scale, height: 40 * scale);
+      // Placeholder con la misma altura total que una pieza real (etiqueta ISO
+      // + cuerpo) para no desalinear la fila si falta una pieza.
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 15),
+            SizedBox(width: 40 * scale, height: 40 * scale),
+          ],
+        ),
+      );
     }
   }
 
