@@ -87,7 +87,9 @@ class _RemindersSettingsScreenState
           ),
     ).whenComplete(() {
       // Reprogramar al cerrar el selector (cubre "Listo" y cerrar deslizando).
-      ref.read(reminderSettingsProvider.notifier).refreshNotifications();
+      if (mounted) {
+        ref.read(reminderSettingsProvider.notifier).refreshNotifications();
+      }
     });
   }
 
