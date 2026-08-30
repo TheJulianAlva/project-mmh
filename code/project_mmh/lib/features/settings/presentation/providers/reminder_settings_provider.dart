@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
 import 'package:project_mmh/core/services/notification_service.dart';
 import 'package:project_mmh/features/agenda/data/repositories/agenda_repository.dart';
+import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 
 /// State model for reminder settings.
 class ReminderSettings {
@@ -56,6 +57,7 @@ class ReminderSettings {
 /// and triggers notification scheduling when settings change.
 class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
   final SharedPreferences _prefs;
+  final AgendaRepository _agendaRepo;
 
   static const _keyEnabled = 'reminder_enabled';
   static const _keyHour = 'reminder_hour';
@@ -64,7 +66,8 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
   static const _keySummaryTomorrow = 'reminder_summary_tomorrow';
   static const _keySummaryDayAfter = 'reminder_summary_day_after';
 
-  ReminderSettingsNotifier(this._prefs) : super(const ReminderSettings()) {
+  ReminderSettingsNotifier(this._prefs, this._agendaRepo)
+    : super(const ReminderSettings()) {
     _load();
   }
 
@@ -88,21 +91,23 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
     await _prefs.setBool(_keySummaryDayAfter, state.summaryDayAfter);
   }
 
-  Future<void> setEnabled(bool value) async {
+  /// Devuelve `false` si se pidió activar pero el permiso fue denegado.
+  Future<bool> setEnabled(bool value) async {
     if (value) {
       final granted = await NotificationService.instance.requestPermission();
-      if (!granted) return;
+      if (!granted) return false;
     }
     state = state.copyWith(enabled: value);
     await _save();
-    if (!value) {
-      await NotificationService.instance.cancelAll();
-    }
+    await refreshNotifications();
+    return true;
   }
 
   Future<void> setTime(int hour, int minute) async {
     state = state.copyWith(hour: hour, minute: minute);
     await _save();
+    // La reprogramación la dispara la pantalla al cerrar el selector (para no
+    // reprogramar en cada tick del picker).
   }
 
   Future<void> setSummaryToday(bool value) async {
@@ -114,11 +119,13 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
   Future<void> setSummaryTomorrow(bool value) async {
     state = state.copyWith(summaryTomorrow: value);
     await _save();
+    await refreshNotifications();
   }
 
   Future<void> setSummaryDayAfter(bool value) async {
     state = state.copyWith(summaryDayAfter: value);
     await _save();
+    await refreshNotifications();
   }
 
   /// Refresh scheduled notifications based on current settings and agenda data.
@@ -128,7 +135,7 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
       return;
     }
 
-    final repo = AgendaRepository();
+    final repo = _agendaRepo;
 
     // Get sessions for the next 10 days
     final now = DateTime.now();
@@ -156,5 +163,5 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
 final reminderSettingsProvider =
     StateNotifierProvider<ReminderSettingsNotifier, ReminderSettings>((ref) {
       final prefs = ref.watch(sharedPreferencesProvider);
-      return ReminderSettingsNotifier(prefs);
+      return ReminderSettingsNotifier(prefs, ref.watch(agendaRepositoryProvider));
     });

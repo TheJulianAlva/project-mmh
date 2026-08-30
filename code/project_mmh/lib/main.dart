@@ -24,13 +24,16 @@ void main() async {
     overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
   );
 
-  // Refresh scheduled notifications on app start
-  final reminderNotifier = container.read(reminderSettingsProvider.notifier);
-  await reminderNotifier.refreshNotifications();
-
   runApp(
     UncontrolledProviderScope(container: container, child: const MainApp()),
   );
+
+  // Fuera del critical path del arranque: reprogramar recordatorios y procesar
+  // el tap de notificación que abrió la app en frío (una vez montado el router).
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    NotificationService.instance.consumePendingLaunch();
+    container.read(reminderSettingsProvider.notifier).refreshNotifications();
+  });
 }
 
 class MainApp extends ConsumerWidget {

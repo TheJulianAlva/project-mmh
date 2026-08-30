@@ -64,13 +64,7 @@ class _RemindersSettingsScreenState
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          // Refresh notifications after time change
-                          ref
-                              .read(reminderSettingsProvider.notifier)
-                              .refreshNotifications();
-                        },
+                        onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
                   ),
@@ -80,7 +74,7 @@ class _RemindersSettingsScreenState
                   child: CupertinoDatePicker(
                     mode: CupertinoDatePickerMode.time,
                     initialDateTime: initial,
-                    use24hFormat: false,
+                    use24hFormat: true,
                     onDateTimeChanged: (DateTime dt) {
                       ref
                           .read(reminderSettingsProvider.notifier)
@@ -91,7 +85,10 @@ class _RemindersSettingsScreenState
               ],
             ),
           ),
-    );
+    ).whenComplete(() {
+      // Reprogramar al cerrar el selector (cubre "Listo" y cerrar deslizando).
+      ref.read(reminderSettingsProvider.notifier).refreshNotifications();
+    });
   }
 
   // ── Build ───────────────────────────────────────────────────────────────
@@ -133,9 +130,16 @@ class _RemindersSettingsScreenState
                         subtitle: 'Recibe notificaciones diarias de tu agenda',
                         value: settings.enabled,
                         onChanged: (v) async {
-                          await notifier.setEnabled(v);
-                          if (v) {
-                            await notifier.refreshNotifications();
+                          final ok = await notifier.setEnabled(v);
+                          if (!ok && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Activa las notificaciones para Klinik en los '
+                                  'ajustes del sistema.',
+                                ),
+                              ),
+                            );
                           }
                         },
                       ),
@@ -172,7 +176,7 @@ class _RemindersSettingsScreenState
                         icon: CupertinoIcons.calendar_today,
                         iconColor: colorScheme.primary,
                         title: 'Eventos de hoy',
-                        subtitle: 'Resumen del día actual',
+                        subtitle: 'Siempre incluido en el resumen',
                         value: true,
                         enabled: settings.enabled,
                       ),
@@ -184,23 +188,17 @@ class _RemindersSettingsScreenState
                         subtitle: 'Anticipa tus citas del siguiente día',
                         value: settings.summaryTomorrow,
                         enabled: settings.enabled,
-                        onChanged: (v) async {
-                          await notifier.setSummaryTomorrow(v);
-                          await notifier.refreshNotifications();
-                        },
+                        onChanged: (v) => notifier.setSummaryTomorrow(v),
                       ),
                       _buildDivider(),
                       _buildCheckTile(
                         icon: CupertinoIcons.arrow_2_squarepath,
-                        iconColor: const Color(0xFF7C4DFF),
+                        iconColor: colorScheme.tertiary,
                         title: 'Eventos en 2 días',
                         subtitle: 'Planifica con anticipación',
                         value: settings.summaryDayAfter,
                         enabled: settings.enabled,
-                        onChanged: (v) async {
-                          await notifier.setSummaryDayAfter(v);
-                          await notifier.refreshNotifications();
-                        },
+                        onChanged: (v) => notifier.setSummaryDayAfter(v),
                       ),
                     ],
                   ),
@@ -529,6 +527,15 @@ class _RemindersSettingsScreenState
                   value: value,
                   activeTrackColor: iconColor,
                   onChanged: enabled ? onChanged : null,
+                ),
+              )
+            else if (value)
+              // Ámbito fijo (siempre incluido): no es un interruptor.
+              Icon(
+                CupertinoIcons.checkmark_alt_circle_fill,
+                size: 20,
+                color: (enabled ? iconColor : colorScheme.onSurface).withValues(
+                  alpha: enabled ? 1 : 0.3,
                 ),
               ),
           ],

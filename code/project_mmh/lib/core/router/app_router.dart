@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/screens/clinicas_metas_screen.dart';
 import 'package:project_mmh/features/pacientes/presentation/screens/patients_screen.dart';
@@ -18,6 +20,8 @@ import 'package:project_mmh/features/diagnosis/presentation/screens/diagnosis_wi
 
 final appRouter = GoRouter(
   initialLocation: '/dashboard',
+  debugLogDiagnostics: kDebugMode,
+  errorBuilder: (context, state) => _RouteErrorScreen(error: state.error),
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
@@ -55,7 +59,12 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: ':id',
                   builder: (context, state) {
-                    final id = int.parse(state.pathParameters['id']!);
+                    final id = int.tryParse(state.pathParameters['id'] ?? '');
+                    if (id == null) {
+                      return const _RouteErrorScreen(
+                        message: 'Tratamiento no válido',
+                      );
+                    }
                     return TreatmentDetailScreen(tratamientoId: id);
                   },
                 ),
@@ -80,7 +89,16 @@ final appRouter = GoRouter(
                     GoRoute(
                       path: 'edit',
                       builder: (context, state) {
-                        final patient = state.extra as Patient;
+                        final patient = state.extra;
+                        if (patient is! Patient) {
+                          // Deep link / restauración sin `extra`: volver al
+                          // detalle, que sí carga el paciente por id.
+                          return _RouteErrorScreen(
+                            message: 'Abre la edición desde la ficha del paciente',
+                            onBack: () =>
+                                context.go('/pacientes/${state.pathParameters['id']}'),
+                          );
+                        }
                         return EditPatientScreen(patient: patient);
                       },
                     ),
@@ -133,3 +151,52 @@ final appRouter = GoRouter(
     ),
   ],
 );
+
+class _RouteErrorScreen extends StatelessWidget {
+  const _RouteErrorScreen({this.error, this.message, this.onBack});
+
+  final Exception? error;
+  final String? message;
+  final VoidCallback? onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Klinik')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 40,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message ?? 'No se encontró la pantalla solicitada.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              if (kDebugMode && error != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '$error',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: onBack ?? () => context.go('/dashboard'),
+                child: const Text('Volver'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
