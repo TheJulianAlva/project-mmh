@@ -54,11 +54,12 @@ class PatientRepository {
     return result.map((e) => _fromDbMap(e)).toList();
   }
 
+  /// Devuelve el paciente activo (no archivado) con ese expediente.
   Future<Patient?> getPatientById(String idExpediente) async {
     final db = await _dbHelper.database;
     final result = await db.query(
       _tableName,
-      where: 'id_expediente = ?',
+      where: 'id_expediente = ? AND deleted_at IS NULL',
       whereArgs: [idExpediente],
     );
 
@@ -95,6 +96,14 @@ class PatientRepository {
 
     final db = await _dbHelper.database;
 
+    // Reescribir las rutas de imágenes de <oldId> a <newId> para que la BD
+    // siga apuntando a los archivos tras renombrar la carpeta.
+    final reparented = newPatientData.copyWith(
+      imagenesPaths: newPatientData.imagenesPaths
+          .map((p) => ImageService.reparentPath(p, oldId, newId))
+          .toList(),
+    );
+
     await db.transaction((txn) async {
       // La verificación de existencia va dentro de la transacción para evitar
       // TOCTOU con ediciones concurrentes.
@@ -109,7 +118,7 @@ class PatientRepository {
         throw Exception('El expediente $newId ya existe.');
       }
 
-      await txn.insert(_tableName, _toDbMap(newPatientData));
+      await txn.insert(_tableName, _toDbMap(reparented));
 
       await txn.update(
         'tratamientos',

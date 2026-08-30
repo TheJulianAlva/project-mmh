@@ -9,6 +9,7 @@ import 'package:project_mmh/features/agenda/presentation/providers/agenda_provid
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/objetivos_providers.dart';
+import 'package:project_mmh/features/dashboard/presentation/providers/dashboard_providers.dart';
 
 class TreatmentEditSheet extends ConsumerStatefulWidget {
   final Tratamiento tratamiento;
@@ -442,6 +443,15 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
         tratamientoByIdProvider(widget.tratamiento.idTratamiento!),
       );
       ref.invalidate(allTratamientosRichProvider);
+      // updateTratamiento puede recalcular el progreso de los objetivos si se
+      // reasignó la clínica u objetivo del tratamiento.
+      ref.invalidate(dashboardStatsProvider);
+      ref.invalidate(objetivosByClinicaProvider(updatedTratamiento.idClinica));
+      if (widget.tratamiento.idClinica != updatedTratamiento.idClinica) {
+        ref.invalidate(
+          objetivosByClinicaProvider(widget.tratamiento.idClinica),
+        );
+      }
 
       if (mounted) {
         Navigator.pop(context);

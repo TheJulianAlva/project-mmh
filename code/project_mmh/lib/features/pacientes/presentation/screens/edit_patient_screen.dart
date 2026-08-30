@@ -5,6 +5,7 @@ import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/constants/app_constants.dart';
 import 'package:project_mmh/core/services/image_service.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
@@ -91,23 +92,23 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
           imagenesPaths: _currentImagePaths,
         );
 
+        // Borrar los archivos de las imágenes quitadas ANTES de actualizar:
+        // en un cambio de id la carpeta se renombra y las rutas viejas dejan
+        // de resolver.
+        await _deleteRemovedImageFiles();
+
         if (isIdChanged) {
-          // Transactional update for ID change
           await ref
               .read(patientsProvider.notifier)
               .updatePatientId(oldId, updatedPatient);
-          await _deleteRemovedImageFiles();
 
           if (mounted) {
-            // Navigate to the new patient detail screen
             context.go('/pacientes/$newId');
           }
         } else {
-          // Standard update
           await ref
               .read(patientsProvider.notifier)
               .updatePatient(updatedPatient);
-          await _deleteRemovedImageFiles();
 
           if (mounted) {
             context.pop(); // Go back
@@ -276,7 +277,7 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
                             FormBuilderTextField(
                               name: 'nombre',
                               decoration: _getInputDecoration('Nombre(s) *'),
-                              maxLength: 20,
+                              maxLength: kMaxNombrePaciente,
                               validator: (val) {
                                 if (val == null || val.isEmpty)
                                   return 'Requerido';
@@ -292,7 +293,7 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
                                     decoration: _getInputDecoration(
                                       'Primer Apellido *',
                                     ),
-                                    maxLength: 20,
+                                    maxLength: kMaxNombrePaciente,
                                     validator: (val) {
                                       if (val == null || val.isEmpty)
                                         return 'Requerido';
@@ -307,7 +308,7 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
                                     decoration: _getInputDecoration(
                                       'Segundo Apellido',
                                     ),
-                                    maxLength: 20,
+                                    maxLength: kMaxNombrePaciente,
                                   ),
                                 ),
                               ],
@@ -329,8 +330,8 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
                                       FormBuilderValidators.integer(
                                         errorText: 'Número entero',
                                       ),
-                                      FormBuilderValidators.min(1),
-                                      FormBuilderValidators.max(100),
+                                      FormBuilderValidators.min(kEdadMinPaciente),
+                                      FormBuilderValidators.max(kEdadMaxPaciente),
                                     ]),
                                   ),
                                 ),

@@ -3,7 +3,6 @@ import 'package:sqflite/sqflite.dart';
 import 'package:project_mmh/core/database/database_helper.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
-import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento_rich_model.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
@@ -39,18 +38,27 @@ class AgendaRepository {
 
   Future<int> updateTratamiento(Tratamiento tratamiento) async {
     final db = await _dbHelper.database;
-    return await db.update(
+    // Objetivo anterior, por si la edición lo reasigna.
+    final anterior = await getTratamientoById(tratamiento.idTratamiento!);
+
+    final rows = await db.update(
       'tratamientos',
       tratamiento.toJson(),
       where: 'id_tratamiento = ?',
       whereArgs: [tratamiento.idTratamiento],
     );
+
+    // Recalcular ambos objetivos afectados (si cambió la asignación).
+    await recalcObjetivoProgress(anterior?.idObjetivo);
+    if (tratamiento.idObjetivo != anterior?.idObjetivo) {
+      await recalcObjetivoProgress(tratamiento.idObjetivo);
+    }
+    return rows;
   }
 
   Future<void> deleteTratamiento(int idTratamiento) async {
     final db = await _dbHelper.database;
 
-    // Si el tratamiento estaba concluido, revertimos su aporte al objetivo.
     final tratamiento = await getTratamientoById(idTratamiento);
 
     // Cascade delete sessions first
@@ -66,30 +74,22 @@ class AgendaRepository {
       whereArgs: [idTratamiento],
     );
 
-    if (tratamiento?.estado == 'concluido' && tratamiento?.idObjetivo != null) {
-      await decrementObjetivoProgress(tratamiento!.idObjetivo!);
-    }
+    await recalcObjetivoProgress(tratamiento?.idObjetivo);
   }
 
   Future<void> markTreatmentAsFinalized(int idTratamiento) async {
     final db = await _dbHelper.database;
 
-    // 1. Marcar como concluido solo si aún no lo estaba (idempotente).
-    final rows = await db.update(
+    // Marcar como concluido solo si aún no lo estaba (idempotente).
+    await db.update(
       'tratamientos',
       {'estado': 'concluido'},
       where: 'id_tratamiento = ? AND estado != ?',
       whereArgs: [idTratamiento, 'concluido'],
     );
-    if (rows == 0) {
-      return;
-    }
 
-    // 2. Incrementar el progreso del objetivo una única vez.
     final tratamiento = await getTratamientoById(idTratamiento);
-    if (tratamiento?.idObjetivo != null) {
-      await incrementObjetivoProgress(tratamiento!.idObjetivo!);
-    }
+    await recalcObjetivoProgress(tratamiento?.idObjetivo);
   }
 
   Future<List<Tratamiento>> getTratamientosByPaciente(
@@ -324,45 +324,23 @@ class AgendaRepository {
 
   // --- Support Methods (Objectives, Clinicas) for Dropdowns ---
 
-  Future<int> incrementObjetivoProgress(int idObjetivo) async {
+  /// Recalcula `cantidad_actual` de un objetivo como el número real de
+  /// tratamientos concluidos que lo referencian. Es idempotente y robusto
+  /// frente a finalizar/eliminar/reasignar en cualquier orden.
+  Future<void> recalcObjetivoProgress(int? idObjetivo) async {
+    if (idObjetivo == null) return;
     final db = await _dbHelper.database;
-    // Primero obtenemos el objetivo actual
-    final result = await db.query(
+    final count = Sqflite.firstIntValue(
+          await db.rawQuery(
+            "SELECT COUNT(*) FROM tratamientos "
+            "WHERE id_objetivo = ? AND estado = 'concluido'",
+            [idObjetivo],
+          ),
+        ) ??
+        0;
+    await db.update(
       'objetivos',
-      where: 'id_objetivo = ?',
-      whereArgs: [idObjetivo],
-    );
-    if (result.isEmpty) return 0;
-
-    final objetivo = Objetivo.fromJson(result.first);
-    // No exceder la meta.
-    final nuevaCantidad =
-        (objetivo.cantidadActual + 1).clamp(0, objetivo.cantidadMeta);
-
-    return await db.update(
-      'objetivos',
-      {'cantidad_actual': nuevaCantidad},
-      where: 'id_objetivo = ?',
-      whereArgs: [idObjetivo],
-    );
-  }
-
-  Future<int> decrementObjetivoProgress(int idObjetivo) async {
-    final db = await _dbHelper.database;
-    final result = await db.query(
-      'objetivos',
-      where: 'id_objetivo = ?',
-      whereArgs: [idObjetivo],
-    );
-    if (result.isEmpty) return 0;
-
-    final objetivo = Objetivo.fromJson(result.first);
-    final nuevaCantidad =
-        (objetivo.cantidadActual - 1).clamp(0, objetivo.cantidadMeta);
-
-    return await db.update(
-      'objetivos',
-      {'cantidad_actual': nuevaCantidad},
+      {'cantidad_actual': count},
       where: 'id_objetivo = ?',
       whereArgs: [idObjetivo],
     );

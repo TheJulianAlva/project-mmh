@@ -27,7 +27,14 @@ class DatabaseHelper {
       version: _databaseVersion,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
-      onDowngrade: onDatabaseDowngradeDelete,
+      // Downgrade no destructivo: NUNCA borrar la BD (app offline-first sin
+      // respaldo). El esquema v3 es un superconjunto compatible con el código
+      // anterior, así que basta con dejar bajar el número de versión.
+      onDowngrade: (db, oldVersion, newVersion) async {
+        debugPrint(
+          'BD: downgrade $oldVersion → $newVersion; se conservan los datos.',
+        );
+      },
       // Las FKs se habilitan en onOpen (después de onCreate/onUpgrade) para que
       // las migraciones que reconstruyen tablas no disparen ON DELETE CASCADE.
       onOpen: (db) async {
@@ -79,11 +86,17 @@ class DatabaseHelper {
     await db.execute('ALTER TABLE clinicas_new RENAME TO clinicas');
 
     // --- odontogramas: UNIQUE(id_expediente), de-duplicando filas ---
+    // (FKs deshabilitadas durante la migración, así que el DELETE no cascadea:
+    // hay que limpiar a mano las piezas huérfanas.)
     await db.execute('''
       DELETE FROM odontogramas
       WHERE id_odontograma NOT IN (
         SELECT MIN(id_odontograma) FROM odontogramas GROUP BY id_expediente
       )
+    ''');
+    await db.execute('''
+      DELETE FROM piezas_dentales
+      WHERE id_odontograma NOT IN (SELECT id_odontograma FROM odontogramas)
     ''');
     await db.execute('''
       CREATE UNIQUE INDEX IF NOT EXISTS idx_odontogramas_expediente

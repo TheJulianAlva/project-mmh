@@ -59,6 +59,19 @@ class ImageService {
     return storedPath;
   }
 
+  /// Reescribe el segmento de expediente de una ruta almacenada
+  /// (`patient_images/<oldSub>/x.jpg` → `patient_images/<newSub>/x.jpg`).
+  /// Necesario al cambiar el número de expediente para que la BD siga
+  /// apuntando a los archivos tras renombrar la carpeta.
+  static String reparentPath(String storedPath, String oldSub, String newSub) {
+    final rel = toRelativePath(storedPath);
+    final from = '$_imagesRoot/$oldSub/';
+    if (rel.startsWith(from)) {
+      return '$_imagesRoot/$newSub/${rel.substring(from.length)}';
+    }
+    return rel;
+  }
+
   /// Convierte una ruta almacenada (relativa o absoluta legada) en absoluta.
   static String resolvePath(String storedPath) {
     final root = _appDocPath;
@@ -86,10 +99,16 @@ class ImageService {
   }
 
   /// Renombra el directorio de imágenes cuando cambia el id de expediente.
+  /// Si ya existe una carpeta con el nuevo id (huérfana: la transacción de BD
+  /// verificó que no hay paciente con ese id) se elimina antes de renombrar.
   Future<void> movePatientImages(String oldSub, String newSub) async {
     final String root = await _root();
     final oldDir = Directory(p.join(root, _imagesRoot, oldSub));
     if (!await oldDir.exists()) return;
-    await oldDir.rename(p.join(root, _imagesRoot, newSub));
+    final newDir = Directory(p.join(root, _imagesRoot, newSub));
+    if (await newDir.exists()) {
+      await newDir.delete(recursive: true);
+    }
+    await oldDir.rename(newDir.path);
   }
 }

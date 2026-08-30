@@ -227,38 +227,13 @@ class OdontogramaController
   }
 
   Future<void> cleanPediatricTeeth() async {
-    // Pediatric ISOs: 51-55, 61-65, 71-75, 81-85
-    final pedIsos = [
-      51,
-      52,
-      53,
-      54,
-      55,
-      61,
-      62,
-      63,
-      64,
-      65,
-      71,
-      72,
-      73,
-      74,
-      75,
-      81,
-      82,
-      83,
-      84,
-      85,
-    ];
-
     final currentList = state.value ?? [];
-    for (var p in currentList) {
-      if (pedIsos.contains(p.iso)) {
-        // Reset
-        if (p.estadoGeneral != 'Sano' ||
-            p.tieneSellador ||
-            p.estadoMesial != 'Sano') {
-          final resetP = p.copyWith(
+    for (final p in currentList) {
+      // Mismo criterio que hasPediatricData (_isDirty comprueba las 7
+      // superficies), para no dejar hallazgos ocultos tras confirmar el borrado.
+      if (_pedIsos.contains(p.iso) && _isDirty(p)) {
+        await _updateLocalAndDb(
+          p.copyWith(
             estadoGeneral: 'Sano',
             tieneSellador: false,
             estadoMesial: 'Sano',
@@ -266,9 +241,8 @@ class OdontogramaController
             estadoVestibular: 'Sano',
             estadoLingual: 'Sano',
             estadoOclusal: 'Sano',
-          );
-          await _updateLocalAndDb(resetP);
-        }
+          ),
+        );
       }
     }
   }

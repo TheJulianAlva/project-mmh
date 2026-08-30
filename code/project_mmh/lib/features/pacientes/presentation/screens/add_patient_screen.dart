@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project_mmh/core/services/image_service.dart';
+import 'package:project_mmh/core/constants/app_constants.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
@@ -138,7 +139,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                               decoration: _getInputDecoration(
                                 'No. Expediente *',
                               ),
-                              maxLength: 15,
+                              maxLength: kMaxIdExpediente,
                               validator: (val) {
                                 if (val == null || val.isEmpty) {
                                   return 'Requerido';
@@ -155,7 +156,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                             FormBuilderTextField(
                               name: 'nombre',
                               decoration: _getInputDecoration('Nombre(s) *'),
-                              maxLength: 20,
+                              maxLength: kMaxNombrePaciente,
                               validator: (val) {
                                 if (val == null || val.isEmpty) {
                                   return 'Requerido';
@@ -172,7 +173,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                                     decoration: _getInputDecoration(
                                       'Primer Apellido *',
                                     ),
-                                    maxLength: 20,
+                                    maxLength: kMaxNombrePaciente,
                                     validator: (val) {
                                       if (val == null || val.isEmpty) {
                                         return 'Requerido';
@@ -188,7 +189,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                                     decoration: _getInputDecoration(
                                       'Segundo Apellido',
                                     ),
-                                    maxLength: 20,
+                                    maxLength: kMaxNombrePaciente,
                                   ),
                                 ),
                               ],
@@ -213,11 +214,11 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                                         errorText: 'Debe ser un número entero',
                                       ),
                                       FormBuilderValidators.min(
-                                        1,
+                                        kEdadMinPaciente,
                                         errorText: 'Edad no válida',
                                       ),
                                       FormBuilderValidators.max(
-                                        100,
+                                        kEdadMaxPaciente,
                                         errorText: 'Edad no válida',
                                       ),
                                     ]),

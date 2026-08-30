@@ -128,6 +128,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
                                   context,
                                   ref,
                                   tratamientoId,
+                                  tratamiento.idClinica,
                                 )
                                 : null,
                       ),
@@ -348,7 +349,12 @@ class TreatmentDetailScreen extends ConsumerWidget {
     }
   }
 
-  void _deleteTreatment(BuildContext context, WidgetRef ref, int id) async {
+  void _deleteTreatment(
+    BuildContext context,
+    WidgetRef ref,
+    int id,
+    int clinicId,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -387,6 +393,9 @@ class TreatmentDetailScreen extends ConsumerWidget {
       ref.invalidate(allSesionesProvider);
       ref.invalidate(enrichedSesionesProvider);
       ref.invalidate(dashboardStatsProvider);
+      ref.invalidate(
+        objectives_provider.objetivosByClinicaProvider(clinicId),
+      );
 
       if (context.mounted) {
         if (Navigator.canPop(context)) Navigator.pop(context);
