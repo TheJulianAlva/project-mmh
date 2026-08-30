@@ -67,14 +67,14 @@ class _AppointmentCreateScreenState
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    // Si no hay periodo previo guardado, seleccionar el primero disponible.
-    ref.listen(periodosProvider, (_, next) {
-      next.whenData((periodos) {
-        if (_selectedPeriodId == null && periodos.isNotEmpty && mounted) {
-          setState(() => _selectedPeriodId = periodos.first.idPeriodo);
-        }
-      });
-    });
+    // Si no hay periodo previo guardado, seleccionar el primero disponible en
+    // cuanto la lista esté cargada (funciona tanto si ya estaba en caché como
+    // si llega de forma asíncrona).
+    final periodosDisponibles =
+        ref.watch(periodosProvider).valueOrNull ?? const [];
+    if (_selectedPeriodId == null && periodosDisponibles.isNotEmpty) {
+      _selectedPeriodId = periodosDisponibles.first.idPeriodo;
+    }
 
     return Scaffold(
       body: CustomScrollView(
