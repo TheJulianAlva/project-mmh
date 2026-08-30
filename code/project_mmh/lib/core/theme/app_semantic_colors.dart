@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_mmh/core/theme/app_palette.dart';
 
 /// Tokens de color semánticos (éxito / advertencia / información) que no
 /// existen en `ColorScheme`. Se acceden con `Theme.of(context).extension<
@@ -22,21 +23,21 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
   final Color onInfo;
 
   static const light = AppSemanticColors(
-    success: Color(0xFF2E7D32),
-    onSuccess: Colors.white,
-    warning: Color(0xFFED6C02),
-    onWarning: Colors.white,
-    info: Color(0xFF0288D1),
-    onInfo: Colors.white,
+    success: AppPalette.successLight,
+    onSuccess: AppPalette.onSuccessLight,
+    warning: AppPalette.warningLight,
+    onWarning: AppPalette.onWarningLight,
+    info: AppPalette.infoLight,
+    onInfo: AppPalette.onInfoLight,
   );
 
   static const dark = AppSemanticColors(
-    success: Color(0xFF81C784),
-    onSuccess: Color(0xFF0A2E0C),
-    warning: Color(0xFFFFB74D),
-    onWarning: Color(0xFF3A2400),
-    info: Color(0xFF4FC3F7),
-    onInfo: Color(0xFF00263A),
+    success: AppPalette.successDark,
+    onSuccess: AppPalette.onSuccessDark,
+    warning: AppPalette.warningDark,
+    onWarning: AppPalette.onWarningDark,
+    info: AppPalette.infoDark,
+    onInfo: AppPalette.onInfoDark,
   );
 
   @override
