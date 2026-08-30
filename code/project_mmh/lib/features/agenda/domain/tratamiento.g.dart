@@ -13,7 +13,7 @@ _Tratamiento _$TratamientoFromJson(Map<String, dynamic> json) => _Tratamiento(
   idObjetivo: (json['id_objetivo'] as num?)?.toInt(),
   nombreTratamiento: json['nombre_tratamiento'] as String,
   fechaCreacion: json['fecha_creacion'] as String,
-  estado: json['estado'] as String,
+  estado: $enumDecode(_$EstadoTratamientoEnumMap, json['estado']),
 );
 
 Map<String, dynamic> _$TratamientoToJson(_Tratamiento instance) =>
@@ -24,5 +24,11 @@ Map<String, dynamic> _$TratamientoToJson(_Tratamiento instance) =>
       'id_objetivo': instance.idObjetivo,
       'nombre_tratamiento': instance.nombreTratamiento,
       'fecha_creacion': instance.fechaCreacion,
-      'estado': instance.estado,
+      'estado': _$EstadoTratamientoEnumMap[instance.estado]!,
     };
+
+const _$EstadoTratamientoEnumMap = {
+  EstadoTratamiento.pendiente: 'pendiente',
+  EstadoTratamiento.enProceso: 'en_proceso',
+  EstadoTratamiento.concluido: 'concluido',
+};

@@ -1,5 +1,6 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 
 part 'sesion.freezed.dart';
 part 'sesion.g.dart';
@@ -12,7 +13,7 @@ abstract class Sesion with _$Sesion {
     @JsonKey(name: 'fecha_inicio') required String fechaInicio,
     @JsonKey(name: 'fecha_fin') required String fechaFin,
     @JsonKey(name: 'estado_asistencia')
-    String? estadoAsistencia, // 'programada', 'asistio', 'falto'
+    EstadoAsistencia? estadoAsistencia,
   }) = _Sesion;
 
   factory Sesion.fromJson(Map<String, dynamic> json) => _$SesionFromJson(json);
