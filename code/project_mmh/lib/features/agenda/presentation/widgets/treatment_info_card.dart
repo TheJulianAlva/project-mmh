@@ -1,12 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:project_mmh/core/theme/app_semantic_colors.dart';
+import 'package:project_mmh/features/agenda/domain/estado_tratamiento.dart';
 
 class TreatmentInfoCard extends StatelessWidget {
   final String treatmentName;
   final String patientName;
   final String? clinicName;
-  final String status;
+  final EstadoTratamiento status;
   final Color? clinicColor;
 
   const TreatmentInfoCard({
@@ -140,10 +141,9 @@ class TreatmentInfoCard extends StatelessWidget {
 
   Widget _buildStatusBadge(BuildContext context) {
     // Logic for color/text based on status
-    final isCompleted = status == 'concluido';
-    final color = isCompleted
-        ? context.semantic.success
-        : context.semantic.warning;
+    final isCompleted = status == EstadoTratamiento.concluido;
+    final color =
+        isCompleted ? context.semantic.success : context.semantic.warning;
     final text = isCompleted ? 'Completado' : 'En Progreso';
     final icon =
         isCompleted

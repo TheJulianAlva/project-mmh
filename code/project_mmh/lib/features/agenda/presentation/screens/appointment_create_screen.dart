@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
+import 'package:project_mmh/features/agenda/domain/estado_tratamiento.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
@@ -245,7 +247,8 @@ class _AppointmentCreateScreenState
                                                 icon:
                                                     CupertinoIcons
                                                         .doc_text_fill,
-                                                maxLength: kMaxNombreTratamiento,
+                                                maxLength:
+                                                    kMaxNombreTratamiento,
                                                 validator: (val) {
                                                   if (val == null ||
                                                       val.trim().isEmpty) {
@@ -424,15 +427,18 @@ class _AppointmentCreateScreenState
                                 'EEE, d MMM HH:mm',
                                 'es_ES',
                               ).format(draft.inicio),
-                              onTap: () => _pickDraftDate(
-                                draft.inicio,
-                                (val) => setState(() {
-                                  draft.inicio = val;
-                                  if (!draft.fin.isAfter(val)) {
-                                    draft.fin = val.add(kDuracionSesionDefault);
-                                  }
-                                }),
-                              ),
+                              onTap:
+                                  () => _pickDraftDate(
+                                    draft.inicio,
+                                    (val) => setState(() {
+                                      draft.inicio = val;
+                                      if (!draft.fin.isAfter(val)) {
+                                        draft.fin = val.add(
+                                          kDuracionSesionDefault,
+                                        );
+                                      }
+                                    }),
+                                  ),
                             ),
                             _buildDivider(context),
                             _buildLinkRow(
@@ -442,10 +448,11 @@ class _AppointmentCreateScreenState
                                 'EEE, d MMM HH:mm',
                                 'es_ES',
                               ).format(draft.fin),
-                              onTap: () => _pickDraftDate(
-                                draft.fin,
-                                (val) => setState(() => draft.fin = val),
-                              ),
+                              onTap:
+                                  () => _pickDraftDate(
+                                    draft.fin,
+                                    (val) => setState(() => draft.fin = val),
+                                  ),
                             ),
                           ],
                         ),
@@ -480,7 +487,8 @@ class _AppointmentCreateScreenState
                         ),
                         onPressed: () {
                           // Límite: 1 sesión inicial + adicionales.
-                          if (1 + _additionalSessions.length >= kMaxSesionesPorTratamiento) {
+                          if (1 + _additionalSessions.length >=
+                              kMaxSesionesPorTratamiento) {
                             showCupertinoDialog(
                               context: context,
                               builder:
@@ -502,14 +510,16 @@ class _AppointmentCreateScreenState
                           }
 
                           setState(() {
-                            final base = _additionalSessions.isNotEmpty
-                                ? _additionalSessions.last.inicio
-                                : (_formKey.currentState
-                                            ?.fields['fecha_inicio']
-                                            ?.value
-                                        as DateTime? ??
-                                    widget.initialDate ??
-                                    DateTime.now());
+                            final base =
+                                _additionalSessions.isNotEmpty
+                                    ? _additionalSessions.last.inicio
+                                    : (_formKey
+                                                .currentState
+                                                ?.fields['fecha_inicio']
+                                                ?.value
+                                            as DateTime? ??
+                                        widget.initialDate ??
+                                        DateTime.now());
                             final inicio = base.add(const Duration(days: 7));
                             _additionalSessions.add(
                               _SessionDraft(
@@ -747,16 +757,17 @@ class _AppointmentCreateScreenState
               String query = '';
               return StatefulBuilder(
                 builder: (context, setModalState) {
-                  final filtered = query.trim().isEmpty
-                      ? patients
-                      : patients.where((p) {
-                          final q = query.toLowerCase();
-                          return '${p.nombre} ${p.primerApellido} '
-                                      '${p.segundoApellido ?? ''}'
-                                  .toLowerCase()
-                                  .contains(q) ||
-                              p.idExpediente.toLowerCase().contains(q);
-                        }).toList();
+                  final filtered =
+                      query.trim().isEmpty
+                          ? patients
+                          : patients.where((p) {
+                            final q = query.toLowerCase();
+                            return '${p.nombre} ${p.primerApellido} '
+                                        '${p.segundoApellido ?? ''}'
+                                    .toLowerCase()
+                                    .contains(q) ||
+                                p.idExpediente.toLowerCase().contains(q);
+                          }).toList();
                   return Column(
                     children: [
                       Padding(
@@ -770,45 +781,43 @@ class _AppointmentCreateScreenState
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: CupertinoSearchTextField(
                           placeholder: 'Buscar paciente...',
-                          onChanged: (val) =>
-                              setModalState(() => query = val),
+                          onChanged: (val) => setModalState(() => query = val),
                         ),
                       ),
                       const SizedBox(height: 10),
                       Expanded(
-                        child: filtered.isEmpty
-                            ? const Center(
-                                child: Text('Sin coincidencias'),
-                              )
-                            : ListView.separated(
-                                controller: scrollController,
-                                itemCount: filtered.length,
-                                separatorBuilder: (_, __) =>
-                                    const Divider(height: 1),
-                                itemBuilder: (context, index) {
-                                  final p = filtered[index];
-                                  return ListTile(
-                                    leading: CircleAvatar(
-                                      child: Text(p.nombre[0]),
-                                    ),
-                                    title: Text(
-                                      '${p.nombre} ${p.primerApellido}',
-                                    ),
-                                    subtitle: Text(p.idExpediente),
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedPatient = p;
-                                        _selectedPatientId = p.idExpediente;
-                                        _formKey
-                                            .currentState
-                                            ?.fields['id_expediente']
-                                            ?.didChange(p.idExpediente);
-                                      });
-                                      Navigator.pop(context);
-                                    },
-                                  );
-                                },
-                              ),
+                        child:
+                            filtered.isEmpty
+                                ? const Center(child: Text('Sin coincidencias'))
+                                : ListView.separated(
+                                  controller: scrollController,
+                                  itemCount: filtered.length,
+                                  separatorBuilder:
+                                      (_, __) => const Divider(height: 1),
+                                  itemBuilder: (context, index) {
+                                    final p = filtered[index];
+                                    return ListTile(
+                                      leading: CircleAvatar(
+                                        child: Text(p.nombre[0]),
+                                      ),
+                                      title: Text(
+                                        '${p.nombre} ${p.primerApellido}',
+                                      ),
+                                      subtitle: Text(p.idExpediente),
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedPatient = p;
+                                          _selectedPatientId = p.idExpediente;
+                                          _formKey
+                                              .currentState
+                                              ?.fields['id_expediente']
+                                              ?.didChange(p.idExpediente);
+                                        });
+                                        Navigator.pop(context);
+                                      },
+                                    );
+                                  },
+                                ),
                       ),
                     ],
                   );
@@ -974,8 +983,7 @@ class _AppointmentCreateScreenState
     // Sesión inicial: validar que termina después de que empieza.
     final s0Start = values['fecha_inicio'] as DateTime? ?? DateTime.now();
     final s0End =
-        values['fecha_fin'] as DateTime? ??
-        s0Start.add(kDuracionSesionDefault);
+        values['fecha_fin'] as DateTime? ?? s0Start.add(kDuracionSesionDefault);
     if (!s0End.isAfter(s0Start)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1007,7 +1015,7 @@ class _AppointmentCreateScreenState
       nombreTratamiento:
           nombre.toString().trim(), // Ensure trimmed value is saved
       fechaCreacion: DateTime.now().toIso8601String(),
-      estado: 'pendiente',
+      estado: EstadoTratamiento.pendiente,
     );
 
     try {
@@ -1018,7 +1026,7 @@ class _AppointmentCreateScreenState
           idTratamiento: idTratamiento,
           fechaInicio: s0Start.toIso8601String(),
           fechaFin: s0End.toIso8601String(),
-          estadoAsistencia: 'programada',
+          estadoAsistencia: EstadoAsistencia.programada,
         ),
       );
 
@@ -1028,7 +1036,7 @@ class _AppointmentCreateScreenState
             idTratamiento: idTratamiento,
             fechaInicio: d.inicio.toIso8601String(),
             fechaFin: d.fin.toIso8601String(),
-            estadoAsistencia: 'programada',
+            estadoAsistencia: EstadoAsistencia.programada,
           ),
         );
       }

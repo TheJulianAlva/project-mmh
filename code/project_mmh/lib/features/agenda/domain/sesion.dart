@@ -12,8 +12,7 @@ abstract class Sesion with _$Sesion {
     @JsonKey(name: 'id_tratamiento') required int idTratamiento,
     @JsonKey(name: 'fecha_inicio') required String fechaInicio,
     @JsonKey(name: 'fecha_fin') required String fechaFin,
-    @JsonKey(name: 'estado_asistencia')
-    EstadoAsistencia? estadoAsistencia,
+    @JsonKey(name: 'estado_asistencia') EstadoAsistencia? estadoAsistencia,
   }) = _Sesion;
 
   factory Sesion.fromJson(Map<String, dynamic> json) => _$SesionFromJson(json);

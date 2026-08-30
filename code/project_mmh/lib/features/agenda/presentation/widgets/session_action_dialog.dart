@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/utils/formatters.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
@@ -164,9 +165,15 @@ class SessionActionSheet extends ConsumerWidget {
                       icon: CupertinoIcons.circle,
                       color: colorScheme.primary,
                       isSelected:
-                          sesion.estadoAsistencia == 'programada' ||
+                          sesion.estadoAsistencia ==
+                              EstadoAsistencia.programada ||
                           sesion.estadoAsistencia == null,
-                      onTap: () => _updateStatus(context, ref, 'programada'),
+                      onTap:
+                          () => _updateStatus(
+                            context,
+                            ref,
+                            EstadoAsistencia.programada,
+                          ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -175,8 +182,14 @@ class SessionActionSheet extends ConsumerWidget {
                       label: 'Asistió',
                       icon: CupertinoIcons.checkmark_alt,
                       color: colorScheme.secondary,
-                      isSelected: sesion.estadoAsistencia == 'asistio',
-                      onTap: () => _updateStatus(context, ref, 'asistio'),
+                      isSelected:
+                          sesion.estadoAsistencia == EstadoAsistencia.asistio,
+                      onTap:
+                          () => _updateStatus(
+                            context,
+                            ref,
+                            EstadoAsistencia.asistio,
+                          ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -185,8 +198,14 @@ class SessionActionSheet extends ConsumerWidget {
                       label: 'No Asistió',
                       icon: CupertinoIcons.person_badge_minus,
                       color: colorScheme.error,
-                      isSelected: sesion.estadoAsistencia == 'falto',
-                      onTap: () => _updateStatus(context, ref, 'falto'),
+                      isSelected:
+                          sesion.estadoAsistencia == EstadoAsistencia.falto,
+                      onTap:
+                          () => _updateStatus(
+                            context,
+                            ref,
+                            EstadoAsistencia.falto,
+                          ),
                     ),
                   ),
                 ],
@@ -227,13 +246,14 @@ class SessionActionSheet extends ConsumerWidget {
             height: 200,
             child: Center(child: CircularProgressIndicator()),
           ),
-      error: (e, _) => const SizedBox(
-        height: 120,
-        child: AppErrorView(
-          message: 'No se pudo cargar la información de la sesión.',
-          compact: true,
-        ),
-      ),
+      error:
+          (e, _) => const SizedBox(
+            height: 120,
+            child: AppErrorView(
+              message: 'No se pudo cargar la información de la sesión.',
+              compact: true,
+            ),
+          ),
     );
   }
 
@@ -277,7 +297,11 @@ class SessionActionSheet extends ConsumerWidget {
     ref.invalidate(tratamientoByIdProvider(sesion.idTratamiento));
   }
 
-  void _updateStatus(BuildContext context, WidgetRef ref, String status) async {
+  void _updateStatus(
+    BuildContext context,
+    WidgetRef ref,
+    EstadoAsistencia status,
+  ) async {
     try {
       final repo = ref.read(agendaRepositoryProvider);
       await repo.updateSesionStatus(sesion.idSesion!, status);
@@ -329,10 +353,15 @@ class SessionActionSheet extends ConsumerWidget {
                     if (context.mounted) Navigator.of(context).pop();
                   } catch (e) {
                     if (context.mounted) {
-                      final message = e.toString().replaceAll('Exception: ', '');
+                      final message = e.toString().replaceAll(
+                        'Exception: ',
+                        '',
+                      );
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('No se pudo eliminar la sesión: $message'),
+                          content: Text(
+                            'No se pudo eliminar la sesión: $message',
+                          ),
                         ),
                       );
                     }

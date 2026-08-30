@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_action_dialog.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
@@ -350,14 +351,11 @@ class _TimelineRow extends StatelessWidget {
   }
 
   Color _getNodeColor() {
-    switch (session.sesion.estadoAsistencia) {
-      case 'asistio':
-        return colorScheme.secondary;
-      case 'falto':
-        return colorScheme.error;
-      default:
-        return colorScheme.primary;
-    }
+    return switch (session.sesion.estadoAsistencia) {
+      EstadoAsistencia.asistio => colorScheme.secondary,
+      EstadoAsistencia.falto => colorScheme.error,
+      EstadoAsistencia.programada || null => colorScheme.primary,
+    };
   }
 }
 
@@ -519,25 +517,24 @@ class _TimelineSessionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(BuildContext context, String? status) {
+  Widget _buildStatusBadge(BuildContext context, EstadoAsistencia? status) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    late Color color;
-    late String label;
-    late IconData icon;
+    final Color color;
+    final String label;
+    final IconData icon;
 
     switch (status) {
-      case 'asistio':
+      case EstadoAsistencia.asistio:
         color = colorScheme.secondary;
         label = 'ASISTIÓ';
         icon = CupertinoIcons.checkmark_alt;
-        break;
-      case 'falto':
+      case EstadoAsistencia.falto:
         color = colorScheme.error;
         label = 'NO ASISTIÓ';
         icon = CupertinoIcons.person_badge_minus;
-        break;
-      default:
+      case EstadoAsistencia.programada:
+      case null:
         color = colorScheme.primary;
         label = 'PROGRAMADA';
         icon = CupertinoIcons.circle_fill;
@@ -566,6 +563,4 @@ class _TimelineSessionCard extends StatelessWidget {
       ),
     );
   }
-
-
 }

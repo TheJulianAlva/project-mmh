@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:project_mmh/features/agenda/data/repositories/agenda_repository.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
@@ -30,7 +31,7 @@ final allSesionesProvider = FutureProvider.autoDispose<List<Sesion>>((
 // --- Enriched Sesiones (for Timeline Cards) ---
 
 // Status filter: null = show all, otherwise filter by estadoAsistencia value
-final statusFilterProvider = StateProvider<String?>((ref) => null);
+final statusFilterProvider = StateProvider<EstadoAsistencia?>((ref) => null);
 
 final enrichedSesionesProvider =
     FutureProvider.autoDispose<List<SesionRichModel>>((ref) async {
@@ -54,14 +55,14 @@ final enrichedSessionsOnSelectedDateProvider =
 
           // Apply status filter
           if (statusFilter != null) {
-            if (statusFilter == 'programada') {
+            if (statusFilter == EstadoAsistencia.programada) {
               filtered =
                   filtered
                       .where(
                         (s) =>
                             s.sesion.estadoAsistencia == null ||
-                            s.sesion.estadoAsistencia == 'programada' ||
-                            s.sesion.estadoAsistencia!.isEmpty,
+                            s.sesion.estadoAsistencia ==
+                                EstadoAsistencia.programada,
                       )
                       .toList();
             } else {

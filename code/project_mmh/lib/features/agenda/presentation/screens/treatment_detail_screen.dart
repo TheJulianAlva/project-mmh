@@ -8,6 +8,7 @@ import 'package:project_mmh/features/dashboard/presentation/providers/dashboard_
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/objetivos_providers.dart'
     as objectives_provider;
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
+import 'package:project_mmh/features/agenda/domain/estado_tratamiento.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 
 // Widgets
@@ -83,7 +84,8 @@ class TreatmentDetailScreen extends ConsumerWidget {
                 clinicColor = ClinicPalette.parse(clinicAsync.value!.color);
               }
 
-              final isConcluded = tratamiento.estado == 'concluido';
+              final isConcluded =
+                  tratamiento.estado == EstadoTratamiento.concluido;
 
               return SliverToBoxAdapter(
                 child: Padding(
@@ -190,13 +192,17 @@ class TreatmentDetailScreen extends ConsumerWidget {
                             () => const Center(
                               child: CircularProgressIndicator(),
                             ),
-                        error: (e, _) => AppErrorView(
-                          message: 'No se pudieron cargar las sesiones.',
-                          compact: true,
-                          onRetry: () => ref.invalidate(
-                            sesionesByTratamientoProvider(tratamientoId),
-                          ),
-                        ),
+                        error:
+                            (e, _) => AppErrorView(
+                              message: 'No se pudieron cargar las sesiones.',
+                              compact: true,
+                              onRetry:
+                                  () => ref.invalidate(
+                                    sesionesByTratamientoProvider(
+                                      tratamientoId,
+                                    ),
+                                  ),
+                            ),
                       ),
 
                       // Extra padding for safe area
@@ -214,8 +220,10 @@ class TreatmentDetailScreen extends ConsumerWidget {
                 (e, _) => SliverFillRemaining(
                   child: AppErrorView(
                     message: 'No se pudo cargar el tratamiento.',
-                    onRetry: () =>
-                        ref.invalidate(tratamientoByIdProvider(tratamientoId)),
+                    onRetry:
+                        () => ref.invalidate(
+                          tratamientoByIdProvider(tratamientoId),
+                        ),
                   ),
                 ),
           ),
@@ -259,7 +267,9 @@ class TreatmentDetailScreen extends ConsumerWidget {
     if (currentSessionCount == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Espera a que carguen las sesiones e inténtalo de nuevo'),
+          content: Text(
+            'Espera a que carguen las sesiones e inténtalo de nuevo',
+          ),
         ),
       );
       return;
@@ -393,9 +403,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
       ref.invalidate(allSesionesProvider);
       ref.invalidate(enrichedSesionesProvider);
       ref.invalidate(dashboardStatsProvider);
-      ref.invalidate(
-        objectives_provider.objetivosByClinicaProvider(clinicId),
-      );
+      ref.invalidate(objectives_provider.objetivosByClinicaProvider(clinicId));
 
       if (context.mounted) {
         if (Navigator.canPop(context)) Navigator.pop(context);

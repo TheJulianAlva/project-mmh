@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:project_mmh/features/agenda/domain/estado_tratamiento.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/periodo.dart';
@@ -227,11 +228,17 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
 
               final pending =
                   filtered
-                      .where((t) => t.tratamiento.estado != 'concluido')
+                      .where(
+                        (t) =>
+                            t.tratamiento.estado != EstadoTratamiento.concluido,
+                      )
                       .toList();
               final completed =
                   filtered
-                      .where((t) => t.tratamiento.estado == 'concluido')
+                      .where(
+                        (t) =>
+                            t.tratamiento.estado == EstadoTratamiento.concluido,
+                      )
                       .toList();
 
               final displayList = _selectedSegment == 0 ? pending : completed;
@@ -286,9 +293,10 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
                 (e, st) => SliverFillRemaining(
                   child: AppErrorView(
                     message: 'No se pudieron cargar los tratamientos.',
-                    onRetry: () => ref.invalidate(
-                      allTratamientosRichProvider(activePeriodId),
-                    ),
+                    onRetry:
+                        () => ref.invalidate(
+                          allTratamientosRichProvider(activePeriodId),
+                        ),
                   ),
                 ),
           ),
@@ -532,7 +540,7 @@ class _TreatmentCard extends StatelessWidget {
     final clinicaColor = ClinicPalette.parse(item.colorClinica);
 
     final nextSession = item.proximaSesion;
-    final isCompleted = item.tratamiento.estado == 'concluido';
+    final isCompleted = item.tratamiento.estado == EstadoTratamiento.concluido;
     final dateFormat = DateFormat('d MMM, HH:mm', 'es_ES');
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;

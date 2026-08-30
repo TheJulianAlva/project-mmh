@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/timeline_session_list.dart';
 import 'package:table_calendar/table_calendar.dart' hide isSameDay;
@@ -281,13 +282,14 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                       ),
                   loading:
                       () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => AppErrorView(
-                    message: 'No se pudo cargar la agenda.',
-                    onRetry: () {
-                      ref.invalidate(allSesionesProvider);
-                      ref.invalidate(enrichedSesionesProvider);
-                    },
-                  ),
+                  error:
+                      (e, _) => AppErrorView(
+                        message: 'No se pudo cargar la agenda.',
+                        onRetry: () {
+                          ref.invalidate(allSesionesProvider);
+                          ref.invalidate(enrichedSesionesProvider);
+                        },
+                      ),
                 ),
               ),
             ),
@@ -379,7 +381,10 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
   // ────────────────────────────────────────────────────────────────────────────
   // Status Filter Chips
   // ────────────────────────────────────────────────────────────────────────────
-  Widget _buildFilterChips(ColorScheme colorScheme, String? activeFilter) {
+  Widget _buildFilterChips(
+    ColorScheme colorScheme,
+    EstadoAsistencia? activeFilter,
+  ) {
     final filters = <_FilterOption>[
       _FilterOption(
         label: 'Todas',
@@ -388,17 +393,17 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
       ),
       _FilterOption(
         label: 'Pendientes',
-        value: 'programada',
+        value: EstadoAsistencia.programada,
         icon: CupertinoIcons.circle_fill,
       ),
       _FilterOption(
         label: 'Asistió',
-        value: 'asistio',
+        value: EstadoAsistencia.asistio,
         icon: CupertinoIcons.checkmark_alt,
       ),
       _FilterOption(
         label: 'No asistió',
-        value: 'falto',
+        value: EstadoAsistencia.falto,
         icon: CupertinoIcons.person_badge_minus,
       ),
     ];
@@ -436,7 +441,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
   Widget _buildEmptyState(
     BuildContext context,
     ColorScheme colorScheme,
-    String? statusFilter,
+    EstadoAsistencia? statusFilter,
   ) {
     final isFiltered = statusFilter != null;
 
@@ -487,7 +492,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
 // ────────────────────────────────────────────────────────────────────────────
 class _FilterOption {
   final String label;
-  final String? value;
+  final EstadoAsistencia? value;
   final IconData icon;
 
   const _FilterOption({

@@ -14,8 +14,7 @@ abstract class Tratamiento with _$Tratamiento {
     @JsonKey(name: 'id_objetivo') int? idObjetivo,
     @JsonKey(name: 'nombre_tratamiento') required String nombreTratamiento,
     @JsonKey(name: 'fecha_creacion') required String fechaCreacion,
-    @JsonKey(name: 'estado')
-    required EstadoTratamiento estado,
+    @JsonKey(name: 'estado') required EstadoTratamiento estado,
   }) = _Tratamiento;
 
   factory Tratamiento.fromJson(Map<String, dynamic> json) =>

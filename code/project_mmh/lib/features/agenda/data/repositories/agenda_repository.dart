@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:project_mmh/core/database/database_helper.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
+import 'package:project_mmh/features/agenda/domain/estado_tratamiento.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
@@ -83,9 +85,9 @@ class AgendaRepository {
     // Marcar como concluido solo si aún no lo estaba (idempotente).
     await db.update(
       'tratamientos',
-      {'estado': 'concluido'},
+      {'estado': EstadoTratamiento.concluido.dbValue},
       where: 'id_tratamiento = ? AND estado != ?',
-      whereArgs: [idTratamiento, 'concluido'],
+      whereArgs: [idTratamiento, EstadoTratamiento.concluido.dbValue],
     );
 
     final tratamiento = await getTratamientoById(idTratamiento);
@@ -143,15 +145,14 @@ class AgendaRepository {
       FROM sesiones
       WHERE fecha_inicio >= ?
         AND (estado_asistencia IS NULL OR estado_asistencia = ''
-             OR estado_asistencia = 'programada')
+             OR estado_asistencia = '${EstadoAsistencia.programada.dbValue}')
       GROUP BY id_tratamiento
       ''',
       [_nowIsoLocalSeconds()],
     );
     final proximaPorTratamiento = <int, DateTime>{
       for (final row in proximasMap)
-        row['id_tratamiento'] as int:
-            DateTime.parse(row['proxima'] as String),
+        row['id_tratamiento'] as int: DateTime.parse(row['proxima'] as String),
     };
 
     final List<TratamientoRichModel> richList = [];
@@ -243,7 +244,9 @@ class AgendaRepository {
         idTratamiento: row['id_tratamiento'] as int,
         fechaInicio: row['fecha_inicio'] as String,
         fechaFin: row['fecha_fin'] as String,
-        estadoAsistencia: row['estado_asistencia'] as String?,
+        estadoAsistencia: estadoAsistenciaFromDb(
+          row['estado_asistencia'] as String?,
+        ),
       );
       return SesionRichModel(
         sesion: sesion,
@@ -293,11 +296,14 @@ class AgendaRepository {
     return result.map((e) => Sesion.fromJson(e)).toList();
   }
 
-  Future<int> updateSesionStatus(int idSesion, String nuevoEstado) async {
+  Future<int> updateSesionStatus(
+    int idSesion,
+    EstadoAsistencia nuevoEstado,
+  ) async {
     final db = await _dbHelper.database;
     return await db.update(
       'sesiones',
-      {'estado_asistencia': nuevoEstado},
+      {'estado_asistencia': nuevoEstado.dbValue},
       where: 'id_sesion = ?',
       whereArgs: [idSesion],
     );
@@ -330,10 +336,11 @@ class AgendaRepository {
   Future<void> recalcObjetivoProgress(int? idObjetivo) async {
     if (idObjetivo == null) return;
     final db = await _dbHelper.database;
-    final count = Sqflite.firstIntValue(
+    final count =
+        Sqflite.firstIntValue(
           await db.rawQuery(
             "SELECT COUNT(*) FROM tratamientos "
-            "WHERE id_objetivo = ? AND estado = 'concluido'",
+            "WHERE id_objetivo = ? AND estado = '${EstadoTratamiento.concluido.dbValue}'",
             [idObjetivo],
           ),
         ) ??
