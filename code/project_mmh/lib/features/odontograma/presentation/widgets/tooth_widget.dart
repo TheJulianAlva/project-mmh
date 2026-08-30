@@ -1,5 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:project_mmh/core/theme/app_semantic_colors.dart';
 import 'package:project_mmh/features/odontograma/presentation/controllers/odontograma_controller.dart';
+
+/// Paleta del odontograma resuelta desde el tema (para que funcione en claro y
+/// oscuro; antes usaba `Colors.white/black` fijos).
+class ToothPalette {
+  const ToothPalette({
+    required this.fill,
+    required this.border,
+    required this.label,
+    required this.caries,
+    required this.obturacion,
+    required this.global,
+  });
+
+  final Color fill;
+  final Color border;
+  final Color label;
+  final Color caries; // rojo clínico
+  final Color obturacion; // azul clínico
+  final Color global; // trazos de estado global (ausente, puente…)
+
+  factory ToothPalette.of(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ToothPalette(
+      fill: scheme.surfaceContainerHighest,
+      border: scheme.onSurface.withValues(alpha: 0.45),
+      label: scheme.onSurface,
+      caries: scheme.error,
+      obturacion: context.semantic.info,
+      global: scheme.onSurface,
+    );
+  }
+}
 
 class ToothWidget extends StatelessWidget {
   final double size;
@@ -45,40 +78,41 @@ class ToothWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = ToothPalette.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           isoNumber,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: palette.label,
+          ),
         ),
-        GestureDetector(
-          onTapUp: (details) {
-            // Basic hit testing handled by TouchDetector below
-          },
-          child: SizedBox(
-            width: size,
-            height: size,
-            child: CustomPaint(
-              painter: _ToothPainter(
-                stateTop: stateTop,
-                stateBottom: stateBottom,
-                stateLeft: stateLeft,
-                stateRight: stateRight,
-                stateCenter: stateCenter,
-                globalState: globalState,
-                hasSellador: hasSellador,
-                isUpper: isUpper,
-              ),
-              child: _TouchDetector(
-                width: size,
-                height: size,
-                onTapTop: onTapTop,
-                onTapBottom: onTapBottom,
-                onTapLeft: onTapLeft,
-                onTapRight: onTapRight,
-                onTapCenter: onTapCenter,
-              ),
+        SizedBox(
+          width: size,
+          height: size,
+          child: CustomPaint(
+            painter: _ToothPainter(
+              stateTop: stateTop,
+              stateBottom: stateBottom,
+              stateLeft: stateLeft,
+              stateRight: stateRight,
+              stateCenter: stateCenter,
+              globalState: globalState,
+              hasSellador: hasSellador,
+              isUpper: isUpper,
+              palette: palette,
+            ),
+            child: _TouchDetector(
+              width: size,
+              height: size,
+              onTapTop: onTapTop,
+              onTapBottom: onTapBottom,
+              onTapLeft: onTapLeft,
+              onTapRight: onTapRight,
+              onTapCenter: onTapCenter,
             ),
           ),
         ),
@@ -158,6 +192,7 @@ class _ToothPainter extends CustomPainter {
   final String globalState;
   final bool hasSellador;
   final bool isUpper;
+  final ToothPalette palette;
 
   _ToothPainter({
     required this.stateTop,
@@ -168,6 +203,7 @@ class _ToothPainter extends CustomPainter {
     required this.globalState,
     required this.hasSellador,
     required this.isUpper,
+    required this.palette,
   });
 
   @override
@@ -176,7 +212,7 @@ class _ToothPainter extends CustomPainter {
     final strokePaint =
         Paint()
           ..style = PaintingStyle.stroke
-          ..color = Colors.black54
+          ..color = palette.border
           ..strokeWidth = 1.0;
 
     final w = size.width;
@@ -221,14 +257,14 @@ class _ToothPainter extends CustomPainter {
     // Helper: Draw Surface
     void drawSurface(Path path, String state, {Rect? rect}) {
       if (state == OdontogramaTools.caries) {
-        paint.color = Colors.red;
+        paint.color = palette.caries;
         paint.style = PaintingStyle.fill;
         if (rect != null)
           canvas.drawRect(rect, paint);
         else
           canvas.drawPath(path, paint);
       } else if (state == OdontogramaTools.obturacion) {
-        paint.color = Colors.blue;
+        paint.color = palette.obturacion;
         paint.style = PaintingStyle.fill;
         if (rect != null)
           canvas.drawRect(rect, paint);
@@ -236,7 +272,7 @@ class _ToothPainter extends CustomPainter {
           canvas.drawPath(path, paint);
       } else if (state == OdontogramaTools.restauracionFiltrada) {
         // Blue Fill
-        paint.color = Colors.blue;
+        paint.color = palette.obturacion;
         paint.style = PaintingStyle.fill;
         if (rect != null)
           canvas.drawRect(rect, paint);
@@ -251,7 +287,7 @@ class _ToothPainter extends CustomPainter {
         final redBorderPaint =
             Paint()
               ..style = PaintingStyle.stroke
-              ..color = Colors.red
+              ..color = palette.caries
               ..strokeWidth = 2.0;
 
         if (rect != null)
@@ -259,7 +295,7 @@ class _ToothPainter extends CustomPainter {
         else
           canvas.drawPath(path, redBorderPaint);
       } else {
-        paint.color = Colors.white; // Sano
+        paint.color = palette.fill; // Sano
         paint.style = PaintingStyle.fill;
         if (rect != null)
           canvas.drawRect(rect, paint);
@@ -268,7 +304,7 @@ class _ToothPainter extends CustomPainter {
       }
 
       // Draw Border
-      paint.color = Colors.black54;
+      paint.color = palette.border;
       paint.style = PaintingStyle.stroke;
       if (rect != null)
         canvas.drawRect(rect, strokePaint);
@@ -279,7 +315,7 @@ class _ToothPainter extends CustomPainter {
       if (state == OdontogramaTools.fractura) {
         final redStroke =
             Paint()
-              ..color = Colors.red
+              ..color = palette.caries
               ..style = PaintingStyle.stroke
               ..strokeWidth = 2.0;
 
@@ -334,24 +370,24 @@ class _ToothPainter extends CustomPainter {
 
     // Global Overlays
     if (globalState == OdontogramaTools.ausente) {
-      // Blue Slash /
+      // Diente ausente: X azul (convención odontológica; se distingue de
+      // "por extraer" que es una sola diagonal roja).
       final blueStroke =
           Paint()
-            ..color = Colors.blue
-            ..strokeWidth = 3.0
+            ..color = palette.obturacion
+            ..strokeWidth = 2.5
             ..style = PaintingStyle.stroke;
-      canvas.drawLine(
-        Offset(w * 0.2, h),
-        Offset(w * 0.8, 0),
-        blueStroke,
-      ); // BottomLeft to TopRight ish
+      canvas.drawLine(Offset(w * 0.15, h * 0.15),
+          Offset(w * 0.85, h * 0.85), blueStroke);
+      canvas.drawLine(Offset(w * 0.85, h * 0.15),
+          Offset(w * 0.15, h * 0.85), blueStroke);
     }
 
     if (globalState == OdontogramaTools.porExtraer) {
       // Red Slash /
       final redStroke =
           Paint()
-            ..color = Colors.red
+            ..color = palette.caries
             ..strokeWidth = 3.0
             ..style = PaintingStyle.stroke;
       canvas.drawLine(Offset(w * 0.2, h), Offset(w * 0.8, 0), redStroke);
@@ -361,7 +397,7 @@ class _ToothPainter extends CustomPainter {
       // Blue Arrow
       final blueStroke =
           Paint()
-            ..color = Colors.blue
+            ..color = palette.obturacion
             ..strokeWidth = 2.0
             ..style = PaintingStyle.stroke;
       // Draw arrow
@@ -408,7 +444,7 @@ class _ToothPainter extends CustomPainter {
       // Simple logic: Draw square bracket around
       final blackStroke =
           Paint()
-            ..color = Colors.black
+            ..color = palette.global
             ..strokeWidth = 2.0
             ..style = PaintingStyle.stroke;
       final rect = Rect.fromLTWH(0, 0, w, h);
@@ -416,11 +452,11 @@ class _ToothPainter extends CustomPainter {
       // Maybe make it look more like a bracket [ ] ?
     }
 
-    // Sellador (S)
+    // Sellador (S) — escala con el tamaño de la pieza (antes 36 fijo se salía).
     if (hasSellador) {
-      const textStyle = TextStyle(
-        color: Colors.blue,
-        fontSize: 36,
+      final textStyle = TextStyle(
+        color: palette.obturacion,
+        fontSize: h * 0.55,
         fontWeight: FontWeight.bold,
       );
       final textSpan = TextSpan(text: 'S', style: textStyle);
@@ -438,6 +474,17 @@ class _ToothPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ToothPainter oldDelegate) {
-    return true; // Simple repaint
+    return stateTop != oldDelegate.stateTop ||
+        stateBottom != oldDelegate.stateBottom ||
+        stateLeft != oldDelegate.stateLeft ||
+        stateRight != oldDelegate.stateRight ||
+        stateCenter != oldDelegate.stateCenter ||
+        globalState != oldDelegate.globalState ||
+        hasSellador != oldDelegate.hasSellador ||
+        isUpper != oldDelegate.isUpper ||
+        palette.fill != oldDelegate.palette.fill ||
+        palette.caries != oldDelegate.palette.caries ||
+        palette.obturacion != oldDelegate.palette.obturacion ||
+        palette.border != oldDelegate.palette.border;
   }
 }

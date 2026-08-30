@@ -5,7 +5,6 @@ import 'package:project_mmh/features/clinicas_metas/presentation/screens/clinica
 import 'package:project_mmh/features/pacientes/presentation/screens/patients_screen.dart';
 import 'package:project_mmh/features/pacientes/presentation/screens/add_patient_screen.dart';
 import 'package:project_mmh/features/pacientes/presentation/screens/edit_patient_screen.dart';
-import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/odontograma/presentation/screens/odontograma_screen.dart';
 import 'package:project_mmh/features/agenda/presentation/screens/agenda_screen.dart';
 import 'package:project_mmh/features/agenda/presentation/screens/treatments_screen.dart';
@@ -88,19 +87,9 @@ final appRouter = GoRouter(
                   routes: [
                     GoRoute(
                       path: 'edit',
-                      builder: (context, state) {
-                        final patient = state.extra;
-                        if (patient is! Patient) {
-                          // Deep link / restauración sin `extra`: volver al
-                          // detalle, que sí carga el paciente por id.
-                          return _RouteErrorScreen(
-                            message: 'Abre la edición desde la ficha del paciente',
-                            onBack: () =>
-                                context.go('/pacientes/${state.pathParameters['id']}'),
-                          );
-                        }
-                        return EditPatientScreen(patient: patient);
-                      },
+                      builder: (context, state) => EditPatientScreen(
+                        patientId: state.pathParameters['id']!,
+                      ),
                     ),
                   ],
                 ),
@@ -153,11 +142,10 @@ final appRouter = GoRouter(
 );
 
 class _RouteErrorScreen extends StatelessWidget {
-  const _RouteErrorScreen({this.error, this.message, this.onBack});
+  const _RouteErrorScreen({this.error, this.message});
 
   final Exception? error;
   final String? message;
-  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +178,7 @@ class _RouteErrorScreen extends StatelessWidget {
               ],
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: onBack ?? () => context.go('/dashboard'),
+                onPressed: () => context.go('/dashboard'),
                 child: const Text('Volver'),
               ),
             ],

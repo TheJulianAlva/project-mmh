@@ -42,6 +42,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
       odontogramaControllerProvider(widget.pacienteId),
     );
     final selectedTool = ref.watch(selectedToolProvider);
+    final palette = ToothPalette.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -203,27 +204,27 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.caries,
-                      Colors.red,
+                      palette.caries,
                       label: "Caries",
                     ),
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.obturacion,
-                      Colors.blue,
+                      palette.obturacion,
                       label: "Obturación",
                     ),
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.fractura,
-                      Colors.red,
+                      palette.caries,
                       icon: Icons.flash_on,
                       label: "Fractura",
                     ),
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.restauracionFiltrada,
-                      Colors.blue,
-                      borderColor: Colors.red,
+                      palette.obturacion,
+                      borderColor: palette.caries,
                       label: "Rest. Filtrada",
                     ),
                   ]),
@@ -233,7 +234,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.sellador,
-                      Colors.blue,
+                      palette.obturacion,
                       icon: Icons.security,
                       label: "Sellador",
                     ),
@@ -244,21 +245,21 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.ausente,
-                      Colors.blue,
+                      palette.obturacion,
                       icon: Icons.cancel_outlined,
                       label: "Ausente",
                     ), // Blue /
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.porExtraer,
-                      Colors.red,
+                      palette.caries,
                       icon: Icons.cancel,
                       label: "P. Extraer",
                     ), // Red /
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.erupcion,
-                      Colors.blue,
+                      palette.obturacion,
                       icon: Icons.arrow_upward,
                       label: "Erupción",
                     ),

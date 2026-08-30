@@ -8,6 +8,7 @@ import 'package:project_mmh/features/pacientes/presentation/providers/patients_p
 import 'package:image_picker/image_picker.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/services/image_service.dart';
+import 'package:project_mmh/features/pacientes/domain/patient.dart';
 
 class PatientDetailScreen extends ConsumerWidget {
   final String patientId;
@@ -16,7 +17,7 @@ class PatientDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final patientsAsync = ref.watch(patientsProvider);
+    final patientAsync = ref.watch(patientByIdProvider(patientId));
 
     return Scaffold(
       body: CustomScrollView(
@@ -26,38 +27,25 @@ class PatientDetailScreen extends ConsumerWidget {
             backgroundColor: Theme.of(
               context,
             ).colorScheme.surface.withValues(alpha: 0.9),
-            trailing: patientsAsync.when(
-              data: (patientsList) {
-                final patient =
-                    patientsList
-                        .where((p) => p.idExpediente == patientId)
-                        .firstOrNull;
+            trailing: patientAsync.maybeWhen(
+              data: (patient) {
                 if (patient == null) return null;
                 return TextButton(
-                  onPressed: () {
-                    context.push(
-                      '/pacientes/${patient.idExpediente}/edit',
-                      extra: patient,
-                    );
-                  },
+                  onPressed: () =>
+                      context.push('/pacientes/${patient.idExpediente}/edit'),
                   child: const Text(
                     'Editar',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 );
               },
-              loading: () => null,
-              error: (_, __) => null,
+              orElse: () => null,
             ),
             previousPageTitle: 'Atrás',
           ),
           SliverToBoxAdapter(
-            child: patientsAsync.when(
-              data: (patientsList) {
-                final patient =
-                    patientsList
-                        .where((p) => p.idExpediente == patientId)
-                        .firstOrNull;
+            child: patientAsync.when(
+              data: (patient) {
                 if (patient == null) {
                   return const Center(
                     child: Padding(
@@ -77,7 +65,7 @@ class PatientDetailScreen extends ConsumerWidget {
                   ),
               error: (e, s) => AppErrorView(
                 message: 'No se pudo cargar el paciente.',
-                onRetry: () => ref.invalidate(patientsProvider),
+                onRetry: () => ref.invalidate(patientByIdProvider(patientId)),
               ),
             ),
           ),
@@ -89,7 +77,7 @@ class PatientDetailScreen extends ConsumerWidget {
   Widget _buildPatientContent(
     BuildContext context,
     WidgetRef ref,
-    dynamic patient,
+    Patient patient,
   ) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -217,7 +205,7 @@ class PatientDetailScreen extends ConsumerWidget {
   Widget _buildImagesSection(
     BuildContext context,
     WidgetRef ref,
-    dynamic patient,
+    Patient patient,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,7 +300,7 @@ class PatientDetailScreen extends ConsumerWidget {
   Future<void> _addQuickPhoto(
     BuildContext context,
     WidgetRef ref,
-    dynamic patient,
+    Patient patient,
   ) async {
     final imageService = ImageService();
 

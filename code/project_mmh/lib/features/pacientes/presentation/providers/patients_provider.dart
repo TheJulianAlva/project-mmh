@@ -38,6 +38,7 @@ class PatientsNotifier extends AsyncNotifier<List<Patient>> {
 
   Future<void> updatePatient(Patient patient) async {
     await ref.read(patientRepositoryProvider).updatePatient(patient);
+    ref.invalidate(patientByIdProvider(patient.idExpediente));
     await _reloadInPlace();
   }
 
@@ -45,11 +46,14 @@ class PatientsNotifier extends AsyncNotifier<List<Patient>> {
     await ref
         .read(patientRepositoryProvider)
         .updatePatientId(oldId, newPatientData);
+    ref.invalidate(patientByIdProvider(oldId));
+    ref.invalidate(patientByIdProvider(newPatientData.idExpediente));
     await _reloadInPlace();
   }
 
   Future<void> deletePatient(String idExpediente) async {
     await ref.read(patientRepositoryProvider).deletePatient(idExpediente);
+    ref.invalidate(patientByIdProvider(idExpediente));
     await _reloadInPlace();
   }
 }

@@ -4,19 +4,53 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/services/image_service.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
-class EditPatientScreen extends ConsumerStatefulWidget {
-  final Patient patient;
-  const EditPatientScreen({super.key, required this.patient});
+/// Carga el paciente por id (funciona con deep link / restauración, sin
+/// depender de `state.extra`).
+class EditPatientScreen extends ConsumerWidget {
+  final String patientId;
+  const EditPatientScreen({super.key, required this.patientId});
 
   @override
-  ConsumerState<EditPatientScreen> createState() => _EditPatientScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final patientAsync = ref.watch(patientByIdProvider(patientId));
+    return patientAsync.when(
+      data: (patient) {
+        if (patient == null) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: const AppErrorView(message: 'Paciente no encontrado.'),
+          );
+        }
+        return _EditPatientForm(patient: patient);
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        appBar: AppBar(),
+        body: AppErrorView(
+          message: 'No se pudo cargar el paciente.',
+          onRetry: () => ref.invalidate(patientByIdProvider(patientId)),
+        ),
+      ),
+    );
+  }
 }
 
-class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
+class _EditPatientForm extends ConsumerStatefulWidget {
+  final Patient patient;
+  const _EditPatientForm({required this.patient});
+
+  @override
+  ConsumerState<_EditPatientForm> createState() => _EditPatientFormState();
+}
+
+class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
   final _formKey = GlobalKey<FormBuilderState>();
 
   // List of images to keep (initially all existing).
