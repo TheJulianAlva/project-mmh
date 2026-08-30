@@ -1,9 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/services/image_service.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
 class PatientsScreen extends ConsumerStatefulWidget {
@@ -108,7 +107,15 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                     leading: CircleAvatar(
                       backgroundImage:
                           patient.imagenesPaths.isNotEmpty
-                              ? FileImage(File(patient.imagenesPaths.first))
+                              ? FileImage(
+                                ImageService.resolveFile(
+                                  patient.imagenesPaths.first,
+                                ),
+                              )
+                              : null,
+                      onBackgroundImageError:
+                          patient.imagenesPaths.isNotEmpty
+                              ? (_, __) {}
                               : null,
                       child:
                           patient.imagenesPaths.isEmpty

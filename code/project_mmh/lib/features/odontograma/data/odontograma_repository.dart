@@ -26,7 +26,18 @@ class OdontogramaRepository {
 
     if (maps.isEmpty) {
       await seedOdontograma(odontogramaId);
-      return getOdontograma(pacienteId);
+      final seeded = await db.query(
+        'piezas_dentales',
+        where: 'id_odontograma = ?',
+        whereArgs: [odontogramaId],
+        orderBy: 'numero_pieza ASC',
+      );
+      if (seeded.isEmpty) {
+        throw StateError(
+          'No se pudo inicializar el odontograma del paciente $pacienteId',
+        );
+      }
+      return seeded.map((row) => PiezaDental.fromDb(row)).toList();
     }
 
     return maps.map((row) => PiezaDental.fromDb(row)).toList();

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:project_mmh/core/router/app_router.dart';
 import 'package:project_mmh/core/theme/app_theme.dart';
 import 'package:project_mmh/core/services/notification_service.dart';
+import 'package:project_mmh/core/services/image_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,6 +14,7 @@ import 'package:project_mmh/features/settings/presentation/providers/reminder_se
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_ES', null);
+  await ImageService.init();
   await NotificationService.instance.init(
     onNotificationTap: (_) => appRouter.go('/agenda'),
   );

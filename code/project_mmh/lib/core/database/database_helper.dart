@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -11,6 +12,8 @@ class DatabaseHelper {
 
   DatabaseHelper._internal();
 
+  static const int _databaseVersion = 3;
+
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
@@ -21,25 +24,81 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'odontologia_student.db');
     return await openDatabase(
       path,
-      version: 2, // Increment version for migration
+      version: _databaseVersion,
       onCreate: _onCreate,
-      onConfigure: _onConfigure,
-      onUpgrade: _onUpgrade, // Add upgrade handler
+      onUpgrade: _onUpgrade,
+      onDowngrade: onDatabaseDowngradeDelete,
+      // Las FKs se habilitan en onOpen (después de onCreate/onUpgrade) para que
+      // las migraciones que reconstruyen tablas no disparen ON DELETE CASCADE.
+      onOpen: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
     );
   }
 
   // Handle migrations
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // Add deleted_at column for Soft Delete (Patient Management V2)
-      // This is safe for existing data (defaults to NULL)
+      // V2: Soft delete de pacientes.
       await db.execute('ALTER TABLE pacientes ADD COLUMN deleted_at TEXT');
-      print("Migration V2: 'deleted_at' column added to 'pacientes' table.");
+      debugPrint("Migración V2: columna 'deleted_at' agregada a 'pacientes'.");
+    }
+
+    if (oldVersion < 3) {
+      await _migrateToV3(db);
+      debugPrint('Migración V3: unicidad de clínica por periodo, índices y '
+          'unicidad de odontograma por paciente.');
     }
   }
 
-  Future<void> _onConfigure(Database db) async {
-    await db.execute('PRAGMA foreign_keys = ON');
+  /// V3: `clinicas.nombre_clinica` deja de ser único global y pasa a ser único
+  /// por periodo; `odontogramas` pasa a ser único por paciente; se agregan
+  /// índices sobre las FKs más consultadas.
+  Future<void> _migrateToV3(Database db) async {
+    // onUpgrade ya se ejecuta dentro de una transacción y con las FKs
+    // deshabilitadas (se habilitan en onOpen), por lo que reconstruir
+    // `clinicas` no dispara los ON DELETE CASCADE de tratamientos/objetivos.
+
+    // --- clinicas: UNIQUE(id_periodo, nombre_clinica) ---
+    await db.execute('''
+      CREATE TABLE clinicas_new (
+        id_clinica INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_periodo INTEGER NOT NULL,
+        nombre_clinica TEXT NOT NULL CHECK(LENGTH(nombre_clinica) > 0),
+        color TEXT NOT NULL,
+        horarios TEXT,
+        FOREIGN KEY (id_periodo) REFERENCES periodos (id_periodo) ON DELETE CASCADE,
+        UNIQUE (id_periodo, nombre_clinica)
+      )
+    ''');
+    await db.execute('''
+      INSERT INTO clinicas_new (id_clinica, id_periodo, nombre_clinica, color, horarios)
+      SELECT id_clinica, id_periodo, nombre_clinica, color, horarios FROM clinicas
+    ''');
+    await db.execute('DROP TABLE clinicas');
+    await db.execute('ALTER TABLE clinicas_new RENAME TO clinicas');
+
+    // --- odontogramas: UNIQUE(id_expediente), de-duplicando filas ---
+    await db.execute('''
+      DELETE FROM odontogramas
+      WHERE id_odontograma NOT IN (
+        SELECT MIN(id_odontograma) FROM odontogramas GROUP BY id_expediente
+      )
+    ''');
+    await db.execute('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_odontogramas_expediente
+      ON odontogramas (id_expediente)
+    ''');
+
+    // --- índices sobre FKs consultadas por rango/lookup ---
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_tratamientos_expediente ON tratamientos (id_expediente)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_tratamientos_clinica ON tratamientos (id_clinica)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_sesiones_tratamiento ON sesiones (id_tratamiento)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_piezas_odontograma ON piezas_dentales (id_odontograma)');
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -55,10 +114,11 @@ class DatabaseHelper {
       CREATE TABLE clinicas (
         id_clinica INTEGER PRIMARY KEY AUTOINCREMENT,
         id_periodo INTEGER NOT NULL,
-        nombre_clinica TEXT NOT NULL UNIQUE CHECK(LENGTH(nombre_clinica) > 0),
+        nombre_clinica TEXT NOT NULL CHECK(LENGTH(nombre_clinica) > 0),
         color TEXT NOT NULL,
         horarios TEXT,
-        FOREIGN KEY (id_periodo) REFERENCES periodos (id_periodo) ON DELETE CASCADE
+        FOREIGN KEY (id_periodo) REFERENCES periodos (id_periodo) ON DELETE CASCADE,
+        UNIQUE (id_periodo, nombre_clinica)
       )
     ''');
 
@@ -85,7 +145,8 @@ class DatabaseHelper {
         telefono TEXT,
         padecimiento_relevante TEXT,
         informacion_adicional TEXT,
-        imagenes_paths TEXT
+        imagenes_paths TEXT,
+        deleted_at TEXT
       )
     ''');
 
@@ -95,6 +156,10 @@ class DatabaseHelper {
         id_expediente TEXT NOT NULL,
         FOREIGN KEY (id_expediente) REFERENCES pacientes (id_expediente) ON DELETE CASCADE
       )
+    ''');
+    await db.execute('''
+      CREATE UNIQUE INDEX idx_odontogramas_expediente
+      ON odontogramas (id_expediente)
     ''');
 
     await db.execute('''
@@ -110,6 +175,8 @@ class DatabaseHelper {
         FOREIGN KEY (id_odontograma) REFERENCES odontogramas (id_odontograma) ON DELETE CASCADE
       )
     ''');
+    await db.execute(
+        'CREATE INDEX idx_piezas_odontograma ON piezas_dentales (id_odontograma)');
 
     // 3. Agenda y Ejecución
     await db.execute('''
@@ -126,6 +193,10 @@ class DatabaseHelper {
         FOREIGN KEY (id_objetivo) REFERENCES objetivos (id_objetivo) ON DELETE SET NULL
       )
     ''');
+    await db.execute(
+        'CREATE INDEX idx_tratamientos_expediente ON tratamientos (id_expediente)');
+    await db.execute(
+        'CREATE INDEX idx_tratamientos_clinica ON tratamientos (id_clinica)');
 
     await db.execute('''
       CREATE TABLE sesiones (
@@ -137,12 +208,16 @@ class DatabaseHelper {
         FOREIGN KEY (id_tratamiento) REFERENCES tratamientos (id_tratamiento) ON DELETE CASCADE
       )
     ''');
+    await db.execute(
+        'CREATE INDEX idx_sesiones_tratamiento ON sesiones (id_tratamiento)');
   }
 
-  // Helper methods for direct queries during development/debug
-  Future<List<Map<String, dynamic>>> queryAll(String table) async {
+  Future<List<Map<String, dynamic>>> queryAll(
+    String table, {
+    String? orderBy,
+  }) async {
     final db = await database;
-    return await db.query(table);
+    return await db.query(table, orderBy: orderBy);
   }
 
   Future<int> insert(String table, Map<String, dynamic> row) async {

@@ -75,17 +75,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
           const SizedBox(width: 16),
           Switch(
             value: _showPediatric,
-            onChanged: (v) {
-              setState(() => _showPediatric = v);
-              if (!v) {
-                // If turning OFF explicit pediatric view, clean up pediatric teeth
-                ref
-                    .read(
-                      odontogramaControllerProvider(widget.pacienteId).notifier,
-                    )
-                    .cleanPediatricTeeth();
-              }
-            },
+            onChanged: (v) => _onPediatricToggled(v),
             activeThumbColor: Theme.of(context).colorScheme.secondary,
           ),
           const SizedBox(width: 8),
@@ -280,6 +270,47 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
     );
   }
 
+  Future<void> _onPediatricToggled(bool value) async {
+    if (value) {
+      setState(() => _showPediatric = true);
+      return;
+    }
+
+    final notifier = ref.read(
+      odontogramaControllerProvider(widget.pacienteId).notifier,
+    );
+
+    if (notifier.hasPediatricData()) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('¿Ocultar dentición temporal?'),
+          content: const Text(
+            'Se eliminará el trabajo registrado en las piezas temporales '
+            '(51-85). Esta acción no se puede deshacer.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
+    setState(() => _showPediatric = false);
+    await notifier.cleanPediatricTeeth();
+  }
+
   Widget _buildToolSection(String title, List<Widget> children) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -459,7 +490,11 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
     }
   }
 
-  void _handleTap(PiezaDental pieza, String surface, String tool) {
+  Future<void> _handleTap(
+    PiezaDental pieza,
+    String surface,
+    String tool,
+  ) async {
     if (!_isEditing) return;
 
     final controller = ref.read(
@@ -491,9 +526,20 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
           ),
         );
       } else {
-        // Create Bridge
-        controller.createBridge(_bridgeStartPiece!, pieza);
-        setState(() => _bridgeStartPiece = null);
+        final created = await controller.createBridge(
+          _bridgeStartPiece!,
+          pieza,
+        );
+        if (mounted && !created) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Puente inválido: seleccione dos dientes de la misma arcada.',
+              ),
+            ),
+          );
+        }
+        if (mounted) setState(() => _bridgeStartPiece = null);
       }
       return;
     }

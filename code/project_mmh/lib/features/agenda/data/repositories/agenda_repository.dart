@@ -31,6 +31,10 @@ class AgendaRepository {
 
   Future<void> deleteTratamiento(int idTratamiento) async {
     final db = await _dbHelper.database;
+
+    // Si el tratamiento estaba concluido, revertimos su aporte al objetivo.
+    final tratamiento = await getTratamientoById(idTratamiento);
+
     // Cascade delete sessions first
     await db.delete(
       'sesiones',
@@ -43,20 +47,27 @@ class AgendaRepository {
       where: 'id_tratamiento = ?',
       whereArgs: [idTratamiento],
     );
+
+    if (tratamiento?.estado == 'concluido' && tratamiento?.idObjetivo != null) {
+      await decrementObjetivoProgress(tratamiento!.idObjetivo!);
+    }
   }
 
   Future<void> markTreatmentAsFinalized(int idTratamiento) async {
     final db = await _dbHelper.database;
 
-    // 1. Update Treatment State
-    await db.update(
+    // 1. Marcar como concluido solo si aún no lo estaba (idempotente).
+    final rows = await db.update(
       'tratamientos',
       {'estado': 'concluido'},
-      where: 'id_tratamiento = ?',
-      whereArgs: [idTratamiento],
+      where: 'id_tratamiento = ? AND estado != ?',
+      whereArgs: [idTratamiento, 'concluido'],
     );
+    if (rows == 0) {
+      return;
+    }
 
-    // 2. Update Objective Progress
+    // 2. Incrementar el progreso del objetivo una única vez.
     final tratamiento = await getTratamientoById(idTratamiento);
     if (tratamiento?.idObjetivo != null) {
       await incrementObjetivoProgress(tratamiento!.idObjetivo!);
@@ -293,7 +304,30 @@ class AgendaRepository {
     if (result.isEmpty) return 0;
 
     final objetivo = Objetivo.fromJson(result.first);
-    final nuevaCantidad = objetivo.cantidadActual + 1;
+    // No exceder la meta.
+    final nuevaCantidad =
+        (objetivo.cantidadActual + 1).clamp(0, objetivo.cantidadMeta);
+
+    return await db.update(
+      'objetivos',
+      {'cantidad_actual': nuevaCantidad},
+      where: 'id_objetivo = ?',
+      whereArgs: [idObjetivo],
+    );
+  }
+
+  Future<int> decrementObjetivoProgress(int idObjetivo) async {
+    final db = await _dbHelper.database;
+    final result = await db.query(
+      'objetivos',
+      where: 'id_objetivo = ?',
+      whereArgs: [idObjetivo],
+    );
+    if (result.isEmpty) return 0;
+
+    final objetivo = Objetivo.fromJson(result.first);
+    final nuevaCantidad =
+        (objetivo.cantidadActual - 1).clamp(0, objetivo.cantidadMeta);
 
     return await db.update(
       'objetivos',

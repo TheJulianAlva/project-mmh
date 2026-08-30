@@ -137,133 +137,88 @@ class OdontogramaController
     await _updateLocalAndDb(updatedPieza);
   }
 
-  /// Creates a bridge (Prótesis Fija) between start and end teeth.
-  /// Validates that they are in the same arch/quadrant logic implies linear sequence.
-  Future<void> createBridge(PiezaDental start, PiezaDental end) async {
-    // 1. Determine range
-    final allTeeth = state.value ?? [];
-    // Sort by ISO to be sure
-    final sortedTeeth = List<PiezaDental>.from(allTeeth)
-      ..sort((a, b) => a.iso.compareTo(b.iso));
+  // Orden físico de cada arcada (para calcular los dientes "entre" dos piezas).
+  static const List<int> _upperAdult = [
+    18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28,
+  ];
+  static const List<int> _lowerAdult = [
+    48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38,
+  ];
+  static const List<int> _upperPed = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65];
+  static const List<int> _lowerPed = [85, 84, 83, 82, 81, 71, 72, 73, 74, 75];
 
-    final startIndex = sortedTeeth.indexWhere((p) => p.iso == start.iso);
-    final endIndex = sortedTeeth.indexWhere((p) => p.iso == end.iso);
+  static const Set<int> _pedIsos = {
+    51, 52, 53, 54, 55, 61, 62, 63, 64, 65, //
+    71, 72, 73, 74, 75, 81, 82, 83, 84, 85,
+  };
 
-    if (startIndex == -1 || endIndex == -1) return;
-
-    final minIndex = startIndex < endIndex ? startIndex : endIndex;
-    final maxIndex = startIndex > endIndex ? startIndex : endIndex;
-
-    // Validate: simple check, ensure they are somewhat close or same range types?
-    // User doc: "mismo paladar (arriba / abajo)".
-    // ISO Logic:
-    // Upper: 11-18, 21-28, 51-55, 61-65.
-    // Lower: 31-38, 41-48, 71-75, 81-85.
-    // We can check if both are Upper or both Lower.
-    // Upper first digit: 1, 2, 5, 6.
-    // Lower first digit: 3, 4, 7, 8.
-
-    bool isUpper(int iso) {
-      final d = iso ~/ 10;
-      return d == 1 || d == 2 || d == 5 || d == 6;
+  List<int>? _archFor(int iso) {
+    for (final arch in [_upperAdult, _lowerAdult, _upperPed, _lowerPed]) {
+      if (arch.contains(iso)) return arch;
     }
+    return null;
+  }
 
-    if (isUpper(start.iso) != isUpper(end.iso)) {
-      // Different palates - invalid.
-      // In a real app we might throw error or show snackbar, here we just return or log.
-      return;
-    }
+  bool _isDirty(PiezaDental p) =>
+      p.estadoGeneral != 'Sano' ||
+      p.tieneSellador ||
+      p.estadoMesial != 'Sano' ||
+      p.estadoDistal != 'Sano' ||
+      p.estadoVestibular != 'Sano' ||
+      p.estadoLingual != 'Sano' ||
+      p.estadoOclusal != 'Sano';
 
-    // Apply to all in range
-    final teethToUpdate = <PiezaDental>[];
-    for (int i = minIndex; i <= maxIndex; i++) {
-      // Need to check if this tooth is also in the same palate?
-      // If sorting puts 18 and 28 adjacent, then 18..28 crosses midline.
-      // 18..11 then 21..28.
-      // ISOs are not strictly linear in physical arch (18,17...11, 21...28).
-      // My sorted list is 11,12..18, 21..28.
-      // If I bridge 11 to 21 (Central Incisors bridge), they are adjacent in list?
-      // 11, 12... wait.
-      // 11 is next to 21 in physical.
-      // In sorted list: 11, ..., 18, 21.
-      // WAIT. 11 and 21 are physically adjacent.
-      // If I bridge 11 to 21.
-      // Sorted list: 11, 12, ... 18, 21 ...
-      // Range 11 to 21 includes 12,13..18. This is WRONG.
-      // The list must be sorted by "Arch Order".
-      // Physical order: 18 -> 11, 21 -> 28.
+  /// Indica si hay trabajo registrado en piezas temporales (para pedir
+  /// confirmación antes de limpiarlas).
+  bool hasPediatricData() {
+    final list = state.value ?? [];
+    return list.any((p) => _pedIsos.contains(p.iso) && _isDirty(p));
+  }
 
-      // Let's refine the range logic.
-      // We really just want to set ProtesisFija on the two selected and anything "physically between".
-      // Implementing proper physical sorting is complex.
-      // Simplification: Just update the two selected for now and any that the user *clicks*?
-      // User doc says: "todos los dientes entre los seleccionados".
+  /// Crea un puente (Prótesis Fija) entre dos piezas de la **misma arcada**,
+  /// marcando también las piezas intermedias. Devuelve `false` si las piezas
+  /// no pertenecen a la misma arcada o el rango es inválido.
+  Future<bool> createBridge(PiezaDental start, PiezaDental end) async {
+    if (start.iso == end.iso) return false;
 
-      // Let's rely on the user selecting start and end correctly?
-      // NO, automated.
+    final arch = _archFor(start.iso);
+    if (arch == null || !arch.contains(end.iso)) return false;
 
-      // I will implement a quick helper to get 'teeth between' based on standard arch.
-      // Upper Arch: 18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28.
-      // Lower Arch: 48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38.
-      // (And pediatric similarly).
+    final teeth = state.value ?? [];
+    final i1 = arch.indexOf(start.iso);
+    final i2 = arch.indexOf(end.iso);
+    final lo = i1 < i2 ? i1 : i2;
+    final hi = i1 < i2 ? i2 : i1;
 
-      // I'll skip complex "between" logic for this turn and just support setting the ones passed?
-      // No, I must do it.
-      // I will implement a hardcoded list of 'Physical Order'.
-    }
-
-    final physicalOrder = [
-      // Upper Adult
-      18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28,
-      // Lower Adult
-      48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38,
-      // Upper Ped
-      55, 54, 53, 52, 51, 61, 62, 63, 64, 65,
-      // Lower Ped
-      85, 84, 83, 82, 81, 71, 72, 73, 74, 75,
-    ];
-
-    int pStart = physicalOrder.indexOf(start.iso);
-    int pEnd = physicalOrder.indexOf(end.iso);
-
-    if (pStart != -1 && pEnd != -1) {
-      int min = pStart < pEnd ? pStart : pEnd;
-      int max = pStart > pEnd ? pStart : pEnd;
-
-      // Check continuity? If indices are far apart but valid, assume yes.
-      // Check if they cross upper/lower boundary?
-      // Upper Adult indices: 0-15. Lower Adult: 16-31.
-      // They shouldn't cross 15-16.
-      // Note: We check consistency with isUpper() below.
-
-      if (isUpper(start.iso) == isUpper(end.iso)) {
-        // Valid range
-        for (int i = min; i <= max; i++) {
-          int targetIso = physicalOrder[i];
-          // Find this tooth in our state
-          try {
-            final t = sortedTeeth.firstWhere((t) => t.iso == targetIso);
-            teethToUpdate.add(
-              t.copyWith(
-                estadoGeneral: OdontogramaTools.protesisFija,
-                // Should we clear surfaces? Yes for bridge anchors/pontics usually.
-                estadoMesial: 'Sano',
-                estadoDistal: 'Sano',
-                estadoVestibular: 'Sano',
-                estadoLingual: 'Sano',
-                estadoOclusal: 'Sano',
-              ),
-            );
-          } catch (e) {
-            // Tooth might not exist (e.g. pediatric in adult mode? actually state has all 52)
-          }
+    final updates = <PiezaDental>[];
+    for (var i = lo; i <= hi; i++) {
+      final iso = arch[i];
+      PiezaDental? pieza;
+      for (final t in teeth) {
+        if (t.iso == iso) {
+          pieza = t;
+          break;
         }
       }
+      if (pieza == null) continue;
+      // Respetar dientes ausentes: no forman parte del puente.
+      if (pieza.estadoGeneral == OdontogramaTools.ausente) continue;
+      updates.add(
+        pieza.copyWith(
+          estadoGeneral: OdontogramaTools.protesisFija,
+          estadoMesial: 'Sano',
+          estadoDistal: 'Sano',
+          estadoVestibular: 'Sano',
+          estadoLingual: 'Sano',
+          estadoOclusal: 'Sano',
+        ),
+      );
     }
 
-    for (var t in teethToUpdate) {
+    for (final t in updates) {
       await _updateLocalAndDb(t);
     }
+    return updates.isNotEmpty;
   }
 
   Future<void> cleanPediatricTeeth() async {

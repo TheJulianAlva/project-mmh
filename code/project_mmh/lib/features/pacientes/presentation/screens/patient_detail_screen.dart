@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
@@ -99,7 +98,9 @@ class PatientDetailScreen extends ConsumerWidget {
               radius: 50,
               backgroundImage:
                   patient.imagenesPaths.isNotEmpty
-                      ? FileImage(File(patient.imagenesPaths.first))
+                      ? FileImage(
+                        ImageService.resolveFile(patient.imagenesPaths.first),
+                      )
                       : null,
               child:
                   patient.imagenesPaths.isEmpty
@@ -254,7 +255,14 @@ class PatientDetailScreen extends ConsumerWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.file(File(path), fit: BoxFit.cover),
+                    Image.file(
+                      ImageService.resolveFile(path),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const ColoredBox(
+                        color: Colors.black12,
+                        child: Icon(Icons.broken_image_outlined),
+                      ),
+                    ),
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
@@ -270,7 +278,9 @@ class PatientDetailScreen extends ConsumerWidget {
                                     children: [
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
-                                        child: Image.file(File(path)),
+                                        child: Image.file(
+                                          ImageService.resolveFile(path),
+                                        ),
                                       ),
                                       IconButton(
                                         icon: const Icon(
@@ -348,9 +358,11 @@ class PatientDetailScreen extends ConsumerWidget {
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+          final message = e.toString().replaceAll('Exception: ', '');
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No se pudo guardar la imagen: $message')),
+          );
         }
       }
     }

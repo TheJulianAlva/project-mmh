@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/services/image_service.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
@@ -22,6 +22,8 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
   // List of images to keep (initially all existing).
   // We remove from here if user deletes.
   late List<String> _currentImagePaths;
+  final List<String> _removedImagePaths = [];
+  final ImageService _imageService = ImageService();
   bool _isSaving = false;
 
   @override
@@ -60,6 +62,7 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
           await ref
               .read(patientsProvider.notifier)
               .updatePatientId(oldId, updatedPatient);
+          await _deleteRemovedImageFiles();
 
           if (mounted) {
             // Navigate to the new patient detail screen
@@ -70,6 +73,7 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
           await ref
               .read(patientsProvider.notifier)
               .updatePatient(updatedPatient);
+          await _deleteRemovedImageFiles();
 
           if (mounted) {
             context.pop(); // Go back
@@ -144,8 +148,16 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
 
   void _removeImage(int index) {
     setState(() {
-      _currentImagePaths.removeAt(index);
+      // Se marca para borrado en disco; se confirma al guardar.
+      _removedImagePaths.add(_currentImagePaths.removeAt(index));
     });
+  }
+
+  Future<void> _deleteRemovedImageFiles() async {
+    for (final path in _removedImagePaths) {
+      await _imageService.deleteImage(path);
+    }
+    _removedImagePaths.clear();
   }
 
   @override
@@ -378,8 +390,15 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
                                       fit: StackFit.expand,
                                       children: [
                                         Image.file(
-                                          File(path),
+                                          ImageService.resolveFile(path),
                                           fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const ColoredBox(
+                                                color: Colors.black12,
+                                                child: Icon(
+                                                  Icons.broken_image_outlined,
+                                                ),
+                                              ),
                                         ),
                                         Positioned(
                                           right: 4,

@@ -40,12 +40,12 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
         _isSaving = true;
       });
 
-      try {
-        final formData = _formKey.currentState!.value;
-        final String idExpediente = formData['id_expediente'];
+      final formData = _formKey.currentState!.value;
+      final String idExpediente = formData['id_expediente'];
 
-        // 1. Save images to app storage
-        List<String> savedImagePaths = [];
+      // 1. Save images to app storage
+      final List<String> savedImagePaths = [];
+      try {
         for (var img in _selectedImages) {
           final path = await _imageService.saveImage(img, idExpediente);
           savedImagePaths.add(path);
@@ -72,10 +72,15 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
           context.pop(); // Go back to list
         }
       } catch (e) {
+        // Rollback: eliminar del disco las imágenes ya guardadas.
+        for (final path in savedImagePaths) {
+          await _imageService.deleteImage(path);
+        }
         if (mounted) {
+          final message = e.toString().replaceAll('Exception: ', '');
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
+          ).showSnackBar(SnackBar(content: Text('Error al guardar: $message')));
         }
       } finally {
         if (mounted) {
