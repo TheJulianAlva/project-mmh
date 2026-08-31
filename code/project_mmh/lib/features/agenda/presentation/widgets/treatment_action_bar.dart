@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 
 class TreatmentActionBar extends StatelessWidget {
   final VoidCallback onAddSession;
@@ -22,80 +23,46 @@ class TreatmentActionBar extends StatelessWidget {
     if (isConcluded) {
       return SizedBox(
         width: double.infinity,
-        child: OutlinedButton.icon(
+        child: AppButton.destructive(
           onPressed: onDelete,
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            side: BorderSide(
-              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.5),
-            ),
-            foregroundColor: Theme.of(context).colorScheme.error,
-          ),
-          icon: const Icon(CupertinoIcons.trash, size: 16),
-          label: const Text('Eliminar Historial'),
+          icon: CupertinoIcons.trash,
+          label: 'Eliminar Historial',
         ),
       );
     }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Primary Action: Add Session
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton.icon(
-            onPressed: onAddSession,
-            style: ElevatedButton.styleFrom(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(32),
-              ),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            ),
-            icon: const Icon(CupertinoIcons.add, size: 20),
-            label: const Text(
-              'Agregar Sesión',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ),
+        AppButton.primary(
+          onPressed: onAddSession,
+          icon: CupertinoIcons.add,
+          label: 'Agregar Sesión',
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
 
         // Secondary Actions Grid
         Row(
           children: [
             Expanded(
-              child: OutlinedButton.icon(
+              child: AppButton.secondary(
                 onPressed: onEdit,
-                style: _secondaryButtonStyle(context),
-                icon: const Icon(CupertinoIcons.pencil, size: 16),
-                label: const Text('Editar'),
+                icon: CupertinoIcons.pencil,
+                label: 'Editar',
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: OutlinedButton.icon(
+              child: AppButton.secondary(
                 onPressed: onFinalize,
-                style: _secondaryButtonStyle(context),
-                icon: const Icon(CupertinoIcons.checkmark_seal, size: 16),
-                label: const Text('Finalizar'),
+                icon: CupertinoIcons.checkmark_seal,
+                label: 'Finalizar',
               ),
             ),
           ],
         ),
       ],
-    );
-  }
-
-  ButtonStyle _secondaryButtonStyle(BuildContext context) {
-    return OutlinedButton.styleFrom(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      side: BorderSide(
-        color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
-      ),
-      foregroundColor: Theme.of(context).colorScheme.onSurface,
     );
   }
 }
