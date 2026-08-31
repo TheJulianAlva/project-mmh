@@ -86,23 +86,24 @@ class ToothWidget extends StatelessWidget {
       children: [
         Text(
           isoNumber,
-          style: TextStyle(
-            fontSize: 10,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.bold,
             color: palette.label,
+            letterSpacing: 0,
           ),
         ),
         Container(
           width: size,
           height: size,
-          decoration: isBridgeStart
-              ? BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.tertiary,
-                    width: 2,
-                  ),
-                )
-              : null,
+          decoration:
+              isBridgeStart
+                  ? BoxDecoration(
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.tertiary,
+                      width: 2,
+                    ),
+                  )
+                  : null,
           child: CustomPaint(
             painter: _ToothPainter(
               stateTop: stateTop,
@@ -391,10 +392,16 @@ class _ToothPainter extends CustomPainter {
             ..color = palette.obturacion
             ..strokeWidth = 2.5
             ..style = PaintingStyle.stroke;
-      canvas.drawLine(Offset(w * 0.15, h * 0.15),
-          Offset(w * 0.85, h * 0.85), blueStroke);
-      canvas.drawLine(Offset(w * 0.85, h * 0.15),
-          Offset(w * 0.15, h * 0.85), blueStroke);
+      canvas.drawLine(
+        Offset(w * 0.15, h * 0.15),
+        Offset(w * 0.85, h * 0.85),
+        blueStroke,
+      );
+      canvas.drawLine(
+        Offset(w * 0.85, h * 0.15),
+        Offset(w * 0.15, h * 0.85),
+        blueStroke,
+      );
     }
 
     if (globalState == OdontogramaTools.porExtraer) {
@@ -463,10 +470,11 @@ class _ToothPainter extends CustomPainter {
       canvas.drawRect(Rect.fromLTWH(1, 1, w - 2, h - 2), stroke);
       // Barra conectora horizontal: las de piezas contiguas se encuentran en el
       // borde compartido y el puente se lee como una unidad.
-      final bar = Paint()
-        ..color = palette.global
-        ..strokeWidth = 3.0
-        ..style = PaintingStyle.stroke;
+      final bar =
+          Paint()
+            ..color = palette.global
+            ..strokeWidth = 3.0
+            ..style = PaintingStyle.stroke;
       canvas.drawLine(Offset(0, h / 2), Offset(w, h / 2), bar);
     }
 
