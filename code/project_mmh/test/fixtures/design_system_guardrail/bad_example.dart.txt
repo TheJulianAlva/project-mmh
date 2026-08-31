@@ -1,0 +1,5 @@
+final s = TextStyle(fontSize: 12, color: Colors.black);
+const c = Color(0xFF123456);
+void f(BuildContext ctx) => showModalBottomSheet(context: ctx, builder: (_) => SizedBox());
+final bar = CupertinoSliverNavigationBar(largeTitle: Text('x'));
+InputDecoration g() => _getInputDecoration('a', Icons.abc, null, false);

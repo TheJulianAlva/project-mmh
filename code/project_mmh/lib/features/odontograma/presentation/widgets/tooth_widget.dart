@@ -3,7 +3,7 @@ import 'package:project_mmh/core/theme/app_semantic_colors.dart';
 import 'package:project_mmh/features/odontograma/presentation/controllers/odontograma_controller.dart';
 
 /// Paleta del odontograma resuelta desde el tema (para que funcione en claro y
-/// oscuro; antes usaba `Colors.white/black` fijos).
+/// oscuro; antes usaba blanco/negro fijos).
 class ToothPalette {
   const ToothPalette({
     required this.fill,

@@ -242,9 +242,12 @@ class PatientDetailScreen extends ConsumerWidget {
                       ImageService.resolveFile(path),
                       fit: BoxFit.cover,
                       errorBuilder:
-                          (_, __, ___) => const ColoredBox(
-                            color: Colors.black12,
-                            child: Icon(Icons.broken_image_outlined),
+                          (_, __, ___) => ColoredBox(
+                            color:
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
+                            child: const Icon(Icons.broken_image_outlined),
                           ),
                     ),
                     Material(
@@ -269,6 +272,7 @@ class PatientDetailScreen extends ConsumerWidget {
                                       IconButton(
                                         icon: const Icon(
                                           Icons.close,
+                                          // design-system-ignore: contraste sobre visor de foto a pantalla completa con fondo transparente
                                           color: Colors.white,
                                         ),
                                         onPressed: () => Navigator.pop(context),

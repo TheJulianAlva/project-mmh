@@ -375,9 +375,14 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
                             ImageService.resolveFile(path),
                             fit: BoxFit.cover,
                             errorBuilder:
-                                (_, __, ___) => const ColoredBox(
-                                  color: Colors.black12,
-                                  child: Icon(Icons.broken_image_outlined),
+                                (_, __, ___) => ColoredBox(
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                  child: const Icon(
+                                    Icons.broken_image_outlined,
+                                  ),
                                 ),
                           ),
                           Positioned(

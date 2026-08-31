@@ -84,7 +84,7 @@ class SessionActionSheet extends ConsumerWidget {
                   border: Border.all(
                     color:
                         isDark
-                            ? Colors.white.withValues(alpha: 0.06)
+                            ? colorScheme.onSurface.withValues(alpha: 0.06)
                             : colorScheme.primary.withValues(alpha: 0.08),
                   ),
                 ),
