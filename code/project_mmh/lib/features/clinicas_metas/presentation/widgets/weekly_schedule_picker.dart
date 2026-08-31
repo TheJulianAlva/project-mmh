@@ -1,18 +1,22 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:project_mmh/core/utils/formatters.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_date_time_sheet.dart';
+import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
+import 'package:project_mmh/core/utils/formatters.dart';
 
 class WeeklySchedulePicker extends StatefulWidget {
   final String name;
   final String? initialValue;
-  final InputDecoration decoration;
+  final String? label;
 
   const WeeklySchedulePicker({
     super.key,
     required this.name,
     this.initialValue,
-    this.decoration = const InputDecoration(),
+    this.label,
   });
 
   @override
@@ -61,19 +65,22 @@ class _WeeklySchedulePickerState extends State<WeeklySchedulePicker> {
       initialValue: widget.initialValue,
       builder: (FormFieldState<String> field) {
         return InputDecorator(
-          decoration: widget.decoration.copyWith(errorText: field.errorText),
+          decoration: InputDecoration(
+            labelText: widget.label,
+            errorText: field.errorText,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (_schedule.isEmpty)
                 const Padding(
-                  padding: EdgeInsets.only(bottom: 8.0),
+                  padding: EdgeInsets.only(bottom: AppSpacing.sm),
                   child: Text('No hay horarios seleccionados'),
                 )
               else
                 Wrap(
-                  spacing: 8.0,
-                  runSpacing: 4.0,
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.xs,
                   children:
                       _schedule.entries.map((entry) {
                         return Chip(
@@ -87,11 +94,11 @@ class _WeeklySchedulePickerState extends State<WeeklySchedulePicker> {
                         );
                       }).toList(),
                 ),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.access_time),
-                label: const Text('Agregar Horario'),
-                onPressed: () => _showAddScheduleDialog(context, field),
+              const SizedBox(height: AppSpacing.sm),
+              AppButton.secondary(
+                icon: Icons.access_time,
+                label: 'Agregar Horario',
+                onPressed: () => _showAddScheduleSheet(context, field),
               ),
             ],
           ),
@@ -100,7 +107,7 @@ class _WeeklySchedulePickerState extends State<WeeklySchedulePicker> {
     );
   }
 
-  Future<void> _showAddScheduleDialog(
+  Future<void> _showAddScheduleSheet(
     BuildContext context,
     FormFieldState<String> field,
   ) async {
@@ -108,148 +115,107 @@ class _WeeklySchedulePickerState extends State<WeeklySchedulePicker> {
     TimeOfDay startTime = const TimeOfDay(hour: 9, minute: 0);
     TimeOfDay endTime = const TimeOfDay(hour: 17, minute: 0);
 
-    await showDialog(
-      context: context,
+    await showAppSheet<void>(
+      context,
+      title: 'Agregar Horario',
       builder:
-          (context) => StatefulBuilder(
-            builder: (context, setStateDialog) {
-              return AlertDialog(
-                title: const Text('Agregar Horario'),
-                content: Column(
+          (sheetContext) => StatefulBuilder(
+            builder: (context, setStateSheet) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                ),
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedDay,
-                      decoration: const InputDecoration(labelText: 'Día'),
-                      items: List.generate(_days.length, (index) {
-                        return DropdownMenuItem(
-                          value: _days[index],
-                          child: Text(_fullDayNames[index]),
+                    const Text('Día'),
+                    const SizedBox(height: AppSpacing.sm),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.xs,
+                      children: List.generate(_days.length, (index) {
+                        final day = _days[index];
+                        return ChoiceChip(
+                          label: Text(_fullDayNames[index]),
+                          selected: selectedDay == day,
+                          onSelected:
+                              (_) => setStateSheet(() => selectedDay = day),
                         );
                       }),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setStateDialog(() => selectedDay = val);
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Inicio'),
+                      trailing: Text(formatTimeOfDay(startTime)),
+                      onTap: () async {
+                        final picked = await _pickTime(context, startTime);
+                        if (picked != null) {
+                          setStateSheet(() => startTime = picked);
                         }
                       },
                     ),
-                    const SizedBox(height: 16),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Fin'),
+                      trailing: Text(formatTimeOfDay(endTime)),
+                      onTap: () async {
+                        final picked = await _pickTime(context, endTime);
+                        if (picked != null) {
+                          setStateSheet(() => endTime = picked);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              await _showCupertinoTimePicker(
-                                context,
-                                startTime,
-                                (newTime) {
-                                  setStateDialog(() => startTime = newTime);
-                                },
-                              );
-                            },
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Inicio',
-                              ),
-                              child: Text(startTime.format(context)),
-                            ),
-                          ),
+                        AppButton.text(
+                          label: 'Cancelar',
+                          onPressed: () => Navigator.pop(sheetContext),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              await _showCupertinoTimePicker(context, endTime, (
-                                newTime,
-                              ) {
-                                setStateDialog(() => endTime = newTime);
-                              });
-                            },
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Fin',
-                              ),
-                              child: Text(endTime.format(context)),
-                            ),
-                          ),
+                        const SizedBox(width: AppSpacing.sm),
+                        AppButton.primary(
+                          label: 'Agregar',
+                          onPressed: () {
+                            final start = formatTimeOfDay(startTime);
+                            final end = formatTimeOfDay(endTime);
+                            setState(() {
+                              _schedule[selectedDay] = '$start-$end';
+                              field.didChange(_formatSchedule());
+                            });
+                            Navigator.pop(sheetContext);
+                          },
                         ),
                       ],
                     ),
                   ],
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancelar'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      final start = formatTimeOfDay(startTime);
-                      final end = formatTimeOfDay(endTime);
-
-                      setState(() {
-                        _schedule[selectedDay] = '$start-$end';
-                        field.didChange(_formatSchedule());
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Agregar'),
-                  ),
-                ],
               );
             },
           ),
     );
   }
 
-  Future<void> _showCupertinoTimePicker(
-    BuildContext context,
-    TimeOfDay initialTime,
-    ValueChanged<TimeOfDay> onTimeChanged,
-  ) {
+  Future<TimeOfDay?> _pickTime(BuildContext context, TimeOfDay initial) async {
     final now = DateTime.now();
-    final initialDateTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      initialTime.hour,
-      initialTime.minute,
+    final picked = await AppDateTimeSheet.pick(
+      context,
+      initial: DateTime(
+        now.year,
+        now.month,
+        now.day,
+        initial.hour,
+        initial.minute,
+      ),
+      mode: CupertinoDatePickerMode.time,
     );
-
-    return showCupertinoModalPopup<void>(
-      context: context,
-      builder:
-          (BuildContext context) => Container(
-            height: 250,
-            padding: const EdgeInsets.only(top: 6.0),
-            margin: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            color: CupertinoColors.systemBackground.resolveFrom(context),
-            child: SafeArea(
-              top: false,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: CupertinoDatePicker(
-                      mode: CupertinoDatePickerMode.time,
-                      use24hFormat: false,
-                      initialDateTime: initialDateTime,
-                      onDateTimeChanged: (DateTime newDateTime) {
-                        onTimeChanged(
-                          TimeOfDay(
-                            hour: newDateTime.hour,
-                            minute: newDateTime.minute,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-    );
+    if (picked == null) return null;
+    return TimeOfDay(hour: picked.hour, minute: picked.minute);
   }
 
   String _formatSchedule() {
