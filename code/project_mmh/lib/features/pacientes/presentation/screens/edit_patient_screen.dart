@@ -221,6 +221,7 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
               AppTextField.singleLine(
                 name: 'id_expediente',
                 label: 'No. Expediente (Ten cuidado al editar)',
+                maxLength: kMaxIdExpediente,
                 validator: (val) {
                   if (val == null || val.isEmpty) {
                     return 'Requerido';
@@ -242,6 +243,7 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
               AppTextField.singleLine(
                 name: 'nombre',
                 label: 'Nombre(s) *',
+                maxLength: kMaxNombrePaciente,
                 validator: (val) {
                   if (val == null || val.isEmpty) {
                     return 'Requerido';
@@ -256,6 +258,7 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
                     child: AppTextField.singleLine(
                       name: 'primer_apellido',
                       label: 'Primer Apellido *',
+                      maxLength: kMaxNombrePaciente,
                       validator: (val) {
                         if (val == null || val.isEmpty) {
                           return 'Requerido';
@@ -269,6 +272,7 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
                     child: AppTextField.singleLine(
                       name: 'segundo_apellido',
                       label: 'Segundo Apellido',
+                      maxLength: kMaxNombrePaciente,
                     ),
                   ),
                 ],
@@ -326,17 +330,23 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
-              AppTextField.number(name: 'telefono', label: 'Teléfono'),
+              AppTextField.phone(
+                name: 'telefono',
+                label: 'Teléfono',
+                maxLength: 10,
+              ),
               const AppSectionHeader('Información Médica'),
               AppTextField.singleLine(
                 name: 'padecimiento_relevante',
                 label: 'Padecimiento (Breve)',
+                maxLength: 30,
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField.multiline(
                 name: 'informacion_adicional',
                 label: 'Información Detallada',
                 maxLines: 5,
+                minLines: 3,
               ),
               if (_currentImagePaths.isNotEmpty) ...[
                 const AppSectionHeader('Gestionar Imágenes'),
