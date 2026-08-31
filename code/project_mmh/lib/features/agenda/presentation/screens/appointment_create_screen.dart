@@ -86,7 +86,7 @@ class _AppointmentCreateScreenState
     return AppScaffold(
       title: 'Nuevo Tratamiento',
       actions: [
-        AppButton.primary(
+        AppButton.text(
           label: 'Guardar',
           loading: _isSaving,
           onPressed: _saveAppointment,

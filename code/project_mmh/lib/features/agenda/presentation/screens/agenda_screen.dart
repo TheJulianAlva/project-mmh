@@ -163,6 +163,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                               ),
                               borderRadius: BorderRadius.circular(14),
                             ),
+                            // design-system-ignore: table_calendar CalendarStyle requiere TextStyle
                             formatButtonTextStyle: TextStyle(
                               color: colorScheme.primary,
                               fontSize: 12,
@@ -172,6 +173,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                             titleTextStyle:
                                 Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.w600) ??
+                                // design-system-ignore: table_calendar CalendarStyle requiere TextStyle
                                 const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -188,11 +190,13 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                             ),
                           ),
                           daysOfWeekStyle: DaysOfWeekStyle(
+                            // design-system-ignore: table_calendar CalendarStyle requiere TextStyle
                             weekdayStyle: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: colorScheme.primary.withValues(alpha: 0.7),
                             ),
+                            // design-system-ignore: table_calendar CalendarStyle requiere TextStyle
                             weekendStyle: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,

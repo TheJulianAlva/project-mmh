@@ -464,7 +464,8 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
                               (p) => Center(
                                 child: Text(
                                   p.nombrePeriodo,
-                                  style: const TextStyle(fontSize: 20),
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium,
                                 ),
                               ),
                             )
@@ -522,9 +523,8 @@ class _TreatmentCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '${item.nombrePaciente} • ${item.nombreClinica}',
-            style: theme.textTheme.bodyMedium?.copyWith(
+            style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.6),
-              fontSize: 13,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -541,8 +541,7 @@ class _TreatmentCard extends StatelessWidget {
               if (isCompleted)
                 Text(
                   'Completado',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: context.semantic.success,
                   ),
@@ -552,8 +551,7 @@ class _TreatmentCard extends StatelessWidget {
                   nextSession != null
                       ? 'Próxima: ${dateFormat.format(nextSession)}'
                       : 'Sin sesiones próximas',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: theme.textTheme.bodySmall?.copyWith(
                     color:
                         nextSession != null
                             ? colorScheme.onSurface

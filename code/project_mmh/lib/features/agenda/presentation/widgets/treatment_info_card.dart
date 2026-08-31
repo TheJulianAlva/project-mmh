@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:project_mmh/core/presentation/widgets/app_card.dart';
 import 'package:project_mmh/core/presentation/widgets/app_status_badge.dart';
 import 'package:project_mmh/core/theme/app_spacing.dart';
+import 'package:project_mmh/core/theme/app_typography.dart';
 import 'package:project_mmh/features/agenda/domain/estado_tratamiento.dart';
 
 class TreatmentInfoCard extends StatelessWidget {
@@ -52,8 +53,7 @@ class TreatmentInfoCard extends StatelessWidget {
                     ),
                     child: Text(
                       clinicName!,
-                      style: TextStyle(
-                        fontSize: 11,
+                      style: AppText.caption.copyWith(
                         fontWeight: FontWeight.w600,
                         color: clinicColor ?? colorScheme.primary,
                       ),

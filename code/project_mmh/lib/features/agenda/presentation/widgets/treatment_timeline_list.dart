@@ -236,7 +236,9 @@ class _DateHeader extends StatelessWidget {
             ),
             child: Text(
               group.label,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 8),
@@ -325,7 +327,6 @@ class _TimelineRow extends StatelessWidget {
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.5),
                       fontWeight: FontWeight.w600,
-                      fontSize: 11,
                     ),
                   ),
                 ),

@@ -321,7 +321,6 @@ class _TimelineRow extends StatelessWidget {
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.45),
                       fontWeight: FontWeight.w600,
-                      fontSize: 11,
                     ),
                   ),
                 ),
@@ -483,7 +482,6 @@ class _TimelineSessionCard extends StatelessWidget {
                 '${DateFormat('HH:mm').format(startTime)} – ${DateFormat('HH:mm').format(endTime)}  ·  $durationStr',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.55),
-                  fontSize: 12,
                 ),
               ),
             ],
@@ -503,7 +501,6 @@ class _TimelineSessionCard extends StatelessWidget {
                   '${session.nombrePaciente}  ·  ${session.nombreClinica}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.55),
-                    fontSize: 12,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

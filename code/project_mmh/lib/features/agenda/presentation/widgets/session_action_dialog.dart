@@ -395,10 +395,10 @@ class _StatusChip extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 11,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected ? color : Theme.of(context).disabledColor,
+                letterSpacing: 0,
               ),
               textAlign: TextAlign.center,
             ),
