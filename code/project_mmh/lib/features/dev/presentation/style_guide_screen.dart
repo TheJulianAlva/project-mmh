@@ -9,6 +9,7 @@ import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_list_tile.dart';
 import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
 import 'package:project_mmh/core/presentation/widgets/app_search_field.dart';
+import 'package:project_mmh/core/presentation/widgets/app_selection_sheet.dart';
 import 'package:project_mmh/core/presentation/widgets/app_section_header.dart';
 import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
 import 'package:project_mmh/core/presentation/widgets/app_status_badge.dart';
@@ -218,6 +219,17 @@ class StyleGuideScreen extends StatelessWidget {
                   AppButton.secondary(
                     label: 'AppDateTimeSheet',
                     onPressed: () => AppDateTimeSheet.pick(context),
+                  ),
+                  AppButton.secondary(
+                    label: 'showAppSelectionSheet',
+                    onPressed:
+                        () => showAppSelectionSheet<String>(
+                          context,
+                          title: 'Elige',
+                          options: const ['Uno', 'Dos', 'Tres'],
+                          labelOf: (s) => s,
+                          selected: 'Dos',
+                        ),
                   ),
                 ],
               ),
