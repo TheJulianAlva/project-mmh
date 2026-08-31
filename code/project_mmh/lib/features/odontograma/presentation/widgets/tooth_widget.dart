@@ -488,6 +488,7 @@ class _ToothPainter extends CustomPainter {
     if (hasSellador) {
       final textStyle = TextStyle(
         color: palette.obturacion,
+        // design-system-ignore: CustomPainter, tamaño de glifo dinámico
         fontSize: h * 0.55,
         fontWeight: FontWeight.bold,
       );

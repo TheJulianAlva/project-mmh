@@ -51,6 +51,30 @@ List<GuardrailHit> scanSource(String path, String content) {
         hits.add(GuardrailHit(path, i + 1, r.rule, r.hint));
       }
     }
+    // Sub-regla: `fontSize:` en línea continuada dentro de un TextStyle(...)
+    // partido en varias líneas (el regex por línea de arriba no lo ve).
+    if (RegExp(r'^\s*fontSize:\s').hasMatch(lines[i])) {
+      // El `design-system-ignore` puede estar sobre esta línea (ya cubierto por
+      // el `continue` de arriba) o sobre la apertura del `TextStyle(` que la
+      // envuelve: buscamos hacia atrás esa apertura y miramos la línea previa.
+      var exempt = false;
+      for (var j = i - 1; j >= 0 && j >= i - 12; j--) {
+        if (lines[j].contains('TextStyle(')) {
+          exempt = j > 0 && lines[j - 1].contains('design-system-ignore:');
+          break;
+        }
+      }
+      if (!exempt) {
+        hits.add(
+          GuardrailHit(
+            path,
+            i + 1,
+            'TextStyle con fontSize',
+            'usa un rol de AppText o theme.textTheme',
+          ),
+        );
+      }
+    }
   }
   return hits;
 }
@@ -71,6 +95,26 @@ void main() {
         'encabezado a mano',
         '_getInputDecoration',
       ]),
+    );
+  });
+
+  test('detecta fontSize en TextStyle partido en varias líneas', () {
+    final bad =
+        File(
+          'test/fixtures/design_system_guardrail/bad_example.dart.txt',
+        ).readAsStringSync();
+    final fontSizeHits =
+        scanSource(
+          'bad',
+          bad,
+        ).where((h) => h.rule == 'TextStyle con fontSize').toList();
+    // La línea inline + la línea continuada del TextStyle envuelto.
+    expect(fontSizeHits.length, greaterThanOrEqualTo(2));
+    expect(
+      fontSizeHits.any((h) => h.line == 7),
+      isTrue,
+      reason:
+          'debe marcar la línea `fontSize:` continuada del TextStyle envuelto',
     );
   });
 
@@ -100,6 +144,12 @@ void main() {
       // ignore: avoid_print
       print('design-system-ignore activos: $exemptions');
     }
+    expect(
+      exemptions,
+      lessThanOrEqualTo(24),
+      reason:
+          'no añadir exenciones sin justificar; sube el tope conscientemente',
+    );
     expect(hits, isEmpty, reason: 'Patrones prohibidos:\n${hits.join('\n')}');
   });
 }

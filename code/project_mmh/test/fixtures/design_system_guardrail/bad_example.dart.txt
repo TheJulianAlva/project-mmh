@@ -3,3 +3,7 @@ const c = Color(0xFF123456);
 void f(BuildContext ctx) => showModalBottomSheet(context: ctx, builder: (_) => SizedBox());
 final bar = CupertinoSliverNavigationBar(largeTitle: Text('x'));
 InputDecoration g() => _getInputDecoration('a', Icons.abc, null, false);
+final wrapped = TextStyle(
+  fontSize: 18,
+  fontWeight: FontWeight.bold,
+);
