@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:project_mmh/core/presentation/widgets/app_list_tile.dart';
 import 'package:project_mmh/core/presentation/widgets/app_search_field.dart';
 import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
 import 'package:project_mmh/core/theme/app_spacing.dart';
+import 'package:project_mmh/core/theme/app_typography.dart';
 
 /// Hoja modal de selección única: lista de opciones tocables sobre
 /// `showAppSheet`, con marca en la opción activa y búsqueda opcional.
@@ -51,9 +53,17 @@ Future<T?> showAppSelectionSheet<T>(
               Flexible(
                 child:
                     filtered.isEmpty
-                        ? const Padding(
-                          padding: EdgeInsets.all(AppSpacing.xl),
-                          child: Text('Sin coincidencias'),
+                        ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.xl),
+                            child: Text(
+                              'Sin coincidencias',
+                              style: AppText.body.copyWith(
+                                color: Theme.of(ctx).colorScheme.onSurface
+                                    .withValues(alpha: AppOpacity.muted),
+                              ),
+                            ),
+                          ),
                         )
                         : ListView.builder(
                           shrinkWrap: true,

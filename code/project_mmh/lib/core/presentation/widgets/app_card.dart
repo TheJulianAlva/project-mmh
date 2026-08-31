@@ -6,6 +6,7 @@ import 'package:project_mmh/core/theme/app_spacing.dart';
 /// Superficie base del sistema: radio `md`, borde/sombra según brillo y una
 /// barra de acento vertical opcional (color de clínica).
 /// Uso: `AppCard(accentColor: c, onTap: ..., child: ...)`.
+/// Con `tint`: fondo tintado suave sin sombra (paneles); excluye `accentColor`.
 /// Depende de: AppRadii, AppSpacing, AppOpacity, ColorScheme.
 class AppCard extends StatelessWidget {
   const AppCard({

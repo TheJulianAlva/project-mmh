@@ -750,7 +750,7 @@ class _AppointmentCreateScreenState
       labelOf: (p) => p.nombrePeriodo,
       selected: actual,
     );
-    if (p != null) {
+    if (p != null && p.idPeriodo != _selectedPeriodId) {
       setState(() {
         _selectedPeriodId = p.idPeriodo;
         _selectedClinicaId = null; // reset de clínica al cambiar periodo
@@ -782,10 +782,9 @@ class _AppointmentCreateScreenState
       'Ninguno / Personalizado',
       ...objetivos.map((o) => o.nombreTratamiento),
     ];
-    final currentIndex =
-        _selectedObjetivo == null
-            ? 0
-            : objetivos.indexOf(_selectedObjetivo!) + 1;
+    final objIdx =
+        _selectedObjetivo == null ? -1 : objetivos.indexOf(_selectedObjetivo!);
+    final currentIndex = objIdx < 0 ? 0 : objIdx + 1;
     final idx = await showAppSelectionSheet<int>(
       context,
       title: 'Objetivo',
