@@ -23,10 +23,8 @@ class PatientRepository {
         mutableMap['imagenes_paths'] = <String>[];
       } else {
         // Normaliza rutas legadas (absolutas) a relativas al leer.
-        mutableMap['imagenes_paths'] = paths
-            .split('|')
-            .map(ImageService.toRelativePath)
-            .toList();
+        mutableMap['imagenes_paths'] =
+            paths.split('|').map(ImageService.toRelativePath).toList();
       }
     } else {
       mutableMap['imagenes_paths'] = <String>[];
@@ -99,9 +97,10 @@ class PatientRepository {
     // Reescribir las rutas de imágenes de <oldId> a <newId> para que la BD
     // siga apuntando a los archivos tras renombrar la carpeta.
     final reparented = newPatientData.copyWith(
-      imagenesPaths: newPatientData.imagenesPaths
-          .map((p) => ImageService.reparentPath(p, oldId, newId))
-          .toList(),
+      imagenesPaths:
+          newPatientData.imagenesPaths
+              .map((p) => ImageService.reparentPath(p, oldId, newId))
+              .toList(),
     );
 
     await db.transaction((txn) async {

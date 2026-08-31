@@ -26,8 +26,7 @@ class PatientsNotifier extends AsyncNotifier<List<Patient>> {
   // Relee la lista desde el repositorio y actualiza el estado sin pasar por
   // AsyncLoading (evita el parpadeo a spinner de todas las pantallas).
   Future<void> _reloadInPlace() async {
-    final patients =
-        await ref.read(patientRepositoryProvider).getAllPatients();
+    final patients = await ref.read(patientRepositoryProvider).getAllPatients();
     state = AsyncData(patients);
   }
 

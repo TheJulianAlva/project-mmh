@@ -1,12 +1,17 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_confirm.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
+import 'package:project_mmh/core/presentation/widgets/app_section_header.dart';
+import 'package:project_mmh/core/presentation/widgets/app_text_field.dart';
 import 'package:project_mmh/core/constants/app_constants.dart';
 import 'package:project_mmh/core/services/image_service.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
@@ -22,23 +27,24 @@ class EditPatientScreen extends ConsumerWidget {
     return patientAsync.when(
       data: (patient) {
         if (patient == null) {
-          return Scaffold(
-            appBar: AppBar(),
-            body: const AppErrorView(message: 'Paciente no encontrado.'),
+          return const AppScaffold(
+            title: 'Editar Paciente',
+            body: AppErrorView(message: 'Paciente no encontrado.'),
           );
         }
         return _EditPatientForm(patient: patient);
       },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, _) => Scaffold(
-        appBar: AppBar(),
-        body: AppErrorView(
-          message: 'No se pudo cargar el paciente.',
-          onRetry: () => ref.invalidate(patientByIdProvider(patientId)),
-        ),
-      ),
+      loading:
+          () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error:
+          (e, _) => AppScaffold(
+            title: 'Editar Paciente',
+            body: AppErrorView(
+              message: 'No se pudo cargar el paciente.',
+              onRetry: () => ref.invalidate(patientByIdProvider(patientId)),
+            ),
+          ),
     );
   }
 }
@@ -133,33 +139,18 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
   }
 
   Future<void> _deletePatient() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('¿Eliminar Paciente?'),
-            content: const Text(
-              'Esta acción eliminará al paciente de la lista. '
-              'Si tiene tratamientos, estos se conservarán en el historial pero el paciente no será visible. '
-              'Si fue un error de registro (sin tratamientos), se borrará permanentemente.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
-                ),
-                child: const Text('Eliminar'),
-              ),
-            ],
-          ),
+    final confirmed = await showAppConfirm(
+      context,
+      title: '¿Eliminar Paciente?',
+      message:
+          'Esta acción eliminará al paciente de la lista. '
+          'Si tiene tratamientos, estos se conservarán en el historial pero el paciente no será visible. '
+          'Si fue un error de registro (sin tratamientos), se borrará permanentemente.',
+      confirmLabel: 'Eliminar',
+      destructive: true,
     );
 
-    if (confirmed == true) {
+    if (confirmed) {
       setState(() => _isSaving = true);
       try {
         await ref
@@ -199,331 +190,225 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Editar Paciente'),
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surface.withValues(alpha: 0.9),
-            trailing: TextButton(
-              onPressed: _isSaving ? null : _savePatient,
-              child: const Text(
-                'Hecho',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+    return AppScaffold(
+      title: 'Editar Paciente',
+      actions: [
+        AppButton.primary(
+          label: 'Hecho',
+          loading: _isSaving,
+          onPressed: _savePatient,
+        ),
+      ],
+      body: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: FormBuilder(
+          key: _formKey,
+          initialValue: {
+            'id_expediente': widget.patient.idExpediente,
+            'nombre': widget.patient.nombre,
+            'primer_apellido': widget.patient.primerApellido,
+            'segundo_apellido': widget.patient.segundoApellido,
+            'edad': widget.patient.edad.toString(),
+            'sexo': widget.patient.sexo,
+            'telefono': widget.patient.telefono,
+            'padecimiento_relevante': widget.patient.padecimientoRelevante,
+            'informacion_adicional': widget.patient.informacionAdicional,
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AppSectionHeader('Datos Generales'),
+              AppTextField.singleLine(
+                name: 'id_expediente',
+                label: 'No. Expediente (Ten cuidado al editar)',
+                validator: (val) {
+                  if (val == null || val.isEmpty) {
+                    return 'Requerido';
+                  }
+
+                  final patientsList = ref.read(patientsProvider).value;
+                  if (patientsList != null) {
+                    final exists = patientsList.any(
+                      (p) => p.idExpediente == val,
+                    );
+                    if (exists && val != widget.patient.idExpediente) {
+                      return 'El expediente ya existe';
+                    }
+                  }
+                  return null;
+                },
               ),
-            ),
-            previousPageTitle: 'Atrás',
-          ),
-          SliverToBoxAdapter(
-            child:
-                _isSaving
-                    ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
-                    : Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: FormBuilder(
-                        key: _formKey,
-                        initialValue: {
-                          'id_expediente': widget.patient.idExpediente,
-                          'nombre': widget.patient.nombre,
-                          'primer_apellido': widget.patient.primerApellido,
-                          'segundo_apellido': widget.patient.segundoApellido,
-                          'edad': widget.patient.edad.toString(),
-                          'sexo': widget.patient.sexo,
-                          'telefono': widget.patient.telefono,
-                          'padecimiento_relevante':
-                              widget.patient.padecimientoRelevante,
-                          'informacion_adicional':
-                              widget.patient.informacionAdicional,
-                        },
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionTitle('Datos Generales'),
-                            const SizedBox(height: 12),
-                            FormBuilderTextField(
-                              name: 'id_expediente',
-                              decoration: _getInputDecoration(
-                                'No. Expediente (Ten cuidado al editar)',
-                              ),
-                              // Version 2: Allow editing ID
-                              readOnly: false,
-                              enabled: true,
-                              validator: (val) {
-                                if (val == null || val.isEmpty)
-                                  return 'Requerido';
-
-                                final patientsList =
-                                    ref.read(patientsProvider).value;
-                                if (patientsList != null) {
-                                  final exists = patientsList.any(
-                                    (p) => p.idExpediente == val,
-                                  );
-                                  if (exists &&
-                                      val != widget.patient.idExpediente) {
-                                    return 'El expediente ya existe';
-                                  }
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            FormBuilderTextField(
-                              name: 'nombre',
-                              decoration: _getInputDecoration('Nombre(s) *'),
-                              maxLength: kMaxNombrePaciente,
-                              validator: (val) {
-                                if (val == null || val.isEmpty)
-                                  return 'Requerido';
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: FormBuilderTextField(
-                                    name: 'primer_apellido',
-                                    decoration: _getInputDecoration(
-                                      'Primer Apellido *',
-                                    ),
-                                    maxLength: kMaxNombrePaciente,
-                                    validator: (val) {
-                                      if (val == null || val.isEmpty)
-                                        return 'Requerido';
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: FormBuilderTextField(
-                                    name: 'segundo_apellido',
-                                    decoration: _getInputDecoration(
-                                      'Segundo Apellido',
-                                    ),
-                                    maxLength: kMaxNombrePaciente,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: FormBuilderTextField(
-                                    name: 'edad',
-                                    decoration: _getInputDecoration('Edad *'),
-                                    keyboardType: TextInputType.number,
-                                    validator: FormBuilderValidators.compose([
-                                      (val) {
-                                        if (val == null || val.isEmpty)
-                                          return 'Requerido';
-                                        return null;
-                                      },
-                                      FormBuilderValidators.integer(
-                                        errorText: 'Número entero',
-                                      ),
-                                      FormBuilderValidators.min(kEdadMinPaciente),
-                                      FormBuilderValidators.max(kEdadMaxPaciente),
-                                    ]),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Builder(
-                                    builder: (context) {
-                                      const options = [
-                                        'Masculino',
-                                        'Femenino',
-                                        'Otro',
-                                      ];
-                                      final initialSexo = widget.patient.sexo;
-                                      final validInitial =
-                                          options.contains(initialSexo)
-                                              ? initialSexo
-                                              : null;
-
-                                      return FormBuilderDropdown<String>(
-                                        name: 'sexo',
-                                        initialValue: validInitial,
-                                        decoration: _getInputDecoration(
-                                          'Sexo *',
-                                        ),
-                                        items:
-                                            options
-                                                .map(
-                                                  (gender) => DropdownMenuItem(
-                                                    value: gender,
-                                                    child: Text(gender),
-                                                  ),
-                                                )
-                                                .toList(),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            FormBuilderTextField(
-                              name: 'telefono',
-                              decoration: _getInputDecoration('Teléfono'),
-                              maxLength: 10,
-                              keyboardType: TextInputType.phone,
-                            ),
-                            const SizedBox(height: 24),
-                            _buildSectionTitle('Información Médica'),
-                            const SizedBox(height: 12),
-                            FormBuilderTextField(
-                              name: 'padecimiento_relevante',
-                              decoration: _getInputDecoration(
-                                'Padecimiento (Breve)',
-                              ),
-                              maxLength: 30,
-                            ),
-                            const SizedBox(height: 12),
-                            FormBuilderTextField(
-                              name: 'informacion_adicional',
-                              decoration: _getInputDecoration(
-                                'Información Detallada',
-                              ),
-                              maxLines: 5,
-                              minLines: 3,
-                            ),
-                            const SizedBox(height: 24),
-                            if (_currentImagePaths.isNotEmpty) ...[
-                              _buildSectionTitle('Gestionar Imágenes'),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Toca el botón X para eliminar una imagen.',
-                                style: TextStyle(
-                                  color: Theme.of(context).disabledColor,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
-                                      crossAxisSpacing: 10,
-                                      mainAxisSpacing: 10,
-                                    ),
-                                itemCount: _currentImagePaths.length,
-                                itemBuilder: (context, index) {
-                                  final path = _currentImagePaths[index];
-                                  return ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        Image.file(
-                                          ImageService.resolveFile(path),
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) =>
-                                              const ColoredBox(
-                                                color: Colors.black12,
-                                                child: Icon(
-                                                  Icons.broken_image_outlined,
-                                                ),
-                                              ),
-                                        ),
-                                        Positioned(
-                                          right: 4,
-                                          top: 4,
-                                          child: GestureDetector(
-                                            onTap: () => _removeImage(index),
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: BoxDecoration(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .error
-                                                    .withValues(alpha: 0.8),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Icon(
-                                                Icons.close,
-                                                color:
-                                                    Theme.of(
-                                                      context,
-                                                    ).colorScheme.onError,
-                                                size: 16,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                            const SizedBox(height: 48),
-                            Center(
-                              child: TextButton.icon(
-                                onPressed: _isSaving ? null : _deletePatient,
-                                icon: const Icon(Icons.delete_forever),
-                                label: const Text('Eliminar Paciente'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor:
-                                      Theme.of(context).colorScheme.error,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                          ],
-                        ),
-                      ),
+              const SizedBox(height: AppSpacing.md),
+              AppTextField.singleLine(
+                name: 'nombre',
+                label: 'Nombre(s) *',
+                validator: (val) {
+                  if (val == null || val.isEmpty) {
+                    return 'Requerido';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField.singleLine(
+                      name: 'primer_apellido',
+                      label: 'Primer Apellido *',
+                      validator: (val) {
+                        if (val == null || val.isEmpty) {
+                          return 'Requerido';
+                        }
+                        return null;
+                      },
                     ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: AppTextField.singleLine(
+                      name: 'segundo_apellido',
+                      label: 'Segundo Apellido',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField.number(
+                      name: 'edad',
+                      label: 'Edad *',
+                      validator: FormBuilderValidators.compose([
+                        (val) {
+                          if (val == null || val.isEmpty) {
+                            return 'Requerido';
+                          }
+                          return null;
+                        },
+                        FormBuilderValidators.integer(
+                          errorText: 'Número entero',
+                        ),
+                        FormBuilderValidators.min(kEdadMinPaciente),
+                        FormBuilderValidators.max(kEdadMaxPaciente),
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Builder(
+                      builder: (context) {
+                        const options = ['Masculino', 'Femenino', 'Otro'];
+                        final initialSexo = widget.patient.sexo;
+                        final validInitial =
+                            options.contains(initialSexo) ? initialSexo : null;
+
+                        return FormBuilderDropdown<String>(
+                          name: 'sexo',
+                          initialValue: validInitial,
+                          decoration: const InputDecoration(
+                            labelText: 'Sexo *',
+                          ),
+                          items:
+                              options
+                                  .map(
+                                    (gender) => DropdownMenuItem(
+                                      value: gender,
+                                      child: Text(gender),
+                                    ),
+                                  )
+                                  .toList(),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppTextField.number(name: 'telefono', label: 'Teléfono'),
+              const AppSectionHeader('Información Médica'),
+              AppTextField.singleLine(
+                name: 'padecimiento_relevante',
+                label: 'Padecimiento (Breve)',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppTextField.multiline(
+                name: 'informacion_adicional',
+                label: 'Información Detallada',
+                maxLines: 5,
+              ),
+              if (_currentImagePaths.isNotEmpty) ...[
+                const AppSectionHeader('Gestionar Imágenes'),
+                Text(
+                  'Toca el botón X para eliminar una imagen.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemCount: _currentImagePaths.length,
+                  itemBuilder: (context, index) {
+                    final path = _currentImagePaths[index];
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.file(
+                            ImageService.resolveFile(path),
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (_, __, ___) => const ColoredBox(
+                                  color: Colors.black12,
+                                  child: Icon(Icons.broken_image_outlined),
+                                ),
+                          ),
+                          Positioned(
+                            right: 4,
+                            top: 4,
+                            child: GestureDetector(
+                              onTap: () => _removeImage(index),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.error.withValues(alpha: 0.8),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.close,
+                                  color: Theme.of(context).colorScheme.onError,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+              const SizedBox(height: AppSpacing.xxl),
+              Center(
+                child: AppButton.destructive(
+                  label: 'Eliminar Paciente',
+                  icon: Icons.delete_forever,
+                  onPressed: _isSaving ? null : _deletePatient,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  InputDecoration _getInputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Theme.of(context).colorScheme.surface,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-        ),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
-        color: Theme.of(context).colorScheme.primary,
-        letterSpacing: 0.5,
       ),
     );
   }

@@ -1,12 +1,17 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
+import 'package:project_mmh/core/presentation/widgets/app_section_header.dart';
+import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/services/image_service.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 
@@ -19,57 +24,45 @@ class PatientDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final patientAsync = ref.watch(patientByIdProvider(patientId));
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Paciente'),
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surface.withValues(alpha: 0.9),
-            trailing: patientAsync.maybeWhen(
-              data: (patient) {
-                if (patient == null) return null;
-                return TextButton(
-                  onPressed: () =>
-                      context.push('/pacientes/${patient.idExpediente}/edit'),
-                  child: const Text(
-                    'Editar',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                  ),
-                );
-              },
-              orElse: () => null,
+    return AppScaffold(
+      title: 'Paciente',
+      actions: patientAsync.maybeWhen(
+        data: (patient) {
+          if (patient == null) return null;
+          return [
+            AppButton.text(
+              label: 'Editar',
+              onPressed:
+                  () => context.push('/pacientes/${patient.idExpediente}/edit'),
             ),
-            previousPageTitle: 'Atrás',
-          ),
-          SliverToBoxAdapter(
-            child: patientAsync.when(
-              data: (patient) {
-                if (patient == null) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: Text('Paciente no encontrado'),
-                    ),
-                  );
-                }
-                return _buildPatientContent(context, ref, patient);
-              },
-              loading:
-                  () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-              error: (e, s) => AppErrorView(
-                message: 'No se pudo cargar el paciente.',
-                onRetry: () => ref.invalidate(patientByIdProvider(patientId)),
+          ];
+        },
+        orElse: () => null,
+      ),
+      body: patientAsync.when(
+        data: (patient) {
+          if (patient == null) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.xxl),
+                child: Text('Paciente no encontrado'),
+              ),
+            );
+          }
+          return _buildPatientContent(context, ref, patient);
+        },
+        loading:
+            () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.xxl),
+                child: CircularProgressIndicator(),
               ),
             ),
-          ),
-        ],
+        error:
+            (e, s) => AppErrorView(
+              message: 'No se pudo cargar el paciente.',
+              onRetry: () => ref.invalidate(patientByIdProvider(patientId)),
+            ),
       ),
     );
   }
@@ -79,8 +72,10 @@ class PatientDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     Patient patient,
   ) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -100,11 +95,13 @@ class PatientDetailScreen extends ConsumerWidget {
                       : null,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           Center(
             child: Text(
               patient.nombreCompleto,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -114,12 +111,11 @@ class PatientDetailScreen extends ConsumerWidget {
               children: [
                 Text(
                   'Expediente: ${patient.idExpediente}',
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                    fontSize: 16,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: textTheme.bodySmall?.color,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 SizedBox(
                   height: 24,
                   width: 24,
@@ -146,56 +142,54 @@ class PatientDetailScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
 
           // Info Cards
-          _InfoCard(
-            title: 'Información Personal',
-            children: [
-              _InfoRow(label: 'Edad', value: '${patient.edad} años'),
-              _InfoRow(label: 'Sexo', value: patient.sexo),
-              _InfoRow(
-                label: 'Teléfono',
-                value: patient.telefono ?? 'No registrado',
-                enableCopy: true,
-              ),
-            ],
+          const AppSectionHeader('Información Personal'),
+          AppCard(
+            accentColor: scheme.primary,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _InfoRow(label: 'Edad', value: '${patient.edad} años'),
+                _InfoRow(label: 'Sexo', value: patient.sexo),
+                _InfoRow(
+                  label: 'Teléfono',
+                  value: patient.telefono ?? 'No registrado',
+                  enableCopy: true,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
 
-          _InfoCard(
-            title: 'Información Médica',
-            children: [
-              _InfoRow(
-                label: 'Padecimiento',
-                value: patient.padecimientoRelevante ?? 'Ninguno',
-              ),
-              _InfoRow(
-                label: 'Info Adicional',
-                value: patient.informacionAdicional ?? 'N/A',
-              ),
-            ],
+          const AppSectionHeader('Información Médica'),
+          AppCard(
+            accentColor: scheme.primary,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _InfoRow(
+                  label: 'Padecimiento',
+                  value: patient.padecimientoRelevante ?? 'Ninguno',
+                ),
+                _InfoRow(
+                  label: 'Info Adicional',
+                  value: patient.informacionAdicional ?? 'N/A',
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
 
           // Actions
-          OutlinedButton.icon(
+          AppButton.secondary(
+            label: 'Ver Odontograma',
+            icon: Icons.grid_view,
             onPressed: () {
               context.push('/patient-odontograma/${patient.idExpediente}');
             },
-            icon: const Icon(Icons.grid_view),
-            label: const Text('Ver Odontograma'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.all(16),
-              shape: const StadiumBorder(),
-              side: BorderSide(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.5),
-              ),
-            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           _buildImagesSection(context, ref, patient),
         ],
       ),
@@ -213,18 +207,15 @@ class PatientDetailScreen extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Fotografías',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            TextButton.icon(
+            const Expanded(child: AppSectionHeader('Fotografías')),
+            AppButton.text(
+              label: 'Agregar',
+              icon: Icons.add_a_photo,
               onPressed: () => _addQuickPhoto(context, ref, patient),
-              icon: const Icon(Icons.add_a_photo, size: 18),
-              label: const Text('Agregar'),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.sm),
         if (patient.imagenesPaths.isEmpty)
           Text(
             'No hay imágenes registradas.',
@@ -250,10 +241,11 @@ class PatientDetailScreen extends ConsumerWidget {
                     Image.file(
                       ImageService.resolveFile(path),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const ColoredBox(
-                        color: Colors.black12,
-                        child: Icon(Icons.broken_image_outlined),
-                      ),
+                      errorBuilder:
+                          (_, __, ___) => const ColoredBox(
+                            color: Colors.black12,
+                            child: Icon(Icons.broken_image_outlined),
+                          ),
                     ),
                     Material(
                       color: Colors.transparent,
@@ -304,26 +296,25 @@ class PatientDetailScreen extends ConsumerWidget {
   ) async {
     final imageService = ImageService();
 
-    // Show dialog to choose source
-    final source = await showCupertinoModalPopup<ImageSource>(
-      context: context,
+    // Show sheet to choose source
+    final source = await showAppSheet<ImageSource>(
+      context,
+      title: 'Agregar fotografía',
       builder:
-          (ctx) => CupertinoActionSheet(
-            title: const Text('Agregar fotografía'),
-            actions: [
-              CupertinoActionSheetAction(
-                onPressed: () => Navigator.pop(ctx, ImageSource.camera),
-                child: const Text('Cámara'),
+          (ctx) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Cámara'),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
               ),
-              CupertinoActionSheetAction(
-                onPressed: () => Navigator.pop(ctx, ImageSource.gallery),
-                child: const Text('Galería'),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galería'),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
               ),
             ],
-            cancelButton: CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
-            ),
           ),
     );
 
@@ -361,43 +352,6 @@ class PatientDetailScreen extends ConsumerWidget {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-
-  const _InfoCard({required this.title, required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-        ),
-      ),
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...children,
-        ],
-      ),
-    );
-  }
-}
-
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
@@ -411,8 +365,9 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -420,9 +375,8 @@ class _InfoRow extends StatelessWidget {
             width: 80,
             child: Text(
               label,
-              style: TextStyle(
+              style: textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).disabledColor,
-                fontSize: 14,
               ),
             ),
           ),
@@ -442,8 +396,7 @@ class _InfoRow extends StatelessWidget {
                       : null,
               child: Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 14,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
               ),
