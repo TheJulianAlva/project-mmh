@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:project_mmh/features/agenda/domain/estado_tratamiento.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/periodo.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart'; // Implemented activeClinicIdProvider
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/theme/app_semantic_colors.dart';
+import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_filter_chip.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_entity_card.dart';
 
@@ -224,11 +228,17 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
 
               final pending =
                   filtered
-                      .where((t) => t.tratamiento.estado != 'concluido')
+                      .where(
+                        (t) =>
+                            t.tratamiento.estado != EstadoTratamiento.concluido,
+                      )
                       .toList();
               final completed =
                   filtered
-                      .where((t) => t.tratamiento.estado == 'concluido')
+                      .where(
+                        (t) =>
+                            t.tratamiento.estado == EstadoTratamiento.concluido,
+                      )
                       .toList();
 
               final displayList = _selectedSegment == 0 ? pending : completed;
@@ -281,7 +291,13 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
                 ),
             error:
                 (e, st) => SliverFillRemaining(
-                  child: Center(child: Text('Error: $e')),
+                  child: AppErrorView(
+                    message: 'No se pudieron cargar los tratamientos.',
+                    onRetry:
+                        () => ref.invalidate(
+                          allTratamientosRichProvider(activePeriodId),
+                        ),
+                  ),
                 ),
           ),
           // Bottom padding for scroll
@@ -521,17 +537,10 @@ class _TreatmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color clinicaColor;
-    try {
-      clinicaColor = Color(
-        int.parse(item.colorClinica.replaceAll('#', '0xFF')),
-      );
-    } catch (_) {
-      clinicaColor = Theme.of(context).colorScheme.primary;
-    }
+    final clinicaColor = ClinicPalette.parse(item.colorClinica);
 
     final nextSession = item.proximaSesion;
-    final isCompleted = item.tratamiento.estado == 'concluido';
+    final isCompleted = item.tratamiento.estado == EstadoTratamiento.concluido;
     final dateFormat = DateFormat('d MMM, HH:mm', 'es_ES');
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -588,7 +597,7 @@ class _TreatmentCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Colors.green, // Keep green for success
+                    color: context.semantic.success,
                   ),
                 )
               else

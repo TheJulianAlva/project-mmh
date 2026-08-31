@@ -2,6 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/utils/formatters.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
@@ -34,7 +37,7 @@ class SessionActionSheet extends ConsumerWidget {
         final fechaInicio = DateTime.parse(sesion.fechaInicio);
         final fechaFin = DateTime.parse(sesion.fechaFin);
         final duration = fechaFin.difference(fechaInicio);
-        final durationStr = '${duration.inHours}h ${duration.inMinutes % 60}m';
+        final durationStr = formatDuration(duration);
 
         String patientName = 'Cargando...';
         if (patientsAsync.hasValue && patientsAsync.value != null) {
@@ -162,9 +165,15 @@ class SessionActionSheet extends ConsumerWidget {
                       icon: CupertinoIcons.circle,
                       color: colorScheme.primary,
                       isSelected:
-                          sesion.estadoAsistencia == 'programada' ||
+                          sesion.estadoAsistencia ==
+                              EstadoAsistencia.programada ||
                           sesion.estadoAsistencia == null,
-                      onTap: () => _updateStatus(context, ref, 'programada'),
+                      onTap:
+                          () => _updateStatus(
+                            context,
+                            ref,
+                            EstadoAsistencia.programada,
+                          ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -173,8 +182,14 @@ class SessionActionSheet extends ConsumerWidget {
                       label: 'Asistió',
                       icon: CupertinoIcons.checkmark_alt,
                       color: colorScheme.secondary,
-                      isSelected: sesion.estadoAsistencia == 'asistio',
-                      onTap: () => _updateStatus(context, ref, 'asistio'),
+                      isSelected:
+                          sesion.estadoAsistencia == EstadoAsistencia.asistio,
+                      onTap:
+                          () => _updateStatus(
+                            context,
+                            ref,
+                            EstadoAsistencia.asistio,
+                          ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -182,9 +197,15 @@ class SessionActionSheet extends ConsumerWidget {
                     child: _StatusChip(
                       label: 'No Asistió',
                       icon: CupertinoIcons.person_badge_minus,
-                      color: Colors.orange,
-                      isSelected: sesion.estadoAsistencia == 'falto',
-                      onTap: () => _updateStatus(context, ref, 'falto'),
+                      color: colorScheme.error,
+                      isSelected:
+                          sesion.estadoAsistencia == EstadoAsistencia.falto,
+                      onTap:
+                          () => _updateStatus(
+                            context,
+                            ref,
+                            EstadoAsistencia.falto,
+                          ),
                     ),
                   ),
                 ],
@@ -226,8 +247,13 @@ class SessionActionSheet extends ConsumerWidget {
             child: Center(child: CircularProgressIndicator()),
           ),
       error:
-          (e, _) =>
-              SizedBox(height: 100, child: Center(child: Text('Error: $e'))),
+          (e, _) => const SizedBox(
+            height: 120,
+            child: AppErrorView(
+              message: 'No se pudo cargar la información de la sesión.',
+              compact: true,
+            ),
+          ),
     );
   }
 
@@ -263,16 +289,32 @@ class SessionActionSheet extends ConsumerWidget {
     context.push('/tratamientos/$idTratamiento');
   }
 
-  void _updateStatus(BuildContext context, WidgetRef ref, String status) async {
-    final repo = ref.read(agendaRepositoryProvider);
-    await repo.updateSesionStatus(sesion.idSesion!, status);
-
-    // Invalidate ALL relevant providers so timeline + lists refresh
+  void _invalidateSessionProviders(WidgetRef ref) {
     ref.invalidate(allSesionesProvider);
     ref.invalidate(enrichedSesionesProvider);
     ref.invalidate(allTratamientosRichProvider);
+    ref.invalidate(sesionesByTratamientoProvider(sesion.idTratamiento));
+    ref.invalidate(tratamientoByIdProvider(sesion.idTratamiento));
+  }
 
-    if (context.mounted) Navigator.of(context).pop();
+  void _updateStatus(
+    BuildContext context,
+    WidgetRef ref,
+    EstadoAsistencia status,
+  ) async {
+    try {
+      final repo = ref.read(agendaRepositoryProvider);
+      await repo.updateSesionStatus(sesion.idSesion!, status);
+      _invalidateSessionProviders(ref);
+      if (context.mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (context.mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo actualizar la sesión: $message')),
+        );
+      }
+    }
   }
 
   void _reprogramar(BuildContext context, WidgetRef ref) async {
@@ -304,11 +346,26 @@ class SessionActionSheet extends ConsumerWidget {
                 isDestructiveAction: true,
                 onPressed: () async {
                   Navigator.of(ctx).pop();
-                  final repo = ref.read(agendaRepositoryProvider);
-                  await repo.deleteSesion(sesion.idSesion!);
-                  ref.invalidate(allSesionesProvider);
-                  ref.invalidate(enrichedSesionesProvider);
-                  if (context.mounted) Navigator.of(context).pop();
+                  try {
+                    final repo = ref.read(agendaRepositoryProvider);
+                    await repo.deleteSesion(sesion.idSesion!);
+                    _invalidateSessionProviders(ref);
+                    if (context.mounted) Navigator.of(context).pop();
+                  } catch (e) {
+                    if (context.mounted) {
+                      final message = e.toString().replaceAll(
+                        'Exception: ',
+                        '',
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'No se pudo eliminar la sesión: $message',
+                          ),
+                        ),
+                      );
+                    }
+                  }
                 },
                 child: const Text('Eliminar'),
               ),

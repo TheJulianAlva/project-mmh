@@ -1,11 +1,14 @@
 import 'package:project_mmh/core/database/database_helper.dart';
+import 'package:project_mmh/core/services/image_service.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 
 class PatientRepository {
   final DatabaseHelper _dbHelper;
+  final ImageService _imageService;
 
-  PatientRepository({DatabaseHelper? dbHelper})
-    : _dbHelper = dbHelper ?? DatabaseHelper();
+  PatientRepository({DatabaseHelper? dbHelper, ImageService? imageService})
+    : _dbHelper = dbHelper ?? DatabaseHelper(),
+      _imageService = imageService ?? ImageService();
 
   static const String _tableName = 'pacientes';
 
@@ -19,7 +22,11 @@ class PatientRepository {
       if (paths.isEmpty) {
         mutableMap['imagenes_paths'] = <String>[];
       } else {
-        mutableMap['imagenes_paths'] = paths.split('|');
+        // Normaliza rutas legadas (absolutas) a relativas al leer.
+        mutableMap['imagenes_paths'] = paths
+            .split('|')
+            .map(ImageService.toRelativePath)
+            .toList();
       }
     } else {
       mutableMap['imagenes_paths'] = <String>[];
@@ -33,7 +40,8 @@ class PatientRepository {
     final map = patient.toJson();
 
     // Handle imagenes_paths conversion (List<String> -> String)
-    final List<String> paths = patient.imagenesPaths;
+    final List<String> paths =
+        patient.imagenesPaths.map(ImageService.toRelativePath).toList();
     map['imagenes_paths'] = paths.join('|');
 
     return map;
@@ -46,11 +54,12 @@ class PatientRepository {
     return result.map((e) => _fromDbMap(e)).toList();
   }
 
+  /// Devuelve el paciente activo (no archivado) con ese expediente.
   Future<Patient?> getPatientById(String idExpediente) async {
     final db = await _dbHelper.database;
     final result = await db.query(
       _tableName,
-      where: 'id_expediente = ?',
+      where: 'id_expediente = ? AND deleted_at IS NULL',
       whereArgs: [idExpediente],
     );
 
@@ -74,55 +83,65 @@ class PatientRepository {
     );
   }
 
-  /// Transactionally updates a Patient's ID and all related records.
+  /// Actualiza transaccionalmente el id de expediente de un paciente y todos
+  /// sus registros relacionados, y mueve su carpeta de imágenes en disco.
   Future<void> updatePatientId(String oldId, Patient newPatientData) async {
-    final db = await _dbHelper.database;
+    final String newId = newPatientData.idExpediente;
 
-    // Validation: Check if new ID already exists (and is not the same as old ID)
-    if (oldId != newPatientData.idExpediente) {
-      final existing = await db.query(
-        _tableName,
-        where: 'id_expediente = ?',
-        whereArgs: [newPatientData.idExpediente],
-      );
-      if (existing.isNotEmpty) {
-        throw Exception(
-          'El expediente ${newPatientData.idExpediente} ya existe.',
-        );
-      }
+    // Sin cambio de id: es una actualización normal.
+    if (oldId == newId) {
+      await updatePatient(newPatientData);
+      return;
     }
 
-    await db.transaction((txn) async {
-      // 1. Insert new patient record with new ID
-      // We use the new data provided (which should have the new ID)
-      await txn.insert(_tableName, _toDbMap(newPatientData));
+    final db = await _dbHelper.database;
 
-      // 2. Re-link dependent tables to new ID
-      // Update Tratamientos
+    // Reescribir las rutas de imágenes de <oldId> a <newId> para que la BD
+    // siga apuntando a los archivos tras renombrar la carpeta.
+    final reparented = newPatientData.copyWith(
+      imagenesPaths: newPatientData.imagenesPaths
+          .map((p) => ImageService.reparentPath(p, oldId, newId))
+          .toList(),
+    );
+
+    await db.transaction((txn) async {
+      // La verificación de existencia va dentro de la transacción para evitar
+      // TOCTOU con ediciones concurrentes.
+      final existing = await txn.query(
+        _tableName,
+        columns: ['id_expediente'],
+        where: 'id_expediente = ?',
+        whereArgs: [newId],
+        limit: 1,
+      );
+      if (existing.isNotEmpty) {
+        throw Exception('El expediente $newId ya existe.');
+      }
+
+      await txn.insert(_tableName, _toDbMap(reparented));
+
       await txn.update(
         'tratamientos',
-        {'id_expediente': newPatientData.idExpediente},
+        {'id_expediente': newId},
         where: 'id_expediente = ?',
         whereArgs: [oldId],
       );
-
-      // Update Odontogramas
       await txn.update(
         'odontogramas',
-        {'id_expediente': newPatientData.idExpediente},
+        {'id_expediente': newId},
         where: 'id_expediente = ?',
         whereArgs: [oldId],
       );
 
-      // 3. Delete the old patient record
-      // (Cascades shouldn't trigger effectively because we moved the children,
-      // but to be safe and clean, we delete the old parent)
       await txn.delete(
         _tableName,
         where: 'id_expediente = ?',
         whereArgs: [oldId],
       );
     });
+
+    // Mover imágenes fuera de la transacción de BD.
+    await _imageService.movePatientImages(oldId, newId);
   }
 
   Future<void> deletePatient(String idExpediente) async {
@@ -142,6 +161,8 @@ class PatientRepository {
         where: 'id_expediente = ?',
         whereArgs: [idExpediente],
       );
+      // Sin historial que conservar: se eliminan también las imágenes del disco.
+      await _imageService.deletePatientImages(idExpediente);
     } else {
       // CASE 2: History exists -> Soft Delete (Preserve records)
       await db.transaction((txn) async {

@@ -218,8 +218,8 @@ return $default(_that.idExpediente,_that.nombre,_that.primerApellido,_that.segun
 /// @nodoc
 @JsonSerializable()
 
-class _Patient implements Patient {
-  const _Patient({@JsonKey(name: 'id_expediente') required this.idExpediente, @JsonKey(name: 'nombre') required this.nombre, @JsonKey(name: 'primer_apellido') required this.primerApellido, @JsonKey(name: 'segundo_apellido') this.segundoApellido, @JsonKey(name: 'edad') required this.edad, @JsonKey(name: 'sexo') required this.sexo, @JsonKey(name: 'telefono') this.telefono, @JsonKey(name: 'padecimiento_relevante') this.padecimientoRelevante, @JsonKey(name: 'informacion_adicional') this.informacionAdicional, @JsonKey(name: 'imagenes_paths', fromJson: _parseImages) final  List<String> imagenesPaths = const [], @JsonKey(name: 'deleted_at') this.deletedAt}): _imagenesPaths = imagenesPaths;
+class _Patient extends Patient {
+  const _Patient({@JsonKey(name: 'id_expediente') required this.idExpediente, @JsonKey(name: 'nombre') required this.nombre, @JsonKey(name: 'primer_apellido') required this.primerApellido, @JsonKey(name: 'segundo_apellido') this.segundoApellido, @JsonKey(name: 'edad') required this.edad, @JsonKey(name: 'sexo') required this.sexo, @JsonKey(name: 'telefono') this.telefono, @JsonKey(name: 'padecimiento_relevante') this.padecimientoRelevante, @JsonKey(name: 'informacion_adicional') this.informacionAdicional, @JsonKey(name: 'imagenes_paths', fromJson: _parseImages) final  List<String> imagenesPaths = const [], @JsonKey(name: 'deleted_at') this.deletedAt}): _imagenesPaths = imagenesPaths,super._();
   factory _Patient.fromJson(Map<String, dynamic> json) => _$PatientFromJson(json);
 
 @override@JsonKey(name: 'id_expediente') final  String idExpediente;

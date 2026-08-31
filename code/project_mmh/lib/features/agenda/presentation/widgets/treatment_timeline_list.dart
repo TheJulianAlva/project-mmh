@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_action_dialog.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_entity_card.dart';
+import 'package:project_mmh/core/utils/formatters.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Date grouping for treatment timeline
@@ -17,17 +19,14 @@ class DateGroup {
   DateGroup({required this.date, required this.sessions});
 
   String get label {
-    // Format: "Lunes, 12 Feb 2024"
-    final now = DateTime.now();
-    final isToday =
-        date.year == now.year && date.month == now.month && date.day == now.day;
-    final isTomorrow =
-        date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day + 1;
+    // Diferencia en días de calendario (robusto a fin de mes / año).
+    final today = DateUtils.dateOnly(DateTime.now());
+    final thisDay = DateUtils.dateOnly(date);
+    final diffDays = thisDay.difference(today).inDays;
 
-    if (isToday) return 'Hoy';
-    if (isTomorrow) return 'Mañana';
+    if (diffDays == 0) return 'Hoy';
+    if (diffDays == 1) return 'Mañana';
+    if (diffDays == -1) return 'Ayer';
 
     final str = DateFormat("EEEE d 'de' MMMM", 'es_ES').format(date);
     return str[0].toUpperCase() + str.substring(1);
@@ -370,15 +369,11 @@ class _TimelineRow extends StatelessWidget {
   }
 
   Color _getNodeColor() {
-    switch (session.sesion.estadoAsistencia) {
-      case 'asistio':
-        return colorScheme.secondary;
-      case 'falto':
-        return Colors.orange;
-      case 'programada':
-      default:
-        return colorScheme.primary;
-    }
+    return switch (session.sesion.estadoAsistencia) {
+      EstadoAsistencia.asistio => colorScheme.secondary,
+      EstadoAsistencia.falto => colorScheme.error,
+      EstadoAsistencia.programada || null => colorScheme.primary,
+    };
   }
 }
 
@@ -400,7 +395,7 @@ class _TimelineSessionCard extends StatelessWidget {
     final startTime = DateTime.parse(session.sesion.fechaInicio);
     final endTime = DateTime.parse(session.sesion.fechaFin);
     final duration = endTime.difference(startTime);
-    final durationStr = "${duration.inHours}h ${duration.inMinutes % 60}m";
+    final durationStr = formatDuration(duration);
 
     return AppEntityCard(
       accentColor: _getNodeColor(),
@@ -445,35 +440,31 @@ class _TimelineSessionCard extends StatelessWidget {
   }
 
   Color _getNodeColor() {
-    switch (session.sesion.estadoAsistencia) {
-      case 'asistio':
-        return colorScheme.secondary;
-      case 'falto':
-        return Colors.orange;
-      default:
-        return colorScheme.primary;
-    }
+    return switch (session.sesion.estadoAsistencia) {
+      EstadoAsistencia.asistio => colorScheme.secondary,
+      EstadoAsistencia.falto => colorScheme.error,
+      EstadoAsistencia.programada || null => colorScheme.primary,
+    };
   }
 
-  Widget _buildStatusBadge(BuildContext context, String? status) {
+  Widget _buildStatusBadge(BuildContext context, EstadoAsistencia? status) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    late Color color;
-    late String label;
-    late IconData icon;
+    final Color color;
+    final String label;
+    final IconData icon;
 
     switch (status) {
-      case 'asistio':
+      case EstadoAsistencia.asistio:
         color = colorScheme.secondary;
         label = 'ASISTIÓ';
         icon = CupertinoIcons.checkmark_alt;
-        break;
-      case 'falto':
-        color = Colors.orange;
+      case EstadoAsistencia.falto:
+        color = colorScheme.error;
         label = 'NO ASISTIÓ';
         icon = CupertinoIcons.person_badge_minus;
-        break;
-      default:
+      case EstadoAsistencia.programada:
+      case null:
         color = colorScheme.primary;
         label = 'PROGRAMADA';
         icon = CupertinoIcons.circle_fill;

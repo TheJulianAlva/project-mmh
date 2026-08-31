@@ -8,9 +8,13 @@ import 'package:project_mmh/features/dashboard/presentation/providers/dashboard_
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/objetivos_providers.dart'
     as objectives_provider;
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
+import 'package:project_mmh/features/agenda/domain/estado_tratamiento.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 
 // Widgets
+import 'package:project_mmh/core/constants/app_constants.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/treatment_edit_dialog.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_edit_dialog.dart';
@@ -65,13 +69,11 @@ class TreatmentDetailScreen extends ConsumerWidget {
                 );
               }
 
-              // Determine Patient Name
-              String patientName = 'Cargando...';
+              // Nombre del paciente (no usar 'Cargando...'/'Error' como nombre real)
+              String patientName = '';
               if (patientAsync.hasValue && patientAsync.value != null) {
                 final p = patientAsync.value!;
                 patientName = '${p.nombre} ${p.primerApellido}';
-              } else if (patientAsync.hasError) {
-                patientName = 'Error al cargar paciente';
               }
 
               // Determine Clinic Info
@@ -79,10 +81,11 @@ class TreatmentDetailScreen extends ConsumerWidget {
               Color? clinicColor;
               if (clinicAsync.hasValue && clinicAsync.value != null) {
                 clinicName = clinicAsync.value!.nombreClinica;
-                clinicColor = _parseColor(clinicAsync.value!.color);
+                clinicColor = ClinicPalette.parse(clinicAsync.value!.color);
               }
 
-              final isConcluded = tratamiento.estado == 'concluido';
+              final isConcluded =
+                  tratamiento.estado == EstadoTratamiento.concluido;
 
               return SliverToBoxAdapter(
                 child: Padding(
@@ -96,7 +99,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
                       // 1. Info Card
                       TreatmentInfoCard(
                         treatmentName: tratamiento.nombreTratamiento,
-                        patientName: patientName,
+                        patientName: patientName.isEmpty ? '—' : patientName,
                         clinicName: clinicName,
                         status: tratamiento.estado,
                         clinicColor: clinicColor,
@@ -110,7 +113,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
                             () => _addSesion(
                               context,
                               tratamientoId,
-                              sesionesAsync.value?.length ?? 0,
+                              sesionesAsync.value?.length,
                             ),
                         onEdit: () => _editTreatment(context, tratamiento),
                         onFinalize:
@@ -127,6 +130,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
                                   context,
                                   ref,
                                   tratamientoId,
+                                  tratamiento.idClinica,
                                 )
                                 : null,
                       ),
@@ -188,7 +192,17 @@ class TreatmentDetailScreen extends ConsumerWidget {
                             () => const Center(
                               child: CircularProgressIndicator(),
                             ),
-                        error: (e, _) => Center(child: Text('Error: $e')),
+                        error:
+                            (e, _) => AppErrorView(
+                              message: 'No se pudieron cargar las sesiones.',
+                              compact: true,
+                              onRetry:
+                                  () => ref.invalidate(
+                                    sesionesByTratamientoProvider(
+                                      tratamientoId,
+                                    ),
+                                  ),
+                            ),
                       ),
 
                       // Extra padding for safe area
@@ -204,7 +218,13 @@ class TreatmentDetailScreen extends ConsumerWidget {
                 ),
             error:
                 (e, _) => SliverFillRemaining(
-                  child: Center(child: Text('Error: $e')),
+                  child: AppErrorView(
+                    message: 'No se pudo cargar el tratamiento.',
+                    onRetry:
+                        () => ref.invalidate(
+                          tratamientoByIdProvider(tratamientoId),
+                        ),
+                  ),
                 ),
           ),
         ],
@@ -237,44 +257,32 @@ class TreatmentDetailScreen extends ConsumerWidget {
     );
   }
 
-  Color _parseColor(String colorStr) {
-    try {
-      if (colorStr.startsWith('Color(')) {
-        String value = colorStr.split('(')[1].split(')')[0];
-        return Color(int.parse(value));
-      } else {
-        String cleanHex = colorStr
-            .replaceAll('#', '')
-            .replaceAll('0x', '')
-            .replaceAll('0X', '');
-        if (cleanHex.length == 6) {
-          return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-        } else if (cleanHex.length == 8) {
-          return Color(int.parse(cleanHex, radix: 16));
-        } else {
-          return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-        }
-      }
-    } catch (_) {
-      return Colors.blue; // Fallback
-    }
-  }
-
   // ─── Actions ───
 
   void _addSesion(
     BuildContext context,
     int idTratamiento,
-    int currentSessionCount,
+    int? currentSessionCount,
   ) {
-    if (currentSessionCount >= 12) {
+    if (currentSessionCount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Espera a que carguen las sesiones e inténtalo de nuevo',
+          ),
+        ),
+      );
+      return;
+    }
+    if (currentSessionCount >= kMaxSesionesPorTratamiento) {
       showCupertinoDialog(
         context: context,
         builder:
             (ctx) => CupertinoAlertDialog(
               title: const Text('Límite Alcanzado'),
-              content: const Text(
-                'No se pueden agregar más de 12 sesiones a un tratamiento.',
+              content: Text(
+                'No se pueden agregar más de $kMaxSesionesPorTratamiento '
+                'sesiones a un tratamiento.',
               ),
               actions: [
                 CupertinoDialogAction(
@@ -326,7 +334,9 @@ class TreatmentDetailScreen extends ConsumerWidget {
           ),
     );
 
-    if (confirmed == true) {
+    if (confirmed != true) return;
+
+    try {
       final repo = ref.read(agendaRepositoryProvider);
       await repo.markTreatmentAsFinalized(tratamientoId);
       ref.invalidate(tratamientoByIdProvider(tratamientoId));
@@ -339,10 +349,22 @@ class TreatmentDetailScreen extends ConsumerWidget {
           const SnackBar(content: Text('Tratamiento finalizado correctamente')),
         );
       }
+    } catch (e) {
+      if (context.mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo finalizar: $message')),
+        );
+      }
     }
   }
 
-  void _deleteTreatment(BuildContext context, WidgetRef ref, int id) async {
+  void _deleteTreatment(
+    BuildContext context,
+    WidgetRef ref,
+    int id,
+    int clinicId,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -371,18 +393,30 @@ class TreatmentDetailScreen extends ConsumerWidget {
           ),
     );
 
-    if (confirmed == true) {
+    if (confirmed != true) return;
+
+    try {
       final repo = ref.read(agendaRepositoryProvider);
       await repo.deleteTratamiento(id);
 
       ref.invalidate(allTratamientosRichProvider);
       ref.invalidate(allSesionesProvider);
+      ref.invalidate(enrichedSesionesProvider);
+      ref.invalidate(dashboardStatsProvider);
+      ref.invalidate(objectives_provider.objetivosByClinicaProvider(clinicId));
 
       if (context.mounted) {
         if (Navigator.canPop(context)) Navigator.pop(context);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Tratamiento eliminado')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar: $message')),
+        );
       }
     }
   }

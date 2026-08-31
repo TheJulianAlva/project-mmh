@@ -10,6 +10,9 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/widgets/color_picker_field.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/widgets/weekly_schedule_picker.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/constants/app_constants.dart';
+import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 
 class ClinicasMetasScreen extends ConsumerWidget {
@@ -131,8 +134,10 @@ class ClinicasMetasScreen extends ConsumerWidget {
                                         ),
                                         ElevatedButton(
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red,
-                                            foregroundColor: Colors.white,
+                                            backgroundColor:
+                                                Theme.of(context).colorScheme.error,
+                                            foregroundColor:
+                                                Theme.of(context).colorScheme.onError,
                                           ),
                                           onPressed:
                                               () =>
@@ -164,7 +169,10 @@ class ClinicasMetasScreen extends ConsumerWidget {
                 ),
             error:
                 (err, stack) => SliverFillRemaining(
-                  child: Center(child: Text('Error: $err')),
+                  child: AppErrorView(
+                    message: 'No se pudieron cargar los periodos.',
+                    onRetry: () => ref.invalidate(periodosProvider),
+                  ),
                 ),
           ),
           const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
@@ -194,7 +202,7 @@ class ClinicasMetasScreen extends ConsumerWidget {
               key: formKey,
               child: FormBuilderTextField(
                 name: 'nombre',
-                maxLength: 30,
+                maxLength: kMaxNombrePeriodo,
                 decoration: const InputDecoration(
                   labelText: 'Nombre del Periodo',
                   counterText: "",
@@ -273,7 +281,7 @@ class ClinicasMetasScreen extends ConsumerWidget {
               initialValue: {'nombre': periodo.nombrePeriodo},
               child: FormBuilderTextField(
                 name: 'nombre',
-                maxLength: 50,
+                maxLength: kMaxNombrePeriodo,
                 decoration: const InputDecoration(
                   labelText: 'Nombre del Periodo',
                   counterText: "",
@@ -374,7 +382,7 @@ class _ClinicasList extends ConsumerWidget {
         return Column(
           children: [
             ...clinicas.map((clinica) {
-              final clinicColor = _parseColor(clinica.color);
+              final clinicColor = ClinicPalette.parse(clinica.color);
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
@@ -490,7 +498,10 @@ class _ClinicasList extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) => Text('Error: $e'),
+      error: (e, s) => const AppErrorView(
+        message: 'No se pudieron cargar las clínicas.',
+        compact: true,
+      ),
     );
   }
 
@@ -536,8 +547,10 @@ class _ClinicasList extends ConsumerWidget {
                             ),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
+                                backgroundColor:
+                                    Theme.of(dialogContext).colorScheme.error,
+                                foregroundColor:
+                                    Theme.of(dialogContext).colorScheme.onError,
                               ),
                               onPressed:
                                   () => Navigator.pop(dialogContext, true),
@@ -565,24 +578,6 @@ class _ClinicasList extends ConsumerWidget {
             ),
           ),
     );
-  }
-
-  Color _parseColor(String colorString) {
-    if (colorString.isEmpty) return const Color(0xFF007AFF);
-    try {
-      String cleanHex = colorString
-          .replaceAll('#', '')
-          .replaceAll('0x', '')
-          .replaceAll('0X', '');
-      if (cleanHex.length == 6) {
-        return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-      } else if (cleanHex.length == 8) {
-        return Color(int.parse(cleanHex, radix: 16));
-      }
-      return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-    } catch (_) {
-      return const Color(0xFF007AFF);
-    }
   }
 
   void _showAddClinicaDialog(
@@ -881,15 +876,8 @@ class _ObjetivosDialog extends ConsumerWidget {
                               size: 20,
                               color: Theme.of(context).colorScheme.error,
                             ),
-                            onPressed: () async {
-                              await ref
-                                  .read(
-                                    objetivosByClinicaProvider(
-                                      idClinica,
-                                    ).notifier,
-                                  )
-                                  .deleteObjetivo(obj.idObjetivo!);
-                            },
+                            onPressed: () =>
+                                _confirmDeleteObjetivo(context, ref, idClinica, obj),
                           ),
                         ],
                       ),
@@ -902,7 +890,13 @@ class _ObjetivosDialog extends ConsumerWidget {
                     height: 100,
                     child: Center(child: CircularProgressIndicator()),
                   ),
-              error: (e, s) => Text('Error: $e'),
+              error: (e, s) => const SizedBox(
+                height: 100,
+                child: AppErrorView(
+                  message: 'No se pudieron cargar los objetivos.',
+                  compact: true,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -922,6 +916,52 @@ class _ObjetivosDialog extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteObjetivo(
+    BuildContext context,
+    WidgetRef ref,
+    int idClinica,
+    Objetivo obj,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Eliminar objetivo?'),
+        content: Text(
+          'Se eliminará "${obj.nombreTratamiento}". Los tratamientos ya '
+          'registrados para este objetivo se conservarán, pero perderán el '
+          'vínculo y su aporte al progreso.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await ref
+          .read(objetivosByClinicaProvider(idClinica).notifier)
+          .deleteObjetivo(obj.idObjetivo!);
+    } catch (e) {
+      if (context.mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar el objetivo: $message')),
+        );
+      }
+    }
   }
 
   // New Edit Method

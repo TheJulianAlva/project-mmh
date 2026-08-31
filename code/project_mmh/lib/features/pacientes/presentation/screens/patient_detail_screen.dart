@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
@@ -7,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/services/image_service.dart';
+import 'package:project_mmh/features/pacientes/domain/patient.dart';
 
 class PatientDetailScreen extends ConsumerWidget {
   final String patientId;
@@ -16,7 +17,7 @@ class PatientDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final patientsAsync = ref.watch(patientsProvider);
+    final patientAsync = ref.watch(patientByIdProvider(patientId));
 
     return Scaffold(
       body: CustomScrollView(
@@ -26,38 +27,25 @@ class PatientDetailScreen extends ConsumerWidget {
             backgroundColor: Theme.of(
               context,
             ).colorScheme.surface.withValues(alpha: 0.9),
-            trailing: patientsAsync.when(
-              data: (patientsList) {
-                final patient =
-                    patientsList
-                        .where((p) => p.idExpediente == patientId)
-                        .firstOrNull;
+            trailing: patientAsync.maybeWhen(
+              data: (patient) {
                 if (patient == null) return null;
                 return TextButton(
-                  onPressed: () {
-                    context.push(
-                      '/pacientes/${patient.idExpediente}/edit',
-                      extra: patient,
-                    );
-                  },
+                  onPressed: () =>
+                      context.push('/pacientes/${patient.idExpediente}/edit'),
                   child: const Text(
                     'Editar',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 );
               },
-              loading: () => null,
-              error: (_, __) => null,
+              orElse: () => null,
             ),
             previousPageTitle: 'Atrás',
           ),
           SliverToBoxAdapter(
-            child: patientsAsync.when(
-              data: (patientsList) {
-                final patient =
-                    patientsList
-                        .where((p) => p.idExpediente == patientId)
-                        .firstOrNull;
+            child: patientAsync.when(
+              data: (patient) {
                 if (patient == null) {
                   return const Center(
                     child: Padding(
@@ -75,7 +63,10 @@ class PatientDetailScreen extends ConsumerWidget {
                       child: CircularProgressIndicator(),
                     ),
                   ),
-              error: (e, s) => Center(child: Text('Error: $e')),
+              error: (e, s) => AppErrorView(
+                message: 'No se pudo cargar el paciente.',
+                onRetry: () => ref.invalidate(patientByIdProvider(patientId)),
+              ),
             ),
           ),
         ],
@@ -86,7 +77,7 @@ class PatientDetailScreen extends ConsumerWidget {
   Widget _buildPatientContent(
     BuildContext context,
     WidgetRef ref,
-    dynamic patient,
+    Patient patient,
   ) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -99,7 +90,9 @@ class PatientDetailScreen extends ConsumerWidget {
               radius: 50,
               backgroundImage:
                   patient.imagenesPaths.isNotEmpty
-                      ? FileImage(File(patient.imagenesPaths.first))
+                      ? FileImage(
+                        ImageService.resolveFile(patient.imagenesPaths.first),
+                      )
                       : null,
               child:
                   patient.imagenesPaths.isEmpty
@@ -110,7 +103,7 @@ class PatientDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           Center(
             child: Text(
-              '${patient.nombre} ${patient.primerApellido} ${patient.segundoApellido ?? ''}',
+              patient.nombreCompleto,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
@@ -212,7 +205,7 @@ class PatientDetailScreen extends ConsumerWidget {
   Widget _buildImagesSection(
     BuildContext context,
     WidgetRef ref,
-    dynamic patient,
+    Patient patient,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,7 +247,14 @@ class PatientDetailScreen extends ConsumerWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.file(File(path), fit: BoxFit.cover),
+                    Image.file(
+                      ImageService.resolveFile(path),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const ColoredBox(
+                        color: Colors.black12,
+                        child: Icon(Icons.broken_image_outlined),
+                      ),
+                    ),
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
@@ -270,7 +270,9 @@ class PatientDetailScreen extends ConsumerWidget {
                                     children: [
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
-                                        child: Image.file(File(path)),
+                                        child: Image.file(
+                                          ImageService.resolveFile(path),
+                                        ),
                                       ),
                                       IconButton(
                                         icon: const Icon(
@@ -298,7 +300,7 @@ class PatientDetailScreen extends ConsumerWidget {
   Future<void> _addQuickPhoto(
     BuildContext context,
     WidgetRef ref,
-    dynamic patient,
+    Patient patient,
   ) async {
     final imageService = ImageService();
 
@@ -348,9 +350,11 @@ class PatientDetailScreen extends ConsumerWidget {
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+          final message = e.toString().replaceAll('Exception: ', '');
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No se pudo guardar la imagen: $message')),
+          );
         }
       }
     }

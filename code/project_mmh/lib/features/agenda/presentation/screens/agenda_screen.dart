@@ -2,11 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/timeline_session_list.dart';
 import 'package:table_calendar/table_calendar.dart' hide isSameDay;
 import 'package:table_calendar/table_calendar.dart' as tc show isSameDay;
 import 'package:intl/intl.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_filter_chip.dart';
 
 class AgendaScreen extends ConsumerStatefulWidget {
@@ -20,6 +22,7 @@ class AgendaScreen extends ConsumerStatefulWidget {
 class _AgendaScreenState extends ConsumerState<AgendaScreen>
     with SingleTickerProviderStateMixin {
   CalendarFormat _calendarFormat = CalendarFormat.month;
+  DateTime _focusedDay = DateTime.now();
 
   @override
   void initState() {
@@ -89,6 +92,13 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
   @override
   Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedDateProvider);
+    // Mantener la página del calendario sincronizada si la fecha seleccionada
+    // cambia desde fuera (p. ej. al abrir la agenda desde una notificación).
+    ref.listen(selectedDateProvider, (_, next) {
+      if (!tc.isSameDay(_focusedDay, next)) {
+        setState(() => _focusedDay = next);
+      }
+    });
     final sessionsAsync = ref.watch(allSesionesProvider);
     final enrichedToday = ref.watch(enrichedSessionsOnSelectedDateProvider);
     final statusFilter = ref.watch(statusFilterProvider);
@@ -135,8 +145,13 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                             locale: 'es_ES',
                             firstDay: DateTime.utc(2020, 1, 1),
                             lastDay: DateTime.utc(2030, 12, 31),
-                            focusedDay: selectedDate,
+                            focusedDay: _focusedDay,
                             calendarFormat: _calendarFormat,
+                            onPageChanged: (focusedDay) {
+                              // No usar setState aquí (recomendación de
+                              // table_calendar): solo persistir la página.
+                              _focusedDay = focusedDay;
+                            },
                             startingDayOfWeek: StartingDayOfWeek.monday,
                             availableCalendarFormats: const {
                               CalendarFormat.month: 'Mes',
@@ -198,6 +213,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                             onDaySelected: (selectedDay, focusedDay) {
                               ref.read(selectedDateProvider.notifier).state =
                                   selectedDay;
+                              setState(() => _focusedDay = focusedDay);
                             },
                             onFormatChanged: (format) {
                               setState(() {
@@ -266,7 +282,14 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                       ),
                   loading:
                       () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text('Error: $e')),
+                  error:
+                      (e, _) => AppErrorView(
+                        message: 'No se pudo cargar la agenda.',
+                        onRetry: () {
+                          ref.invalidate(allSesionesProvider);
+                          ref.invalidate(enrichedSesionesProvider);
+                        },
+                      ),
                 ),
               ),
             ),
@@ -358,7 +381,10 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
   // ────────────────────────────────────────────────────────────────────────────
   // Status Filter Chips
   // ────────────────────────────────────────────────────────────────────────────
-  Widget _buildFilterChips(ColorScheme colorScheme, String? activeFilter) {
+  Widget _buildFilterChips(
+    ColorScheme colorScheme,
+    EstadoAsistencia? activeFilter,
+  ) {
     final filters = <_FilterOption>[
       _FilterOption(
         label: 'Todas',
@@ -367,17 +393,17 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
       ),
       _FilterOption(
         label: 'Pendientes',
-        value: 'programada',
+        value: EstadoAsistencia.programada,
         icon: CupertinoIcons.circle_fill,
       ),
       _FilterOption(
         label: 'Asistió',
-        value: 'asistio',
+        value: EstadoAsistencia.asistio,
         icon: CupertinoIcons.checkmark_alt,
       ),
       _FilterOption(
         label: 'No asistió',
-        value: 'falto',
+        value: EstadoAsistencia.falto,
         icon: CupertinoIcons.person_badge_minus,
       ),
     ];
@@ -415,7 +441,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
   Widget _buildEmptyState(
     BuildContext context,
     ColorScheme colorScheme,
-    String? statusFilter,
+    EstadoAsistencia? statusFilter,
   ) {
     final isFiltered = statusFilter != null;
 
@@ -466,7 +492,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
 // ────────────────────────────────────────────────────────────────────────────
 class _FilterOption {
   final String label;
-  final String? value;
+  final EstadoAsistencia? value;
   final IconData icon;
 
   const _FilterOption({

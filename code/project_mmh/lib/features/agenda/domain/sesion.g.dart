@@ -11,7 +11,10 @@ _Sesion _$SesionFromJson(Map<String, dynamic> json) => _Sesion(
   idTratamiento: (json['id_tratamiento'] as num).toInt(),
   fechaInicio: json['fecha_inicio'] as String,
   fechaFin: json['fecha_fin'] as String,
-  estadoAsistencia: json['estado_asistencia'] as String?,
+  estadoAsistencia: $enumDecodeNullable(
+    _$EstadoAsistenciaEnumMap,
+    json['estado_asistencia'],
+  ),
 );
 
 Map<String, dynamic> _$SesionToJson(_Sesion instance) => <String, dynamic>{
@@ -19,5 +22,11 @@ Map<String, dynamic> _$SesionToJson(_Sesion instance) => <String, dynamic>{
   'id_tratamiento': instance.idTratamiento,
   'fecha_inicio': instance.fechaInicio,
   'fecha_fin': instance.fechaFin,
-  'estado_asistencia': instance.estadoAsistencia,
+  'estado_asistencia': _$EstadoAsistenciaEnumMap[instance.estadoAsistencia],
+};
+
+const _$EstadoAsistenciaEnumMap = {
+  EstadoAsistencia.programada: 'programada',
+  EstadoAsistencia.asistio: 'asistio',
+  EstadoAsistencia.falto: 'falto',
 };

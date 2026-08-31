@@ -1,9 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/services/image_service.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
 class PatientsScreen extends ConsumerStatefulWidget {
@@ -86,9 +86,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             data: (patients) {
               final filteredPatients =
                   patients.where((patient) {
-                    final fullName =
-                        '${patient.nombre} ${patient.primerApellido} ${patient.segundoApellido ?? ''}'
-                            .toLowerCase();
+                    final fullName = patient.nombreCompleto.toLowerCase();
                     return fullName.contains(_searchQuery) ||
                         patient.idExpediente.toLowerCase().contains(
                           _searchQuery,
@@ -108,7 +106,15 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                     leading: CircleAvatar(
                       backgroundImage:
                           patient.imagenesPaths.isNotEmpty
-                              ? FileImage(File(patient.imagenesPaths.first))
+                              ? FileImage(
+                                ImageService.resolveFile(
+                                  patient.imagenesPaths.first,
+                                ),
+                              )
+                              : null,
+                      onBackgroundImageError:
+                          patient.imagenesPaths.isNotEmpty
+                              ? (_, __) {}
                               : null,
                       child:
                           patient.imagenesPaths.isEmpty
@@ -116,7 +122,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                               : null,
                     ),
                     title: Text(
-                      '${patient.nombre} ${patient.primerApellido} ${patient.segundoApellido ?? ''}',
+                      patient.nombreCompleto,
                     ),
                     subtitle: Text('Exp: ${patient.idExpediente}'),
                     trailing: Row(
@@ -136,7 +142,10 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                 ),
             error:
                 (err, stack) => SliverFillRemaining(
-                  child: Center(child: Text('Error: $err')),
+                  child: AppErrorView(
+                    message: 'No se pudo cargar la lista de pacientes.',
+                    onRetry: () => ref.invalidate(patientsProvider),
+                  ),
                 ),
           ),
         ],

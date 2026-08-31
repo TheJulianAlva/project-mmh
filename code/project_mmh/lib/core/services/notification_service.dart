@@ -1,5 +1,5 @@
-import 'dart:ui';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:project_mmh/core/theme/app_theme.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -17,6 +17,20 @@ class NotificationService {
   /// Callback invoked when the user taps a notification.
   /// Set via [init] so the router can navigate to the agenda.
   void Function(String? payload)? _onNotificationTap;
+
+  /// Payload de una notificación que abrió la app en frío, si el router aún no
+  /// estaba montado cuando se procesó. Debe consumirse tras el primer frame.
+  String? _pendingLaunchPayload;
+  bool _hasPendingLaunch = false;
+
+  /// Entrega (una sola vez) el tap de arranque en frío pendiente, si lo hay.
+  /// Llamar tras montar el router (p. ej. en un addPostFrameCallback).
+  void consumePendingLaunch() {
+    if (!_hasPendingLaunch) return;
+    _hasPendingLaunch = false;
+    _onNotificationTap?.call(_pendingLaunchPayload);
+    _pendingLaunchPayload = null;
+  }
 
   /// Initialize the notification plugin and timezone data.
   ///
@@ -50,12 +64,15 @@ class NotificationService {
       onDidReceiveNotificationResponse: _handleNotificationTap,
     );
 
-    // Handle cold-start: app was opened by tapping a notification
+    // Arranque en frío: la app se abrió pulsando una notificación. El router
+    // todavía no está montado, así que guardamos el payload y lo entregamos
+    // tras el primer frame vía [consumePendingLaunch].
     final launchDetails = await _plugin.getNotificationAppLaunchDetails();
     if (launchDetails != null &&
         launchDetails.didNotificationLaunchApp &&
         launchDetails.notificationResponse != null) {
-      _handleNotificationTap(launchDetails.notificationResponse!);
+      _pendingLaunchPayload = launchDetails.notificationResponse!.payload;
+      _hasPendingLaunch = true;
     }
 
     _initialized = true;
@@ -132,9 +149,11 @@ class NotificationService {
 
       // Build the notification lines for InboxStyle
       final lines = <String>[];
+      var totalCitas = 0;
       for (final scope in enabledScopes.toList()..sort()) {
         final actualDay = dayOffset + scope;
         final count = sessionsByDay[actualDay] ?? 0;
+        totalCitas += count;
         final label = _scopeEmojiLabel(scope);
 
         String indicator;
@@ -157,6 +176,9 @@ class NotificationService {
         }
       }
 
+      // Si no hay ninguna cita en ninguno de los ámbitos, no molestar ese día.
+      if (totalCitas == 0) continue;
+
       const title = '¡Tu agenda está lista! 📋';
 
       await _plugin.zonedSchedule(
@@ -172,7 +194,7 @@ class NotificationService {
             importance: Importance.high,
             priority: Priority.high,
             icon: '@mipmap/launcher_icon',
-            color: const Color(0xFFFC4391), // Color rosa premium de la app
+            color: AppTheme.brandPink,
             styleInformation: InboxStyleInformation(
               lines,
               contentTitle: '<b>$title</b>',

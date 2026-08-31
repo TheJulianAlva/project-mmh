@@ -1,27 +1,64 @@
-import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/constants/app_constants.dart';
+import 'package:project_mmh/core/services/image_service.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
-class EditPatientScreen extends ConsumerStatefulWidget {
-  final Patient patient;
-  const EditPatientScreen({super.key, required this.patient});
+/// Carga el paciente por id (funciona con deep link / restauración, sin
+/// depender de `state.extra`).
+class EditPatientScreen extends ConsumerWidget {
+  final String patientId;
+  const EditPatientScreen({super.key, required this.patientId});
 
   @override
-  ConsumerState<EditPatientScreen> createState() => _EditPatientScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final patientAsync = ref.watch(patientByIdProvider(patientId));
+    return patientAsync.when(
+      data: (patient) {
+        if (patient == null) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: const AppErrorView(message: 'Paciente no encontrado.'),
+          );
+        }
+        return _EditPatientForm(patient: patient);
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        appBar: AppBar(),
+        body: AppErrorView(
+          message: 'No se pudo cargar el paciente.',
+          onRetry: () => ref.invalidate(patientByIdProvider(patientId)),
+        ),
+      ),
+    );
+  }
 }
 
-class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
+class _EditPatientForm extends ConsumerStatefulWidget {
+  final Patient patient;
+  const _EditPatientForm({required this.patient});
+
+  @override
+  ConsumerState<_EditPatientForm> createState() => _EditPatientFormState();
+}
+
+class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
   final _formKey = GlobalKey<FormBuilderState>();
 
   // List of images to keep (initially all existing).
   // We remove from here if user deletes.
   late List<String> _currentImagePaths;
+  final List<String> _removedImagePaths = [];
+  final ImageService _imageService = ImageService();
   bool _isSaving = false;
 
   @override
@@ -55,18 +92,20 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
           imagenesPaths: _currentImagePaths,
         );
 
+        // Borrar los archivos de las imágenes quitadas ANTES de actualizar:
+        // en un cambio de id la carpeta se renombra y las rutas viejas dejan
+        // de resolver.
+        await _deleteRemovedImageFiles();
+
         if (isIdChanged) {
-          // Transactional update for ID change
           await ref
               .read(patientsProvider.notifier)
               .updatePatientId(oldId, updatedPatient);
 
           if (mounted) {
-            // Navigate to the new patient detail screen
             context.go('/pacientes/$newId');
           }
         } else {
-          // Standard update
           await ref
               .read(patientsProvider.notifier)
               .updatePatient(updatedPatient);
@@ -111,7 +150,9 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
                 child: const Text('Eliminar'),
               ),
             ],
@@ -144,8 +185,16 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
 
   void _removeImage(int index) {
     setState(() {
-      _currentImagePaths.removeAt(index);
+      // Se marca para borrado en disco; se confirma al guardar.
+      _removedImagePaths.add(_currentImagePaths.removeAt(index));
     });
+  }
+
+  Future<void> _deleteRemovedImageFiles() async {
+    for (final path in _removedImagePaths) {
+      await _imageService.deleteImage(path);
+    }
+    _removedImagePaths.clear();
   }
 
   @override
@@ -228,7 +277,7 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
                             FormBuilderTextField(
                               name: 'nombre',
                               decoration: _getInputDecoration('Nombre(s) *'),
-                              maxLength: 20,
+                              maxLength: kMaxNombrePaciente,
                               validator: (val) {
                                 if (val == null || val.isEmpty)
                                   return 'Requerido';
@@ -244,7 +293,7 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
                                     decoration: _getInputDecoration(
                                       'Primer Apellido *',
                                     ),
-                                    maxLength: 20,
+                                    maxLength: kMaxNombrePaciente,
                                     validator: (val) {
                                       if (val == null || val.isEmpty)
                                         return 'Requerido';
@@ -259,7 +308,7 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
                                     decoration: _getInputDecoration(
                                       'Segundo Apellido',
                                     ),
-                                    maxLength: 20,
+                                    maxLength: kMaxNombrePaciente,
                                   ),
                                 ),
                               ],
@@ -281,8 +330,8 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
                                       FormBuilderValidators.integer(
                                         errorText: 'Número entero',
                                       ),
-                                      FormBuilderValidators.min(1),
-                                      FormBuilderValidators.max(100),
+                                      FormBuilderValidators.min(kEdadMinPaciente),
+                                      FormBuilderValidators.max(kEdadMaxPaciente),
                                     ]),
                                   ),
                                 ),
@@ -378,8 +427,15 @@ class _EditPatientScreenState extends ConsumerState<EditPatientScreen> {
                                       fit: StackFit.expand,
                                       children: [
                                         Image.file(
-                                          File(path),
+                                          ImageService.resolveFile(path),
                                           fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const ColoredBox(
+                                                color: Colors.black12,
+                                                child: Icon(
+                                                  Icons.broken_image_outlined,
+                                                ),
+                                              ),
                                         ),
                                         Positioned(
                                           right: 4,

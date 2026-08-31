@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:project_mmh/core/router/app_router.dart';
 import 'package:project_mmh/core/theme/app_theme.dart';
 import 'package:project_mmh/core/services/notification_service.dart';
+import 'package:project_mmh/core/services/image_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +14,10 @@ import 'package:project_mmh/features/settings/presentation/providers/reminder_se
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // App offline-first: las fuentes van empaquetadas como asset, nunca por red.
+  GoogleFonts.config.allowRuntimeFetching = false;
   await initializeDateFormatting('es_ES', null);
+  await ImageService.init();
   await NotificationService.instance.init(
     onNotificationTap: (_) => appRouter.go('/agenda'),
   );
@@ -22,13 +27,16 @@ void main() async {
     overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
   );
 
-  // Refresh scheduled notifications on app start
-  final reminderNotifier = container.read(reminderSettingsProvider.notifier);
-  await reminderNotifier.refreshNotifications();
-
   runApp(
     UncontrolledProviderScope(container: container, child: const MainApp()),
   );
+
+  // Fuera del critical path del arranque: reprogramar recordatorios y procesar
+  // el tap de notificación que abrió la app en frío (una vez montado el router).
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    NotificationService.instance.consumePendingLaunch();
+    container.read(reminderSettingsProvider.notifier).refreshNotifications();
+  });
 }
 
 class MainApp extends ConsumerWidget {

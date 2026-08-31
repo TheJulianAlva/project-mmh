@@ -1,10 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_action_dialog.dart';
 import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_entity_card.dart';
 import 'package:intl/intl.dart';
+import 'package:project_mmh/core/theme/clinic_palette.dart';
+import 'package:project_mmh/core/utils/formatters.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Period grouping for timeline sections
@@ -348,14 +351,11 @@ class _TimelineRow extends StatelessWidget {
   }
 
   Color _getNodeColor() {
-    switch (session.sesion.estadoAsistencia) {
-      case 'asistio':
-        return colorScheme.secondary;
-      case 'falto':
-        return Colors.orange;
-      default:
-        return colorScheme.primary;
-    }
+    return switch (session.sesion.estadoAsistencia) {
+      EstadoAsistencia.asistio => colorScheme.secondary,
+      EstadoAsistencia.falto => colorScheme.error,
+      EstadoAsistencia.programada || null => colorScheme.primary,
+    };
   }
 }
 
@@ -447,8 +447,8 @@ class _TimelineSessionCard extends StatelessWidget {
     final startTime = DateTime.parse(session.sesion.fechaInicio);
     final endTime = DateTime.parse(session.sesion.fechaFin);
     final duration = endTime.difference(startTime);
-    final durationStr = "${duration.inHours}h ${duration.inMinutes % 60}m";
-    final clinicColor = _parseColor(session.colorClinica);
+    final durationStr = formatDuration(duration);
+    final clinicColor = ClinicPalette.parse(session.colorClinica);
 
     return AppEntityCard(
       accentColor: clinicColor,
@@ -517,25 +517,24 @@ class _TimelineSessionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(BuildContext context, String? status) {
+  Widget _buildStatusBadge(BuildContext context, EstadoAsistencia? status) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    late Color color;
-    late String label;
-    late IconData icon;
+    final Color color;
+    final String label;
+    final IconData icon;
 
     switch (status) {
-      case 'asistio':
+      case EstadoAsistencia.asistio:
         color = colorScheme.secondary;
         label = 'ASISTIÓ';
         icon = CupertinoIcons.checkmark_alt;
-        break;
-      case 'falto':
-        color = Colors.orange;
+      case EstadoAsistencia.falto:
+        color = colorScheme.error;
         label = 'NO ASISTIÓ';
         icon = CupertinoIcons.person_badge_minus;
-        break;
-      default:
+      case EstadoAsistencia.programada:
+      case null:
         color = colorScheme.primary;
         label = 'PROGRAMADA';
         icon = CupertinoIcons.circle_fill;
@@ -563,28 +562,5 @@ class _TimelineSessionCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Color _parseColor(String colorStr) {
-    try {
-      if (colorStr.startsWith('Color(')) {
-        String value = colorStr.split('(')[1].split(')')[0];
-        return Color(int.parse(value));
-      } else {
-        String cleanHex = colorStr
-            .replaceAll('#', '')
-            .replaceAll('0x', '')
-            .replaceAll('0X', '');
-        if (cleanHex.length == 6) {
-          return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-        } else if (cleanHex.length == 8) {
-          return Color(int.parse(cleanHex, radix: 16));
-        } else {
-          return Color(int.parse(cleanHex, radix: 16) + 0xFF000000);
-        }
-      }
-    } catch (_) {
-      return colorScheme.secondary;
-    }
   }
 }

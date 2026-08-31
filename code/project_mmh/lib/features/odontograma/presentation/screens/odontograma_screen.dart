@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/features/odontograma/domain/models/pieza_dental.dart';
 import 'package:project_mmh/features/odontograma/presentation/controllers/odontograma_controller.dart';
 import 'package:project_mmh/features/odontograma/presentation/widgets/tooth_widget.dart';
@@ -41,6 +43,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
       odontogramaControllerProvider(widget.pacienteId),
     );
     final selectedTool = ref.watch(selectedToolProvider);
+    final palette = ToothPalette.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -48,13 +51,10 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Go back logic
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
+            if (context.canPop()) {
+              context.pop();
             } else {
-              // Fallback if GoRouter
-              // context.pop(); // Requires go_router import or context extension
-              Navigator.of(context).maybePop();
+              context.go('/pacientes/${widget.pacienteId}');
             }
           },
         ),
@@ -75,17 +75,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
           const SizedBox(width: 16),
           Switch(
             value: _showPediatric,
-            onChanged: (v) {
-              setState(() => _showPediatric = v);
-              if (!v) {
-                // If turning OFF explicit pediatric view, clean up pediatric teeth
-                ref
-                    .read(
-                      odontogramaControllerProvider(widget.pacienteId).notifier,
-                    )
-                    .cleanPediatricTeeth();
-              }
-            },
+            onChanged: (v) => _onPediatricToggled(v),
             activeThumbColor: Theme.of(context).colorScheme.secondary,
           ),
           const SizedBox(width: 8),
@@ -98,7 +88,14 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
           Expanded(
             child: odontogramaState.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, st) => Center(child: Text('Error: $e')),
+              error: (e, st) => AppErrorView(
+                message: 'No se pudo cargar el odontograma.',
+                onRetry: () => ref
+                    .read(
+                      odontogramaControllerProvider(widget.pacienteId).notifier,
+                    )
+                    .loadOdontograma(),
+              ),
               data: (piezas) {
                 return SingleChildScrollView(
                   scrollDirection: Axis.vertical,
@@ -205,27 +202,27 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.caries,
-                      Colors.red,
+                      palette.caries,
                       label: "Caries",
                     ),
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.obturacion,
-                      Colors.blue,
+                      palette.obturacion,
                       label: "Obturación",
                     ),
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.fractura,
-                      Colors.red,
+                      palette.caries,
                       icon: Icons.flash_on,
                       label: "Fractura",
                     ),
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.restauracionFiltrada,
-                      Colors.blue,
-                      borderColor: Colors.red,
+                      palette.obturacion,
+                      borderColor: palette.caries,
                       label: "Rest. Filtrada",
                     ),
                   ]),
@@ -235,7 +232,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.sellador,
-                      Colors.blue,
+                      palette.obturacion,
                       icon: Icons.security,
                       label: "Sellador",
                     ),
@@ -246,21 +243,21 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.ausente,
-                      Colors.blue,
+                      palette.obturacion,
                       icon: Icons.cancel_outlined,
                       label: "Ausente",
                     ), // Blue /
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.porExtraer,
-                      Colors.red,
+                      palette.caries,
                       icon: Icons.cancel,
                       label: "P. Extraer",
                     ), // Red /
                     _buildToolItem(
                       selectedTool,
                       OdontogramaTools.erupcion,
-                      Colors.blue,
+                      palette.obturacion,
                       icon: Icons.arrow_upward,
                       label: "Erupción",
                     ),
@@ -278,6 +275,47 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _onPediatricToggled(bool value) async {
+    if (value) {
+      setState(() => _showPediatric = true);
+      return;
+    }
+
+    final notifier = ref.read(
+      odontogramaControllerProvider(widget.pacienteId).notifier,
+    );
+
+    if (notifier.hasPediatricData()) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('¿Ocultar dentición temporal?'),
+          content: const Text(
+            'Se eliminará el trabajo registrado en las piezas temporales '
+            '(51-85). Esta acción no se puede deshacer.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(ctx).colorScheme.error,
+              ),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
+    setState(() => _showPediatric = false);
+    await notifier.cleanPediatricTeeth();
   }
 
   Widget _buildToolSection(String title, List<Widget> children) {
@@ -431,6 +469,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
 
           globalState: pieza.estadoGeneral,
           hasSellador: pieza.tieneSellador,
+          isBridgeStart: _bridgeStartPiece?.iso == pieza.iso,
 
           onTapTop: () => _handleTap(pieza, surfaceTopName, selectedTool),
           onTapBottom: () => _handleTap(pieza, surfaceBottomName, selectedTool),
@@ -440,7 +479,18 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
         ),
       );
     } catch (e) {
-      return SizedBox(width: 40 * scale, height: 40 * scale);
+      // Placeholder con la misma altura total que una pieza real (etiqueta ISO
+      // + cuerpo) para no desalinear la fila si falta una pieza.
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 15),
+            SizedBox(width: 40 * scale, height: 40 * scale),
+          ],
+        ),
+      );
     }
   }
 
@@ -459,7 +509,11 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
     }
   }
 
-  void _handleTap(PiezaDental pieza, String surface, String tool) {
+  Future<void> _handleTap(
+    PiezaDental pieza,
+    String surface,
+    String tool,
+  ) async {
     if (!_isEditing) return;
 
     final controller = ref.read(
@@ -491,9 +545,20 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
           ),
         );
       } else {
-        // Create Bridge
-        controller.createBridge(_bridgeStartPiece!, pieza);
-        setState(() => _bridgeStartPiece = null);
+        final created = await controller.createBridge(
+          _bridgeStartPiece!,
+          pieza,
+        );
+        if (mounted && !created) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Puente inválido: seleccione dos dientes de la misma arcada.',
+              ),
+            ),
+          );
+        }
+        if (mounted) setState(() => _bridgeStartPiece = null);
       }
       return;
     }

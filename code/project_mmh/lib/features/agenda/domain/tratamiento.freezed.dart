@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Tratamiento {
 
-@JsonKey(name: 'id_tratamiento') int? get idTratamiento;@JsonKey(name: 'id_clinica') int get idClinica;@JsonKey(name: 'id_expediente') String get idExpediente;@JsonKey(name: 'id_objetivo') int? get idObjetivo;@JsonKey(name: 'nombre_tratamiento') String get nombreTratamiento;@JsonKey(name: 'fecha_creacion') String get fechaCreacion;@JsonKey(name: 'estado') String get estado;
+@JsonKey(name: 'id_tratamiento') int? get idTratamiento;@JsonKey(name: 'id_clinica') int get idClinica;@JsonKey(name: 'id_expediente') String get idExpediente;@JsonKey(name: 'id_objetivo') int? get idObjetivo;@JsonKey(name: 'nombre_tratamiento') String get nombreTratamiento;@JsonKey(name: 'fecha_creacion') String get fechaCreacion;@JsonKey(name: 'estado') EstadoTratamiento get estado;
 /// Create a copy of Tratamiento
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $TratamientoCopyWith<$Res>  {
   factory $TratamientoCopyWith(Tratamiento value, $Res Function(Tratamiento) _then) = _$TratamientoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'id_tratamiento') int? idTratamiento,@JsonKey(name: 'id_clinica') int idClinica,@JsonKey(name: 'id_expediente') String idExpediente,@JsonKey(name: 'id_objetivo') int? idObjetivo,@JsonKey(name: 'nombre_tratamiento') String nombreTratamiento,@JsonKey(name: 'fecha_creacion') String fechaCreacion,@JsonKey(name: 'estado') String estado
+@JsonKey(name: 'id_tratamiento') int? idTratamiento,@JsonKey(name: 'id_clinica') int idClinica,@JsonKey(name: 'id_expediente') String idExpediente,@JsonKey(name: 'id_objetivo') int? idObjetivo,@JsonKey(name: 'nombre_tratamiento') String nombreTratamiento,@JsonKey(name: 'fecha_creacion') String fechaCreacion,@JsonKey(name: 'estado') EstadoTratamiento estado
 });
 
 
@@ -74,7 +74,7 @@ as String,idObjetivo: freezed == idObjetivo ? _self.idObjetivo : idObjetivo // i
 as int?,nombreTratamiento: null == nombreTratamiento ? _self.nombreTratamiento : nombreTratamiento // ignore: cast_nullable_to_non_nullable
 as String,fechaCreacion: null == fechaCreacion ? _self.fechaCreacion : fechaCreacion // ignore: cast_nullable_to_non_nullable
 as String,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
-as String,
+as EstadoTratamiento,
   ));
 }
 
@@ -159,7 +159,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'id_tratamiento')  int? idTratamiento, @JsonKey(name: 'id_clinica')  int idClinica, @JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'id_objetivo')  int? idObjetivo, @JsonKey(name: 'nombre_tratamiento')  String nombreTratamiento, @JsonKey(name: 'fecha_creacion')  String fechaCreacion, @JsonKey(name: 'estado')  String estado)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'id_tratamiento')  int? idTratamiento, @JsonKey(name: 'id_clinica')  int idClinica, @JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'id_objetivo')  int? idObjetivo, @JsonKey(name: 'nombre_tratamiento')  String nombreTratamiento, @JsonKey(name: 'fecha_creacion')  String fechaCreacion, @JsonKey(name: 'estado')  EstadoTratamiento estado)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Tratamiento() when $default != null:
 return $default(_that.idTratamiento,_that.idClinica,_that.idExpediente,_that.idObjetivo,_that.nombreTratamiento,_that.fechaCreacion,_that.estado);case _:
@@ -180,7 +180,7 @@ return $default(_that.idTratamiento,_that.idClinica,_that.idExpediente,_that.idO
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'id_tratamiento')  int? idTratamiento, @JsonKey(name: 'id_clinica')  int idClinica, @JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'id_objetivo')  int? idObjetivo, @JsonKey(name: 'nombre_tratamiento')  String nombreTratamiento, @JsonKey(name: 'fecha_creacion')  String fechaCreacion, @JsonKey(name: 'estado')  String estado)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'id_tratamiento')  int? idTratamiento, @JsonKey(name: 'id_clinica')  int idClinica, @JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'id_objetivo')  int? idObjetivo, @JsonKey(name: 'nombre_tratamiento')  String nombreTratamiento, @JsonKey(name: 'fecha_creacion')  String fechaCreacion, @JsonKey(name: 'estado')  EstadoTratamiento estado)  $default,) {final _that = this;
 switch (_that) {
 case _Tratamiento():
 return $default(_that.idTratamiento,_that.idClinica,_that.idExpediente,_that.idObjetivo,_that.nombreTratamiento,_that.fechaCreacion,_that.estado);case _:
@@ -200,7 +200,7 @@ return $default(_that.idTratamiento,_that.idClinica,_that.idExpediente,_that.idO
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'id_tratamiento')  int? idTratamiento, @JsonKey(name: 'id_clinica')  int idClinica, @JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'id_objetivo')  int? idObjetivo, @JsonKey(name: 'nombre_tratamiento')  String nombreTratamiento, @JsonKey(name: 'fecha_creacion')  String fechaCreacion, @JsonKey(name: 'estado')  String estado)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'id_tratamiento')  int? idTratamiento, @JsonKey(name: 'id_clinica')  int idClinica, @JsonKey(name: 'id_expediente')  String idExpediente, @JsonKey(name: 'id_objetivo')  int? idObjetivo, @JsonKey(name: 'nombre_tratamiento')  String nombreTratamiento, @JsonKey(name: 'fecha_creacion')  String fechaCreacion, @JsonKey(name: 'estado')  EstadoTratamiento estado)?  $default,) {final _that = this;
 switch (_that) {
 case _Tratamiento() when $default != null:
 return $default(_that.idTratamiento,_that.idClinica,_that.idExpediente,_that.idObjetivo,_that.nombreTratamiento,_that.fechaCreacion,_that.estado);case _:
@@ -224,7 +224,7 @@ class _Tratamiento implements Tratamiento {
 @override@JsonKey(name: 'id_objetivo') final  int? idObjetivo;
 @override@JsonKey(name: 'nombre_tratamiento') final  String nombreTratamiento;
 @override@JsonKey(name: 'fecha_creacion') final  String fechaCreacion;
-@override@JsonKey(name: 'estado') final  String estado;
+@override@JsonKey(name: 'estado') final  EstadoTratamiento estado;
 
 /// Create a copy of Tratamiento
 /// with the given fields replaced by the non-null parameter values.
@@ -259,7 +259,7 @@ abstract mixin class _$TratamientoCopyWith<$Res> implements $TratamientoCopyWith
   factory _$TratamientoCopyWith(_Tratamiento value, $Res Function(_Tratamiento) _then) = __$TratamientoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'id_tratamiento') int? idTratamiento,@JsonKey(name: 'id_clinica') int idClinica,@JsonKey(name: 'id_expediente') String idExpediente,@JsonKey(name: 'id_objetivo') int? idObjetivo,@JsonKey(name: 'nombre_tratamiento') String nombreTratamiento,@JsonKey(name: 'fecha_creacion') String fechaCreacion,@JsonKey(name: 'estado') String estado
+@JsonKey(name: 'id_tratamiento') int? idTratamiento,@JsonKey(name: 'id_clinica') int idClinica,@JsonKey(name: 'id_expediente') String idExpediente,@JsonKey(name: 'id_objetivo') int? idObjetivo,@JsonKey(name: 'nombre_tratamiento') String nombreTratamiento,@JsonKey(name: 'fecha_creacion') String fechaCreacion,@JsonKey(name: 'estado') EstadoTratamiento estado
 });
 
 
@@ -285,7 +285,7 @@ as String,idObjetivo: freezed == idObjetivo ? _self.idObjetivo : idObjetivo // i
 as int?,nombreTratamiento: null == nombreTratamiento ? _self.nombreTratamiento : nombreTratamiento // ignore: cast_nullable_to_non_nullable
 as String,fechaCreacion: null == fechaCreacion ? _self.fechaCreacion : fechaCreacion // ignore: cast_nullable_to_non_nullable
 as String,estado: null == estado ? _self.estado : estado // ignore: cast_nullable_to_non_nullable
-as String,
+as EstadoTratamiento,
   ));
 }
 

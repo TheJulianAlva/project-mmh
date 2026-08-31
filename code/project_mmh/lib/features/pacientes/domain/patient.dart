@@ -6,6 +6,8 @@ part 'patient.g.dart';
 
 @freezed
 abstract class Patient with _$Patient {
+  const Patient._();
+
   const factory Patient({
     @JsonKey(name: 'id_expediente') required String idExpediente,
     @JsonKey(name: 'nombre') required String nombre,
@@ -24,6 +26,13 @@ abstract class Patient with _$Patient {
 
   factory Patient.fromJson(Map<String, dynamic> json) =>
       _$PatientFromJson(json);
+
+  /// Nombre completo sin espacios sobrantes (segundo apellido opcional).
+  String get nombreCompleto => [
+        nombre.trim(),
+        primerApellido.trim(),
+        (segundoApellido ?? '').trim(),
+      ].where((s) => s.isNotEmpty).join(' ');
 }
 
 List<String> _parseImages(Object? value) {

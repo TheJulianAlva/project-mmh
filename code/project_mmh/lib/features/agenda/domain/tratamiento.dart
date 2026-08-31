@@ -1,5 +1,6 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:project_mmh/features/agenda/domain/estado_tratamiento.dart';
 
 part 'tratamiento.freezed.dart';
 part 'tratamiento.g.dart';
@@ -13,8 +14,7 @@ abstract class Tratamiento with _$Tratamiento {
     @JsonKey(name: 'id_objetivo') int? idObjetivo,
     @JsonKey(name: 'nombre_tratamiento') required String nombreTratamiento,
     @JsonKey(name: 'fecha_creacion') required String fechaCreacion,
-    @JsonKey(name: 'estado')
-    required String estado, // 'pendiente', 'en_proceso', 'concluido'
+    @JsonKey(name: 'estado') required EstadoTratamiento estado,
   }) = _Tratamiento;
 
   factory Tratamiento.fromJson(Map<String, dynamic> json) =>

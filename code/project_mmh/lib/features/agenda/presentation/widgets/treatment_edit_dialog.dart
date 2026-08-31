@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
+import 'package:project_mmh/core/constants/app_constants.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
-import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart'
-    hide objetivosByClinicaProvider;
+import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/objetivos_providers.dart';
+import 'package:project_mmh/features/dashboard/presentation/providers/dashboard_providers.dart';
 
 class TreatmentEditSheet extends ConsumerStatefulWidget {
   final Tratamiento tratamiento;
@@ -21,6 +22,7 @@ class TreatmentEditSheet extends ConsumerStatefulWidget {
 
 class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
   final _formKey = GlobalKey<FormBuilderState>();
+  bool _isSaving = false;
   late int _selectedClinicaId;
 
   @override
@@ -338,6 +340,7 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
                               const SizedBox(height: 12),
                               FormBuilderTextField(
                                 name: 'nombre_tratamiento',
+                                maxLength: kMaxNombreTratamiento,
                                 decoration: _getInputDecoration(
                                   'Nombre del Tratamiento',
                                 ),
@@ -363,13 +366,13 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
           ),
           const SizedBox(height: 32),
           ElevatedButton(
-            onPressed: _saveChanges,
+            onPressed: _isSaving ? null : _saveChanges,
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: const StadiumBorder(),
               elevation: 0,
             ),
-            child: const Text('Guardar'),
+            child: Text(_isSaving ? 'Guardando…' : 'Guardar'),
           ),
           const SizedBox(height: 8),
           TextButton(
@@ -407,40 +410,61 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
   }
 
   void _saveChanges() async {
-    if (_formKey.currentState?.saveAndValidate() ?? false) {
-      final values = _formKey.currentState!.value;
+    if (_isSaving) return;
+    if (!(_formKey.currentState?.saveAndValidate() ?? false)) return;
 
-      final nombre = values['nombre_tratamiento'] as String?;
-      if (nombre == null || nombre.trim().isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('El nombre no puede estar vacío')),
-          );
-        }
-        return;
+    final values = _formKey.currentState!.value;
+
+    final nombre = values['nombre_tratamiento'] as String?;
+    if (nombre == null || nombre.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('El nombre no puede estar vacío')),
+        );
       }
+      return;
+    }
 
-      final repo = ref.read(agendaRepositoryProvider);
+    setState(() => _isSaving = true);
 
-      final updatedTratamiento = widget.tratamiento.copyWith(
-        idExpediente: values['id_expediente'] as String,
-        idClinica: values['id_clinica'] as int,
-        idObjetivo: values['id_objetivo'] as int?,
-        nombreTratamiento: nombre.trim(), // Ensure trimmed
-      );
+    final repo = ref.read(agendaRepositoryProvider);
 
+    final updatedTratamiento = widget.tratamiento.copyWith(
+      idExpediente: values['id_expediente'] as String,
+      idClinica: values['id_clinica'] as int,
+      idObjetivo: values['id_objetivo'] as int?,
+      nombreTratamiento: nombre.trim(),
+    );
+
+    try {
       await repo.updateTratamiento(updatedTratamiento);
 
-      // Refresh providers
       ref.invalidate(
         tratamientoByIdProvider(widget.tratamiento.idTratamiento!),
       );
       ref.invalidate(allTratamientosRichProvider);
+      // updateTratamiento puede recalcular el progreso de los objetivos si se
+      // reasignó la clínica u objetivo del tratamiento.
+      ref.invalidate(dashboardStatsProvider);
+      ref.invalidate(objetivosByClinicaProvider(updatedTratamiento.idClinica));
+      if (widget.tratamiento.idClinica != updatedTratamiento.idClinica) {
+        ref.invalidate(
+          objetivosByClinicaProvider(widget.tratamiento.idClinica),
+        );
+      }
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Tratamiento actualizado')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo actualizar: $message')),
         );
       }
     }

@@ -128,21 +128,18 @@ class DiagnosisResultScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              TextField(
-                readOnly: true, // Por ahora read-only
-                controller: TextEditingController(
-                  text:
-                      result.treatmentRecommendation ??
-                      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.',
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                maxLines: 4,
-                decoration: InputDecoration(
-                  fillColor: theme.colorScheme.surface,
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
+                child: SelectableText(
+                  result.treatmentRecommendation?.trim().isNotEmpty == true
+                      ? result.treatmentRecommendation!
+                      : 'Sin recomendación de tratamiento para este diagnóstico.',
+                  style: theme.textTheme.bodyMedium,
                 ),
               ),
 

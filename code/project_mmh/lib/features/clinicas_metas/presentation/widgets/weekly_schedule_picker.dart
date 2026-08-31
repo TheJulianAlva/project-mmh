@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:project_mmh/core/utils/formatters.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 
 class WeeklySchedulePicker extends StatefulWidget {
@@ -183,8 +184,8 @@ class _WeeklySchedulePickerState extends State<WeeklySchedulePicker> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      final start = _formatTime(startTime);
-                      final end = _formatTime(endTime);
+                      final start = formatTimeOfDay(startTime);
+                      final end = formatTimeOfDay(endTime);
 
                       setState(() {
                         _schedule[selectedDay] = '$start-$end';
@@ -249,13 +250,6 @@ class _WeeklySchedulePickerState extends State<WeeklySchedulePicker> {
             ),
           ),
     );
-  }
-
-  String _formatTime(TimeOfDay time) {
-    // Force 24h format for consistency "HH:mm"
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
   }
 
   String _formatSchedule() {

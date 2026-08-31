@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:project_mmh/core/database/database_helper.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
+import 'package:project_mmh/features/agenda/domain/estado_tratamiento.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
-import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento_rich_model.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
@@ -13,6 +16,22 @@ class AgendaRepository {
   AgendaRepository({DatabaseHelper? dbHelper})
     : _dbHelper = dbHelper ?? DatabaseHelper();
 
+  /// Todas las fechas de `sesiones` se guardan como ISO-8601 en **hora local**
+  /// (sin sufijo `Z`). Para comparar en SQL usamos `now` truncado a segundos,
+  /// de forma que tenga la misma longitud/forma que las fechas guardadas por
+  /// los date pickers y la comparación lexicográfica sea fiable.
+  static String _nowIsoLocalSeconds() {
+    final n = DateTime.now();
+    return DateTime(
+      n.year,
+      n.month,
+      n.day,
+      n.hour,
+      n.minute,
+      n.second,
+    ).toIso8601String();
+  }
+
   // --- Tratamientos ---
 
   Future<int> createTratamiento(Tratamiento tratamiento) async {
@@ -21,16 +40,29 @@ class AgendaRepository {
 
   Future<int> updateTratamiento(Tratamiento tratamiento) async {
     final db = await _dbHelper.database;
-    return await db.update(
+    // Objetivo anterior, por si la edición lo reasigna.
+    final anterior = await getTratamientoById(tratamiento.idTratamiento!);
+
+    final rows = await db.update(
       'tratamientos',
       tratamiento.toJson(),
       where: 'id_tratamiento = ?',
       whereArgs: [tratamiento.idTratamiento],
     );
+
+    // Recalcular ambos objetivos afectados (si cambió la asignación).
+    await recalcObjetivoProgress(anterior?.idObjetivo);
+    if (tratamiento.idObjetivo != anterior?.idObjetivo) {
+      await recalcObjetivoProgress(tratamiento.idObjetivo);
+    }
+    return rows;
   }
 
   Future<void> deleteTratamiento(int idTratamiento) async {
     final db = await _dbHelper.database;
+
+    final tratamiento = await getTratamientoById(idTratamiento);
+
     // Cascade delete sessions first
     await db.delete(
       'sesiones',
@@ -43,24 +75,23 @@ class AgendaRepository {
       where: 'id_tratamiento = ?',
       whereArgs: [idTratamiento],
     );
+
+    await recalcObjetivoProgress(tratamiento?.idObjetivo);
   }
 
   Future<void> markTreatmentAsFinalized(int idTratamiento) async {
     final db = await _dbHelper.database;
 
-    // 1. Update Treatment State
+    // Marcar como concluido solo si aún no lo estaba (idempotente).
     await db.update(
       'tratamientos',
-      {'estado': 'concluido'},
-      where: 'id_tratamiento = ?',
-      whereArgs: [idTratamiento],
+      {'estado': EstadoTratamiento.concluido.dbValue},
+      where: 'id_tratamiento = ? AND estado != ?',
+      whereArgs: [idTratamiento, EstadoTratamiento.concluido.dbValue],
     );
 
-    // 2. Update Objective Progress
     final tratamiento = await getTratamientoById(idTratamiento);
-    if (tratamiento?.idObjetivo != null) {
-      await incrementObjetivoProgress(tratamiento!.idObjetivo!);
-    }
+    await recalcObjetivoProgress(tratamiento?.idObjetivo);
   }
 
   Future<List<Tratamiento>> getTratamientosByPaciente(
@@ -107,30 +138,32 @@ class AgendaRepository {
         p.idExpediente: p,
     };
 
+    // Próxima sesión por tratamiento en una sola consulta (evita N+1).
+    final proximasMap = await db.rawQuery(
+      '''
+      SELECT id_tratamiento, MIN(fecha_inicio) AS proxima
+      FROM sesiones
+      WHERE fecha_inicio >= ?
+        AND (estado_asistencia IS NULL OR estado_asistencia = ''
+             OR estado_asistencia = '${EstadoAsistencia.programada.dbValue}')
+      GROUP BY id_tratamiento
+      ''',
+      [_nowIsoLocalSeconds()],
+    );
+    final proximaPorTratamiento = <int, DateTime>{
+      for (final row in proximasMap)
+        row['id_tratamiento'] as int: DateTime.parse(row['proxima'] as String),
+    };
+
     final List<TratamientoRichModel> richList = [];
-    final now = DateTime.now();
+    var descartados = 0;
 
     for (var t in tratamientos) {
       final clinica = clinicas[t.idClinica];
       final paciente = pacientes[t.idExpediente];
-      if (clinica == null || paciente == null)
-        continue; // Should not happen with heavy constraints
-
-      // Find next session
-      final sesionesMap = await db.query(
-        'sesiones',
-        where:
-            'id_tratamiento = ? AND fecha_inicio >= ? AND (estado_asistencia IS NULL OR estado_asistencia = ? OR estado_asistencia = ?)',
-        whereArgs: [t.idTratamiento, now.toIso8601String(), 'programada', ''],
-        orderBy: 'fecha_inicio ASC',
-        limit: 1,
-      );
-
-      DateTime? proximaSesion;
-      if (sesionesMap.isNotEmpty) {
-        proximaSesion = DateTime.parse(
-          sesionesMap.first['fecha_inicio'] as String,
-        );
+      if (clinica == null || paciente == null) {
+        descartados++;
+        continue;
       }
 
       richList.add(
@@ -140,8 +173,15 @@ class AgendaRepository {
           colorClinica: clinica.color,
           nombrePaciente: '${paciente.nombre} ${paciente.primerApellido}',
           idExpediente: paciente.idExpediente,
-          proximaSesion: proximaSesion,
+          proximaSesion: proximaPorTratamiento[t.idTratamiento],
         ),
+      );
+    }
+
+    if (descartados > 0) {
+      debugPrint(
+        'getAllTratamientosRich: $descartados tratamiento(s) descartado(s) '
+        'por integridad referencial rota (clínica o paciente inexistente).',
       );
     }
 
@@ -185,13 +225,28 @@ class AgendaRepository {
       ORDER BY s.fecha_inicio ASC
     ''');
 
+    if (kDebugMode) {
+      final total = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM sesiones'),
+      );
+      if (total != null && total != result.length) {
+        debugPrint(
+          'getEnrichedSesiones: ${total - result.length} sesión(es) '
+          'oculta(s) por integridad referencial rota (tratamiento/paciente/'
+          'clínica inexistente).',
+        );
+      }
+    }
+
     return result.map((row) {
       final sesion = Sesion(
         idSesion: row['id_sesion'] as int?,
         idTratamiento: row['id_tratamiento'] as int,
         fechaInicio: row['fecha_inicio'] as String,
         fechaFin: row['fecha_fin'] as String,
-        estadoAsistencia: row['estado_asistencia'] as String?,
+        estadoAsistencia: estadoAsistenciaFromDb(
+          row['estado_asistencia'] as String?,
+        ),
       );
       return SesionRichModel(
         sesion: sesion,
@@ -241,11 +296,14 @@ class AgendaRepository {
     return result.map((e) => Sesion.fromJson(e)).toList();
   }
 
-  Future<int> updateSesionStatus(int idSesion, String nuevoEstado) async {
+  Future<int> updateSesionStatus(
+    int idSesion,
+    EstadoAsistencia nuevoEstado,
+  ) async {
     final db = await _dbHelper.database;
     return await db.update(
       'sesiones',
-      {'estado_asistencia': nuevoEstado},
+      {'estado_asistencia': nuevoEstado.dbValue},
       where: 'id_sesion = ?',
       whereArgs: [idSesion],
     );
@@ -272,32 +330,24 @@ class AgendaRepository {
 
   // --- Support Methods (Objectives, Clinicas) for Dropdowns ---
 
-  Future<List<Objetivo>> getObjetivosByClinica(int idClinica) async {
+  /// Recalcula `cantidad_actual` de un objetivo como el número real de
+  /// tratamientos concluidos que lo referencian. Es idempotente y robusto
+  /// frente a finalizar/eliminar/reasignar en cualquier orden.
+  Future<void> recalcObjetivoProgress(int? idObjetivo) async {
+    if (idObjetivo == null) return;
     final db = await _dbHelper.database;
-    final result = await db.query(
+    final count =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            "SELECT COUNT(*) FROM tratamientos "
+            "WHERE id_objetivo = ? AND estado = '${EstadoTratamiento.concluido.dbValue}'",
+            [idObjetivo],
+          ),
+        ) ??
+        0;
+    await db.update(
       'objetivos',
-      where: 'id_clinica = ?',
-      whereArgs: [idClinica],
-    );
-    return result.map((e) => Objetivo.fromJson(e)).toList();
-  }
-
-  Future<int> incrementObjetivoProgress(int idObjetivo) async {
-    final db = await _dbHelper.database;
-    // Primero obtenemos el objetivo actual
-    final result = await db.query(
-      'objetivos',
-      where: 'id_objetivo = ?',
-      whereArgs: [idObjetivo],
-    );
-    if (result.isEmpty) return 0;
-
-    final objetivo = Objetivo.fromJson(result.first);
-    final nuevaCantidad = objetivo.cantidadActual + 1;
-
-    return await db.update(
-      'objetivos',
-      {'cantidad_actual': nuevaCantidad},
+      {'cantidad_actual': count},
       where: 'id_objetivo = ?',
       whereArgs: [idObjetivo],
     );

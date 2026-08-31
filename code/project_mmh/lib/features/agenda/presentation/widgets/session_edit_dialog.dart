@@ -4,6 +4,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:project_mmh/core/presentation/widgets/cupertino_date_picker_field.dart';
+import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 
@@ -183,14 +184,28 @@ class _SessionEditSheetState extends ConsumerState<SessionEditSheet> {
   Future<void> _save(bool isEditing) async {
     if (!(_formKey.currentState?.saveAndValidate() ?? false)) return;
 
+    final values = _formKey.currentState!.value;
+    final inicioDt = values['fecha_inicio'] as DateTime;
+    final finDt = values['fecha_fin'] as DateTime;
+    if (!finDt.isAfter(inicioDt)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La sesión debe terminar después de empezar'),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
-    final values = _formKey.currentState!.value;
     final repo = ref.read(agendaRepositoryProvider);
 
-    final inicio = (values['fecha_inicio'] as DateTime).toIso8601String();
-    final fin = (values['fecha_fin'] as DateTime).toIso8601String();
-    final estado = isEditing ? widget.sesion!.estadoAsistencia : 'programada';
+    final inicio = inicioDt.toIso8601String();
+    final fin = finDt.toIso8601String();
+    final estado =
+        isEditing
+            ? widget.sesion!.estadoAsistencia
+            : EstadoAsistencia.programada;
 
     try {
       if (isEditing) {
@@ -226,9 +241,10 @@ class _SessionEditSheetState extends ConsumerState<SessionEditSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo guardar la sesión: $message')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
