@@ -163,5 +163,8 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
 final reminderSettingsProvider =
     StateNotifierProvider<ReminderSettingsNotifier, ReminderSettings>((ref) {
       final prefs = ref.watch(sharedPreferencesProvider);
-      return ReminderSettingsNotifier(prefs, ref.watch(agendaRepositoryProvider));
+      return ReminderSettingsNotifier(
+        prefs,
+        ref.watch(agendaRepositoryProvider),
+      );
     });
