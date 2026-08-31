@@ -2,8 +2,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
+import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
+import 'package:project_mmh/core/theme/app_radii.dart';
 import 'package:project_mmh/core/theme/app_semantic_colors.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
+import 'package:project_mmh/core/theme/app_typography.dart';
 import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
 import 'package:project_mmh/features/dashboard/presentation/providers/dashboard_providers.dart';
@@ -22,206 +31,184 @@ class DashboardScreen extends ConsumerWidget {
       lastViewedPeriodIdProvider,
     ); // Persistent
     final selectedClinicId = ref.watch(activeClinicIdProvider); // Global
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Inicio'),
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surface.withValues(alpha: 0.9),
-          ),
-          periodosAsync.when(
-            data: (periodos) {
-              if (periodos.isEmpty) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('No hay periodos configurados.'),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed:
-                              () => context.go('/settings/clinicas-metas'),
-                          child: const Text('Configurar Clínicas'),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              // Validate if selectedPeriodId exists in the list
-              int? validPeriodId = selectedPeriodId;
-              if (validPeriodId != null &&
-                  !periodos.any((p) => p.idPeriodo == validPeriodId)) {
-                validPeriodId = null;
-              }
-
-              // Auto-select first period if none selected or invalid
-              if (validPeriodId == null && periodos.isNotEmpty) {
-                Future.microtask(() {
-                  ref
-                      .read(lastViewedPeriodIdProvider.notifier)
-                      .setPeriod(periodos.first.idPeriodo);
-                });
-              }
-
-              return SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-
-                      // Period Selector
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Periodo Actual',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleMedium?.copyWith(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.6),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          _PeriodSelectorTrigger(
-                            periodos: periodos,
-                            selectedPeriodId: validPeriodId,
-                            onTap:
-                                () => _showPeriodPicker(
-                                  context,
-                                  ref,
-                                  periodos,
-                                  validPeriodId,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-
-                      // Clinics Section
-                      Text(
-                        'Mis Clínicas',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 14),
-                      _ClinicsHorizontalList(periodId: validPeriodId),
-                      const SizedBox(height: 32),
-
-                      // Stats Content
-                      if (selectedClinicId == null)
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            child: Text(
-                              'Selecciona una clínica para ver el progreso.',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.45),
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        const _DashboardStats(),
-
-                      const SizedBox(height: 32),
-
-                      // Quick Actions
-                      Text(
-                        'Accesos Directos',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 14),
-                      _ActionTile(
-                        icon: CupertinoIcons.person_add,
-                        label: 'Nuevo Paciente',
-                        subtitle: 'Registrar paciente',
-                        onPressed: () {
-                          context.push('/patient-create');
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      _ActionTile(
-                        icon: CupertinoIcons.heart_fill,
-                        label: 'Agregar Tratamiento',
-                        subtitle: 'Nuevo tratamiento',
-                        onPressed: () {
-                          final clinicasState = ref.read(clinicasProvider);
-
-                          clinicasState.when(
-                            data: (clinicas) {
-                              if (clinicas.isEmpty) {
-                                showDialog(
-                                  context: context,
-                                  builder:
-                                      (context) => AlertDialog(
-                                        title: const Text('Sin Clínicas'),
-                                        content: const Text(
-                                          'No se pueden crear tratamientos sin clínicas registradas. Por favor, registre una clínica primero en Configuración.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed:
-                                                () => Navigator.pop(context),
-                                            child: const Text('OK'),
-                                          ),
-                                        ],
-                                      ),
-                                );
-                              } else {
-                                context.push('/treatment-create');
-                              }
-                            },
-                            loading: () => context.push('/treatment-create'),
-                            error: (_, __) => context.push('/treatment-create'),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      _ActionTile(
-                        icon: Icons.psychology_rounded,
-                        label: 'Diagnóstico Pulpar',
-                        subtitle: 'Asistente de diagnóstico',
-                        onPressed: () {
-                          context.push('/diagnosis');
-                        },
-                      ),
-                      // Extra padding at the bottom for better scrolling
-                      const SizedBox(height: 48),
-                    ],
+    return AppScaffold(
+      title: 'Inicio',
+      showBack: false,
+      slivers: [
+        periodosAsync.when(
+          data: (periodos) {
+            if (periodos.isEmpty) {
+              return SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppEmptyState(
+                  icon: CupertinoIcons.calendar,
+                  title: 'No hay periodos configurados.',
+                  action: AppButton.primary(
+                    label: 'Configurar Clínicas',
+                    onPressed: () => context.go('/settings/clinicas-metas'),
                   ),
                 ),
               );
-            },
-            loading:
-                () => const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator()),
+            }
+
+            // Validate if selectedPeriodId exists in the list
+            int? validPeriodId = selectedPeriodId;
+            if (validPeriodId != null &&
+                !periodos.any((p) => p.idPeriodo == validPeriodId)) {
+              validPeriodId = null;
+            }
+
+            // Auto-select first period if none selected or invalid
+            if (validPeriodId == null && periodos.isNotEmpty) {
+              Future.microtask(() {
+                ref
+                    .read(lastViewedPeriodIdProvider.notifier)
+                    .setPeriod(periodos.first.idPeriodo);
+              });
+            }
+
+            return SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: AppSpacing.sm),
+
+                    // Period Selector
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Periodo Actual',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurface.withValues(
+                              alpha: AppOpacity.strong,
+                            ),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        _PeriodSelectorTrigger(
+                          periodos: periodos,
+                          selectedPeriodId: validPeriodId,
+                          onTap:
+                              () => _showPeriodPicker(
+                                context,
+                                ref,
+                                periodos,
+                                validPeriodId,
+                              ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+
+                    // Clinics Section
+                    Text(
+                      'Mis Clínicas',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _ClinicsHorizontalList(periodId: validPeriodId),
+                    const SizedBox(height: AppSpacing.xxl),
+
+                    // Stats Content
+                    if (selectedClinicId == null)
+                      const AppEmptyState(
+                        icon: CupertinoIcons.chart_bar_alt_fill,
+                        title: 'Selecciona una clínica para ver el progreso.',
+                      )
+                    else
+                      const _DashboardStats(),
+
+                    const SizedBox(height: AppSpacing.xxl),
+
+                    // Quick Actions
+                    Text(
+                      'Accesos Directos',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _ActionTile(
+                      icon: CupertinoIcons.person_add,
+                      label: 'Nuevo Paciente',
+                      subtitle: 'Registrar paciente',
+                      onPressed: () {
+                        context.push('/patient-create');
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _ActionTile(
+                      icon: CupertinoIcons.heart_fill,
+                      label: 'Agregar Tratamiento',
+                      subtitle: 'Nuevo tratamiento',
+                      onPressed: () {
+                        final clinicasState = ref.read(clinicasProvider);
+
+                        clinicasState.when(
+                          data: (clinicas) {
+                            if (clinicas.isEmpty) {
+                              showDialog(
+                                context: context,
+                                builder:
+                                    (context) => AlertDialog(
+                                      title: const Text('Sin Clínicas'),
+                                      content: const Text(
+                                        'No se pueden crear tratamientos sin clínicas registradas. Por favor, registre una clínica primero en Configuración.',
+                                      ),
+                                      actions: [
+                                        AppButton.text(
+                                          label: 'OK',
+                                          onPressed:
+                                              () => Navigator.pop(context),
+                                        ),
+                                      ],
+                                    ),
+                              );
+                            } else {
+                              context.push('/treatment-create');
+                            }
+                          },
+                          loading: () => context.push('/treatment-create'),
+                          error: (_, __) => context.push('/treatment-create'),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _ActionTile(
+                      icon: Icons.psychology_rounded,
+                      label: 'Diagnóstico Pulpar',
+                      subtitle: 'Asistente de diagnóstico',
+                      onPressed: () {
+                        context.push('/diagnosis');
+                      },
+                    ),
+                    // Extra padding at the bottom for better scrolling
+                    const SizedBox(height: AppSpacing.xxl + AppSpacing.lg),
+                  ],
                 ),
-            error:
-                (e, s) => SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: AppErrorView(
-                    message: 'No se pudieron cargar los periodos.',
-                    onRetry: () => ref.invalidate(periodosProvider),
-                  ),
+              ),
+            );
+          },
+          loading:
+              () => const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+          error:
+              (e, s) => SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppErrorView(
+                  message: 'No se pudieron cargar los periodos.',
+                  onRetry: () => ref.invalidate(periodosProvider),
                 ),
-          ),
-        ],
-      ),
+              ),
+        ),
+      ],
     );
   }
 }
@@ -235,31 +222,25 @@ class _ClinicsHorizontalList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (periodId == null) {
-      return const SizedBox(
-        height: 100,
-        child: Center(child: Text('Selecciona un periodo')),
+      return const AppEmptyState(
+        icon: CupertinoIcons.calendar,
+        title: 'Selecciona un periodo',
       );
     }
 
     final clinicasAsync = ref.watch(clinicasByPeriodoProvider(periodId!));
     final selectedClinicId = ref.watch(activeClinicIdProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return clinicasAsync.when(
       data: (clinicas) {
         if (clinicas.isEmpty) {
-          return SizedBox(
-            height: 100,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('No hay clínicas en este periodo'),
-                  TextButton(
-                    onPressed: () => context.go('/settings/clinicas-metas'),
-                    child: const Text('Agregar Clínica'),
-                  ),
-                ],
-              ),
+          return AppEmptyState(
+            icon: CupertinoIcons.building_2_fill,
+            title: 'No hay clínicas en este periodo',
+            action: AppButton.text(
+              label: 'Agregar Clínica',
+              onPressed: () => context.go('/settings/clinicas-metas'),
             ),
           );
         }
@@ -282,62 +263,53 @@ class _ClinicsHorizontalList extends ConsumerWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: clinicas.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            separatorBuilder:
+                (context, index) => const SizedBox(width: AppSpacing.md),
             itemBuilder: (context, index) {
               final clinica = clinicas[index];
               final isSelected = clinica.idClinica == selectedClinicId;
 
               final clinicColor = ClinicPalette.parse(clinica.color);
 
-              return GestureDetector(
-                onTap: () {
-                  ref.read(activeClinicIdProvider.notifier).state =
-                      clinica.idClinica;
-                },
-                child: Container(
-                  width: 180,
-                  decoration: BoxDecoration(
-                    color:
-                        isSelected
-                            ? clinicColor
-                            : Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color:
-                          isSelected
-                              ? clinicColor
-                              : Theme.of(
-                                context,
-                              ).dividerColor.withValues(alpha: 0.1),
-                      width: 1.5,
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.local_hospital,
-                        color:
-                            isSelected
-                                ? Colors.white
-                                : Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        size: 28,
-                      ),
-                      const Spacer(),
-                      Text(
-                        clinica.nombreClinica,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: isSelected ? Colors.white : null,
-                          fontWeight: FontWeight.bold,
+              return SizedBox(
+                width: 180,
+                child: AppCard(
+                  padding: EdgeInsets.zero,
+                  onTap: () {
+                    ref.read(activeClinicIdProvider.notifier).state =
+                        clinica.idClinica;
+                  },
+                  child: Container(
+                    color: isSelected ? clinicColor : null,
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.local_hospital,
+                          color:
+                              isSelected
+                                  ? scheme.onPrimary
+                                  : scheme.onSurface.withValues(
+                                    alpha: AppOpacity.strong,
+                                  ),
+                          size: 28,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                        const Spacer(),
+                        Text(
+                          clinica.nombreClinica,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleSmall?.copyWith(
+                            color: isSelected ? scheme.onPrimary : null,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -356,8 +328,8 @@ class _ClinicsHorizontalList extends ConsumerWidget {
             child: AppErrorView(
               message: 'No se pudieron cargar las clínicas.',
               compact: true,
-              onRetry: () =>
-                  ref.invalidate(clinicasByPeriodoProvider(periodId!)),
+              onRetry:
+                  () => ref.invalidate(clinicasByPeriodoProvider(periodId!)),
             ),
           ),
     );
@@ -373,68 +345,29 @@ class _DashboardStats extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(dashboardStatsProvider);
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return statsAsync.when(
       data: (objetivos) {
         if (objetivos.isEmpty) {
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color:
-                    isDark
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : Colors.black.withValues(alpha: 0.04),
-              ),
-            ),
-            child: Center(
-              child: Text(
-                'No hay metas definidas para esta clínica.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
+          return const AppEmptyState(
+            icon: CupertinoIcons.chart_bar_alt_fill,
+            title: 'No hay metas definidas para esta clínica.',
           );
         }
 
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color:
-                  isDark
-                      ? Colors.white.withValues(alpha: 0.06)
-                      : Colors.black.withValues(alpha: 0.04),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color:
-                    isDark
-                        ? Colors.black.withValues(alpha: 0.2)
-                        : Colors.black.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+        return AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(AppSpacing.xs),
                     decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      color: colorScheme.primary.withValues(
+                        alpha: AppOpacity.subtle,
+                      ),
+                      borderRadius: AppRadii.smAll,
                     ),
                     child: Icon(
                       CupertinoIcons.chart_bar_alt_fill,
@@ -442,16 +375,16 @@ class _DashboardStats extends ConsumerWidget {
                       size: 18,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     'Progreso de Metas',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                    style: AppText.cardTitle.copyWith(
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.lg),
               ...objetivos.map((obj) {
                 final progress =
                     obj.cantidadMeta > 0
@@ -464,7 +397,7 @@ class _DashboardStats extends ConsumerWidget {
                 final isComplete = progress >= 1.0;
 
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -477,17 +410,18 @@ class _DashboardStats extends ConsumerWidget {
                                   ?.copyWith(fontWeight: FontWeight.w500),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           if (isComplete)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
+                                horizontal: AppSpacing.sm,
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: context.semantic.success
-                                    .withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
+                                color: context.semantic.success.withValues(
+                                  alpha: AppOpacity.subtle,
+                                ),
+                                borderRadius: AppRadii.smAll,
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -500,11 +434,12 @@ class _DashboardStats extends ConsumerWidget {
                                   const SizedBox(width: 3),
                                   Text(
                                     '${obj.cantidadActual}/${obj.cantidadMeta}',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.labelSmall?.copyWith(
+                                    style: AppText.caption.copyWith(
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures(),
+                                      ],
+                                      fontWeight: FontWeight.w700,
                                       color: context.semantic.success,
-                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ],
@@ -513,18 +448,19 @@ class _DashboardStats extends ConsumerWidget {
                           else
                             Text(
                               '${obj.cantidadActual} / ${obj.cantidadMeta}',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.bold,
+                              style: AppText.caption.copyWith(
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                                fontWeight: FontWeight.w700,
                                 color: colorScheme.onSurface.withValues(
-                                  alpha: 0.6,
+                                  alpha: AppOpacity.strong,
                                 ),
                               ),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       _GradientProgressBar(
                         progress: progress,
                         color: progressColor,
@@ -538,12 +474,9 @@ class _DashboardStats extends ConsumerWidget {
         );
       },
       loading:
-          () => Card(
-            elevation: 0,
-            color: Theme.of(context).cardTheme.color,
-            child: Container(
+          () => AppCard(
+            child: SizedBox(
               height: 250,
-              padding: const EdgeInsets.all(16.0),
               width: double.infinity,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -552,11 +485,13 @@ class _DashboardStats extends ConsumerWidget {
                     width: 120,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: colorScheme.onSurface.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(6),
+                      color: colorScheme.onSurface.withValues(
+                        alpha: AppOpacity.hairline,
+                      ),
+                      borderRadius: AppRadii.smAll,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   Expanded(
                     child: Column(
                       children: [
@@ -565,42 +500,42 @@ class _DashboardStats extends ConsumerWidget {
                           height: 16,
                           decoration: BoxDecoration(
                             color: colorScheme.onSurface.withValues(
-                              alpha: 0.05,
+                              alpha: AppOpacity.hairline,
                             ),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: AppRadii.smAll,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.sm),
                         Container(
                           width: double.infinity,
                           height: 8,
                           decoration: BoxDecoration(
                             color: colorScheme.onSurface.withValues(
-                              alpha: 0.05,
+                              alpha: AppOpacity.hairline,
                             ),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: AppRadii.smAll,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.lg),
                         Container(
                           width: double.infinity,
                           height: 16,
                           decoration: BoxDecoration(
                             color: colorScheme.onSurface.withValues(
-                              alpha: 0.05,
+                              alpha: AppOpacity.hairline,
                             ),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: AppRadii.smAll,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.sm),
                         Container(
                           width: double.infinity,
                           height: 8,
                           decoration: BoxDecoration(
                             color: colorScheme.onSurface.withValues(
-                              alpha: 0.05,
+                              alpha: AppOpacity.hairline,
                             ),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: AppRadii.smAll,
                           ),
                         ),
                       ],
@@ -610,11 +545,12 @@ class _DashboardStats extends ConsumerWidget {
               ),
             ),
           ),
-      error: (e, s) => AppErrorView(
-        message: 'No se pudieron cargar las estadísticas.',
-        compact: true,
-        onRetry: () => ref.invalidate(dashboardStatsProvider),
-      ),
+      error:
+          (e, s) => AppErrorView(
+            message: 'No se pudieron cargar las estadísticas.',
+            compact: true,
+            onRetry: () => ref.invalidate(dashboardStatsProvider),
+          ),
     );
   }
 
@@ -636,18 +572,15 @@ class _GradientProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         return Container(
           height: 8,
           decoration: BoxDecoration(
-            color:
-                isDark
-                    ? Colors.white.withValues(alpha: 0.06)
-                    : Colors.black.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(6),
+            color: scheme.onSurface.withValues(alpha: AppOpacity.hairline),
+            borderRadius: AppRadii.smAll,
           ),
           child: Align(
             alignment: Alignment.centerLeft,
@@ -659,9 +592,12 @@ class _GradientProgressBar extends StatelessWidget {
                 return Container(
                   width: constraints.maxWidth * value,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: AppRadii.smAll,
                     gradient: LinearGradient(
-                      colors: [color.withValues(alpha: 0.7), color],
+                      colors: [
+                        color.withValues(alpha: AppOpacity.strong),
+                        color,
+                      ],
                     ),
                   ),
                 );
@@ -685,80 +621,56 @@ void _showPeriodPicker(
   int initialIndex = periodos.indexWhere((p) => p.idPeriodo == currentId);
   if (initialIndex == -1) initialIndex = 0;
 
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
+  showAppSheet<void>(
+    context,
     builder:
-        (context) => Container(
-          height: 320,
-          padding: const EdgeInsets.only(top: 12),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Cancelar',
-                        style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      'Periodo Académico',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'Listo',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 24),
-              Expanded(
-                child: CupertinoPicker(
-                  scrollController: FixedExtentScrollController(
-                    initialItem: initialIndex,
+        (context) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  AppButton.text(
+                    label: 'Cancelar',
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  itemExtent: 44,
-                  magnification: 1.1,
-                  useMagnifier: true,
-                  onSelectedItemChanged: (index) {
-                    ref
-                        .read(lastViewedPeriodIdProvider.notifier)
-                        .setPeriod(periodos[index].idPeriodo);
-                    ref.read(activeClinicIdProvider.notifier).state = null;
-                  },
-                  children:
-                      periodos
-                          .map(
-                            (p) => Center(
-                              child: Text(
-                                p.nombrePeriodo,
-                                style: const TextStyle(fontSize: 20),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                ),
+                  Text('Periodo Académico', style: AppText.cardTitle),
+                  AppButton.text(
+                    label: 'Listo',
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const Divider(height: AppSpacing.xl),
+            SizedBox(
+              height: 216,
+              child: CupertinoPicker(
+                scrollController: FixedExtentScrollController(
+                  initialItem: initialIndex,
+                ),
+                itemExtent: 44,
+                magnification: 1.1,
+                useMagnifier: true,
+                onSelectedItemChanged: (index) {
+                  ref
+                      .read(lastViewedPeriodIdProvider.notifier)
+                      .setPeriod(periodos[index].idPeriodo);
+                  ref.read(activeClinicIdProvider.notifier).state = null;
+                },
+                children:
+                    periodos
+                        .map(
+                          (p) => Center(
+                            child: Text(p.nombrePeriodo, style: AppText.body),
+                          ),
+                        )
+                        .toList(),
+              ),
+            ),
+          ],
         ),
   );
 }
@@ -791,26 +703,27 @@ class _PeriodSelectorTrigger extends StatelessWidget {
     }
 
     final colorScheme = Theme.of(context).colorScheme;
-    //final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: AppRadii.pillAll,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
-          color: colorScheme.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(24),
+          color: colorScheme.primary.withValues(alpha: AppOpacity.hairline),
+          borderRadius: AppRadii.pillAll,
           border: Border.all(
-            color: colorScheme.primary.withValues(alpha: 0.15),
-            width: 1,
+            color: colorScheme.primary.withValues(alpha: AppOpacity.subtle),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(CupertinoIcons.calendar, color: colorScheme.primary, size: 16),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             Text(
               selectedPeriod?.nombrePeriodo ?? 'Seleccionar',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -849,74 +762,52 @@ class _ActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color:
-                  isDark
-                      ? Colors.white.withValues(alpha: 0.06)
-                      : Colors.black.withValues(alpha: 0.05),
+    return AppCard(
+      onTap: onPressed,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: AppOpacity.subtle),
+              borderRadius: AppRadii.smAll,
             ),
-            boxShadow: [
-              BoxShadow(
-                color:
-                    isDark
-                        ? Colors.black.withValues(alpha: 0.15)
-                        : Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            child: Icon(icon, color: colorScheme.primary, size: 22),
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
                 ),
-                child: Icon(icon, color: colorScheme.primary, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface.withValues(
+                      alpha: AppOpacity.muted,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              Icon(
-                CupertinoIcons.chevron_right,
-                color: colorScheme.onSurface.withValues(alpha: 0.3),
-                size: 16,
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          Icon(
+            CupertinoIcons.chevron_right,
+            color: colorScheme.onSurface.withValues(alpha: AppOpacity.muted),
+            size: 16,
+          ),
+        ],
       ),
     );
   }
