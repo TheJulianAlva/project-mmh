@@ -713,7 +713,8 @@ class _AppointmentCreateScreenState
     AsyncValue<List<Patient>> patientsAsync,
   ) {
     patientsAsync.whenData((patients) {
-      showModalBottomSheet(
+      // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
+      showModalBottomSheet( // design-system-ignore: selector de appointment_create fuera del guion D3
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
@@ -801,7 +802,8 @@ class _AppointmentCreateScreenState
   }
 
   void _showPeriodPicker(BuildContext context, List<Periodo> periodos) {
-    showModalBottomSheet(
+    // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
+    showModalBottomSheet( // design-system-ignore: selector de appointment_create fuera del guion D3
       context: context,
       builder: (context) {
         return SizedBox(
@@ -825,7 +827,8 @@ class _AppointmentCreateScreenState
   }
 
   void _showClinicPicker(BuildContext context, List<dynamic> clinicas) {
-    showModalBottomSheet(
+    // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
+    showModalBottomSheet( // design-system-ignore: selector de appointment_create fuera del guion D3
       context: context,
       builder: (context) {
         return SizedBox(
@@ -854,7 +857,8 @@ class _AppointmentCreateScreenState
       ...objetivos,
     ]; // null represents "Ninguno / Personalizado"
 
-    showModalBottomSheet(
+    // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
+    showModalBottomSheet( // design-system-ignore: selector de appointment_create fuera del guion D3
       context: context,
       builder: (context) {
         return SizedBox(
