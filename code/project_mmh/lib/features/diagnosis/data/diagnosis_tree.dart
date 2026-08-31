@@ -10,7 +10,7 @@ class DiagnosisTree {
     title: 'Absceso Apical Agudo',
     description:
         'Dolor pulsátil y severo. Inflamación de tejidos blando. Pruebas térmicas negativas.',
-    color: Color(0xFFE91E63), // Pink
+    color: Color(0xFFE91E63), // design-system-ignore: paleta de dominio
     treatmentRecommendation:
         "- Drenado.\n- Medicación intraconducto.\n- Farmacoterapia.\n- Finalizar con tx de conductos.",
   );
@@ -19,7 +19,7 @@ class DiagnosisTree {
     title: 'Pulpitis Reversible',
     description:
         'Dolor agudo momentáneo. Cesa inmediatamente al retirar estímulo.',
-    color: Color(0xFF8BC34A), // LightGreen
+    color: Color(0xFF8BC34A), // design-system-ignore: paleta de dominio
     treatmentRecommendation: "- Prevención.\n- Odontología conservadora.",
   );
 
@@ -28,7 +28,7 @@ class DiagnosisTree {
     title: 'Pulpitis Irreversible Sintomática',
     description:
         'Dolor prolongado tras estímulo térmico. Reacción intensa / Dolor penetrante, punzante o nocturno.',
-    color: Color(0xFFFF9800), // Orange
+    color: Color(0xFFFF9800), // design-system-ignore: paleta de dominio
     treatmentRecommendation: "- Tratamiento de conductos.\n- Apicoformación.",
   );
 
@@ -37,7 +37,7 @@ class DiagnosisTree {
     title: 'Periodontitis Apical Sintomática',
     description:
         'Dolor severo localizado. Sensibilidad a la palpación/percusión. Sensación de "diente largo".',
-    color: Color(0xFFFF5722), // OrangeRed
+    color: Color(0xFFFF5722), // design-system-ignore: paleta de dominio
     treatmentRecommendation:
         "- Aliviar la sintomatología.\n- Ajuste de puntos altos.\n- Tratamiento de conductos.\n-Periodoncia.\n- Apicectomía.",
   );
@@ -47,21 +47,21 @@ class DiagnosisTree {
     title: 'Pulpitis Irreversible Asintomática',
     description:
         'Inflamación persistente sin síntomas agudos. Pruebas térmicas anormales.',
-    color: Color(0xFFFFEB3B), // Yellow
+    color: Color(0xFFFFEB3B), // design-system-ignore: paleta de dominio
     treatmentRecommendation: "- Tratamiento de conductos.\n- Apicoformación.",
   );
 
   static const DiagnosisResultNode osteitisCondensante = DiagnosisResultNode(
     title: 'Osteítis Condensante',
     description: 'Respuesta a inflamación leve crónica. Hallazgo radiográfico.',
-    color: Color(0xFF03A9F4), // LightBlue
+    color: Color(0xFF03A9F4), // design-system-ignore: paleta de dominio
     treatmentRecommendation: "- Tratamiento de conductos.",
   );
 
   static const DiagnosisResultNode pulpaNormal = DiagnosisResultNode(
     title: 'Pulpa Normal',
     description: 'Sin síntomas. Responde normal a pruebas.',
-    color: Color(0xFF4CAF50), // Green (similar to LightGreen but distinct)
+    color: Color(0xFF4CAF50), // design-system-ignore: paleta de dominio
     treatmentRecommendation: "- Prevención.\n- Odontología conservadora.",
   );
 
@@ -70,7 +70,7 @@ class DiagnosisTree {
     title: 'Periodontitis Apical Asintomática',
     description:
         'Secuela de periodontitis sintomática. Cambios radiolúcidos perirradiculares.',
-    color: Color(0xFFBDBDBD), // LightGray
+    color: Color(0xFFBDBDBD), // design-system-ignore: paleta de dominio
     treatmentRecommendation: "- Tratamiento de conductos.",
   );
 
@@ -78,7 +78,7 @@ class DiagnosisTree {
     title: 'Necrosis Pulpar',
     description:
         'Muerte pulpar. No responde a sensibilidad. Puede haber cambio de coloración.',
-    color: Color(0xFF9E9E9E), // Gray
+    color: Color(0xFF9E9E9E), // design-system-ignore: paleta de dominio
     treatmentRecommendation: "- Tratamiento de conductos.\n- Apicoformación.",
   );
 
