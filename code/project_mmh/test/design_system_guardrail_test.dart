@@ -146,7 +146,7 @@ void main() {
     }
     expect(
       exemptions,
-      lessThanOrEqualTo(24),
+      lessThanOrEqualTo(16),
       reason:
           'no añadir exenciones sin justificar; sube el tope conscientemente',
     );

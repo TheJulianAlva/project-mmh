@@ -4,6 +4,7 @@ import 'package:project_mmh/core/presentation/widgets/app_button.dart';
 import 'package:project_mmh/core/presentation/widgets/app_date_time_sheet.dart';
 import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
 import 'package:project_mmh/core/presentation/widgets/app_section_header.dart';
+import 'package:project_mmh/core/presentation/widgets/app_selection_sheet.dart';
 import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
@@ -22,6 +23,7 @@ import 'package:project_mmh/features/clinicas_metas/presentation/providers/clini
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/objetivos_providers.dart'
     as obj_prov;
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
+import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/periodo.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
 
@@ -708,197 +710,98 @@ class _AppointmentCreateScreenState
 
   // ─── ACTIONS ───
 
-  void _showPatientPicker(
+  Future<void> _showPatientPicker(
     BuildContext context,
     AsyncValue<List<Patient>> patientsAsync,
-  ) {
-    patientsAsync.whenData((patients) {
-      // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
-      showModalBottomSheet(
-        // design-system-ignore: selector de appointment_create fuera del guion D3
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        builder: (context) {
-          return DraggableScrollableSheet(
-            initialChildSize: 0.9,
-            minChildSize: 0.5,
-            maxChildSize: 0.95,
-            expand: false,
-            builder: (context, scrollController) {
-              String query = '';
-              return StatefulBuilder(
-                builder: (context, setModalState) {
-                  final filtered =
-                      query.trim().isEmpty
-                          ? patients
-                          : patients.where((p) {
-                            final q = query.toLowerCase();
-                            return '${p.nombre} ${p.primerApellido} '
-                                        '${p.segundoApellido ?? ''}'
-                                    .toLowerCase()
-                                    .contains(q) ||
-                                p.idExpediente.toLowerCase().contains(q);
-                          }).toList();
-                  return Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          'Seleccionar Paciente',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: CupertinoSearchTextField(
-                          placeholder: 'Buscar paciente...',
-                          onChanged: (val) => setModalState(() => query = val),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Expanded(
-                        child:
-                            filtered.isEmpty
-                                ? const Center(child: Text('Sin coincidencias'))
-                                : ListView.separated(
-                                  controller: scrollController,
-                                  itemCount: filtered.length,
-                                  separatorBuilder:
-                                      (_, __) => const Divider(height: 1),
-                                  itemBuilder: (context, index) {
-                                    final p = filtered[index];
-                                    return ListTile(
-                                      leading: CircleAvatar(
-                                        child: Text(p.nombre[0]),
-                                      ),
-                                      title: Text(
-                                        '${p.nombre} ${p.primerApellido}',
-                                      ),
-                                      subtitle: Text(p.idExpediente),
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedPatient = p;
-                                          _selectedPatientId = p.idExpediente;
-                                          _formKey
-                                              .currentState
-                                              ?.fields['id_expediente']
-                                              ?.didChange(p.idExpediente);
-                                        });
-                                        Navigator.pop(context);
-                                      },
-                                    );
-                                  },
-                                ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          );
-        },
-      );
+  ) async {
+    final patients = patientsAsync.asData?.value;
+    if (patients == null) return;
+    final p = await showAppSelectionSheet<Patient>(
+      context,
+      title: 'Seleccionar Paciente',
+      options: patients,
+      labelOf: (p) => '${p.nombre} ${p.primerApellido}',
+      sublabelOf: (p) => p.idExpediente,
+      selected: _selectedPatient,
+      searchable: true,
+      searchHint: 'Buscar paciente...',
+    );
+    if (p != null) {
+      setState(() {
+        _selectedPatient = p;
+        _selectedPatientId = p.idExpediente;
+        _formKey.currentState?.fields['id_expediente']?.didChange(
+          p.idExpediente,
+        );
+      });
+    }
+  }
+
+  Future<void> _showPeriodPicker(
+    BuildContext context,
+    List<Periodo> periodos,
+  ) async {
+    final actual =
+        periodos.where((p) => p.idPeriodo == _selectedPeriodId).firstOrNull;
+    final p = await showAppSelectionSheet<Periodo>(
+      context,
+      title: 'Periodo',
+      options: periodos,
+      labelOf: (p) => p.nombrePeriodo,
+      selected: actual,
+    );
+    if (p != null) {
+      setState(() {
+        _selectedPeriodId = p.idPeriodo;
+        _selectedClinicaId = null; // reset de clínica al cambiar periodo
+      });
+    }
+  }
+
+  Future<void> _showClinicPicker(
+    BuildContext context,
+    List<Clinica> clinicas,
+  ) async {
+    final actual =
+        clinicas.where((c) => c.idClinica == _selectedClinicaId).firstOrNull;
+    final c = await showAppSelectionSheet<Clinica>(
+      context,
+      title: 'Clínica',
+      options: clinicas,
+      labelOf: (c) => c.nombreClinica,
+      selected: actual,
+    );
+    if (c != null) setState(() => _selectedClinicaId = c.idClinica);
+  }
+
+  Future<void> _showObjetivoPicker(
+    BuildContext context,
+    List<Objetivo> objetivos,
+  ) async {
+    final labels = [
+      'Ninguno / Personalizado',
+      ...objetivos.map((o) => o.nombreTratamiento),
+    ];
+    final currentIndex =
+        _selectedObjetivo == null
+            ? 0
+            : objetivos.indexOf(_selectedObjetivo!) + 1;
+    final idx = await showAppSelectionSheet<int>(
+      context,
+      title: 'Objetivo',
+      options: List.generate(labels.length, (i) => i),
+      labelOf: (i) => labels[i],
+      selected: currentIndex,
+    );
+    if (idx == null) return; // cerró sin elegir
+    setState(() {
+      _selectedObjetivo = idx == 0 ? null : objetivos[idx - 1];
+      if (_selectedObjetivo != null) {
+        _formKey.currentState?.fields['nombre_tratamiento']?.didChange(
+          _selectedObjetivo!.nombreTratamiento,
+        );
+      }
     });
-  }
-
-  void _showPeriodPicker(BuildContext context, List<Periodo> periodos) {
-    // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
-    showModalBottomSheet(
-      // design-system-ignore: selector de appointment_create fuera del guion D3
-      context: context,
-      builder: (context) {
-        return SizedBox(
-          height: 250,
-          child: CupertinoPicker(
-            itemExtent: 40,
-            onSelectedItemChanged: (index) {
-              setState(() {
-                _selectedPeriodId = periodos[index].idPeriodo;
-                _selectedClinicaId = null; // Reset clinic on period change
-              });
-            },
-            children:
-                periodos
-                    .map((p) => Center(child: Text(p.nombrePeriodo)))
-                    .toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showClinicPicker(BuildContext context, List<dynamic> clinicas) {
-    // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
-    showModalBottomSheet(
-      // design-system-ignore: selector de appointment_create fuera del guion D3
-      context: context,
-      builder: (context) {
-        return SizedBox(
-          height: 250,
-          child: CupertinoPicker(
-            itemExtent: 40,
-            onSelectedItemChanged: (index) {
-              setState(() {
-                _selectedClinicaId = clinicas[index].idClinica;
-              });
-            },
-            children:
-                clinicas
-                    .map((c) => Center(child: Text(c.nombreClinica)))
-                    .toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showObjetivoPicker(BuildContext context, List<Objetivo> objetivos) {
-    // Add "None" option
-    final options = [
-      null,
-      ...objetivos,
-    ]; // null represents "Ninguno / Personalizado"
-
-    // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
-    showModalBottomSheet(
-      // design-system-ignore: selector de appointment_create fuera del guion D3
-      context: context,
-      builder: (context) {
-        return SizedBox(
-          height: 250,
-          child: CupertinoPicker(
-            itemExtent: 40,
-            onSelectedItemChanged: (index) {
-              final selected = options[index];
-              setState(() {
-                _selectedObjetivo = selected;
-                if (selected != null) {
-                  // Auto-fill name logic if desired
-                  _formKey.currentState?.fields['nombre_tratamiento']
-                      ?.didChange(selected.nombreTratamiento);
-                }
-              });
-            },
-            children:
-                options.map((o) {
-                  return Center(
-                    child: Text(
-                      o?.nombreTratamiento ?? 'Ninguno (Personalizado)',
-                      style:
-                          o == null
-                              ? TextStyle(
-                                color: Theme.of(context).disabledColor,
-                                fontStyle: FontStyle.italic,
-                              )
-                              : null,
-                    ),
-                  );
-                }).toList(),
-          ),
-        );
-      },
-    );
   }
 
   void _showDateTimePicker(
