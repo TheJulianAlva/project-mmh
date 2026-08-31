@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:project_mmh/core/presentation/widgets/app_button.dart';
 import 'package:project_mmh/core/presentation/widgets/app_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
 import 'package:project_mmh/core/presentation/widgets/app_confirm.dart';
 import 'package:project_mmh/core/presentation/widgets/app_date_time_sheet.dart';
 import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
@@ -128,6 +129,17 @@ class StyleGuideScreen extends StatelessWidget {
               const AppCard(
                 accentColor: Color(0xFF00C7BE),
                 child: Text('AppCard con barra de acento'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              const AppCard(
+                tint: Color(0xFFD81B60),
+                child: Text('AppCard tint (panel)'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppEntityCard(
+                title: 'AppEntityCard',
+                onTap: () {},
+                child: const Text('fila de entidad tocable'),
               ),
 
               const AppSectionHeader('Campos'),

@@ -12,12 +12,17 @@ class AppCard extends StatelessWidget {
     super.key,
     required this.child,
     this.accentColor,
+    this.tint,
     this.onTap,
     this.padding,
-  });
+  }) : assert(
+         accentColor == null || tint == null,
+         'AppCard: accentColor y tint son mutuamente excluyentes',
+       );
 
   final Widget child;
   final Color? accentColor;
+  final Color? tint;
   final VoidCallback? onTap;
   final EdgeInsetsGeometry? padding;
 
@@ -30,19 +35,28 @@ class AppCard extends StatelessWidget {
       child: child,
     );
 
+    final tinted = tint != null;
+    final bgColor =
+        tinted
+            ? tint!.withValues(
+              alpha: isDark ? AppOpacity.subtle : AppOpacity.hairline,
+            )
+            : scheme.surface;
+    final radius = tinted ? AppRadii.lgAll : AppRadii.mdAll;
+
     return Material(
-      color: scheme.surface,
-      borderRadius: AppRadii.mdAll,
+      color: bgColor,
+      borderRadius: radius,
       clipBehavior: Clip.antiAlias,
-      elevation: isDark ? 0 : 1,
+      elevation: tinted ? 0 : (isDark ? 0 : 1),
       shadowColor: Colors.black.withValues(alpha: AppOpacity.subtle),
       child: InkWell(
         onTap: onTap,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: AppRadii.mdAll,
+            borderRadius: radius,
             border:
-                isDark
+                isDark && !tinted
                     ? Border.all(
                       color: scheme.onSurface.withValues(
                         alpha: AppOpacity.hairline,
