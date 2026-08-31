@@ -36,7 +36,6 @@ class AppScaffold extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar.large(
-            pinned: true,
             automaticallyImplyLeading: showBack,
             backgroundColor: scheme.surface.withValues(alpha: 0.9),
             surfaceTintColor: Colors.transparent,

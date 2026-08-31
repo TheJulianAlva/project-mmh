@@ -13,7 +13,7 @@ import 'package:project_mmh/features/settings/presentation/providers/reminder_se
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('es_ES', null);
+  await initializeDateFormatting('es_ES');
   await ImageService.init();
   await NotificationService.instance.init(
     onNotificationTap: (_) => appRouter.go('/agenda'),

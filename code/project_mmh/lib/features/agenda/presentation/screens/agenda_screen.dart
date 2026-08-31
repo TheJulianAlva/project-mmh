@@ -138,7 +138,7 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                       children: [
                         TableCalendar(
                           locale: 'es_ES',
-                          firstDay: DateTime.utc(2020, 1, 1),
+                          firstDay: DateTime.utc(2020),
                           lastDay: DateTime.utc(2030, 12, 31),
                           focusedDay: _focusedDay,
                           calendarFormat: _calendarFormat,
@@ -153,7 +153,6 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
                             CalendarFormat.week: 'Semana',
                           },
                           headerStyle: HeaderStyle(
-                            formatButtonVisible: true,
                             formatButtonShowsNext: false,
                             formatButtonDecoration: BoxDecoration(
                               border: Border.all(
@@ -377,22 +376,22 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
     EstadoAsistencia? activeFilter,
   ) {
     final filters = <_FilterOption>[
-      _FilterOption(
+      const _FilterOption(
         label: 'Todas',
         value: null,
         icon: CupertinoIcons.list_bullet,
       ),
-      _FilterOption(
+      const _FilterOption(
         label: 'Pendientes',
         value: EstadoAsistencia.programada,
         icon: CupertinoIcons.circle_fill,
       ),
-      _FilterOption(
+      const _FilterOption(
         label: 'Asistió',
         value: EstadoAsistencia.asistio,
         icon: CupertinoIcons.checkmark_alt,
       ),
-      _FilterOption(
+      const _FilterOption(
         label: 'No asistió',
         value: EstadoAsistencia.falto,
         icon: CupertinoIcons.person_badge_minus,

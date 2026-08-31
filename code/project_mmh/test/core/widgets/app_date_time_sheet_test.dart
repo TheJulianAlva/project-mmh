@@ -7,7 +7,7 @@ void main() {
   testWidgets('devuelve el valor inicial al confirmar sin girar la rueda', (
     t,
   ) async {
-    final initial = DateTime(2026, 9, 2, 10, 0);
+    final initial = DateTime(2026, 9, 2, 10);
     DateTime? picked;
     await t.pumpWidget(
       wrap(

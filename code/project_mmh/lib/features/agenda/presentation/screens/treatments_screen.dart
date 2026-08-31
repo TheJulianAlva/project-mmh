@@ -314,7 +314,7 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
     if (activePeriodId != null && periodosAsync.hasValue) {
       final p = periodosAsync.value!.firstWhere(
         (element) => element.idPeriodo == activePeriodId,
-        orElse: () => Periodo(nombrePeriodo: 'Periodo Actual'),
+        orElse: () => const Periodo(nombrePeriodo: 'Periodo Actual'),
       );
       periodLabel = p.nombrePeriodo;
     } else if (activePeriodId != null) {

@@ -100,7 +100,7 @@ class _DiagnosisWizardScreenState extends State<DiagnosisWizardScreen> {
                       ),
                       borderRadius: AppRadii.smAll,
                     ),
-                    const Spacer(flex: 1),
+                    const Spacer(),
 
                     // Question Card
                     AnimatedSwitcher(

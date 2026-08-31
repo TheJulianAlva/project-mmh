@@ -45,7 +45,6 @@ class DiagnosisResultScreen extends StatelessWidget {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Icono / Indicador Visual
               Container(

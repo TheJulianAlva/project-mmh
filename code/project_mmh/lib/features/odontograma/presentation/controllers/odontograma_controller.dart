@@ -15,16 +15,16 @@ final odontogramaRepositoryProvider = Provider<OdontogramaRepository>((ref) {
 // autoDispose: al cerrar el odontograma el estado se libera y se relee de la BD
 // la próxima vez (evita mostrar datos obsoletos y no retiene un controller por
 // cada paciente visitado en la sesión).
-final odontogramaControllerProvider = StateNotifierProvider.autoDispose.family<
-  OdontogramaController,
-  AsyncValue<List<PiezaDental>>,
-  String
->((ref, pacienteId) {
-  return OdontogramaController(
-    ref.watch(odontogramaRepositoryProvider),
-    pacienteId,
-  );
-});
+final odontogramaControllerProvider = StateNotifierProvider.autoDispose
+    .family<OdontogramaController, AsyncValue<List<PiezaDental>>, String>((
+      ref,
+      pacienteId,
+    ) {
+      return OdontogramaController(
+        ref.watch(odontogramaRepositoryProvider),
+        pacienteId,
+      );
+    });
 
 // autoDispose: la herramienta seleccionada se reinicia a "Sano" al salir del
 // odontograma (antes persistía globalmente entre pacientes).
@@ -73,8 +73,9 @@ class OdontogramaController
   /// Toggles 'tieneSellador' property.
   /// Does NOT affect surfaces or global state (unless global is Ausente).
   Future<void> toggleSellador(PiezaDental pieza) async {
-    if (pieza.estadoGeneral == OdontogramaTools.ausente)
+    if (pieza.estadoGeneral == OdontogramaTools.ausente) {
       return; // Disabled if Absent
+    }
 
     final updatedPieza = pieza.copyWith(tieneSellador: !pieza.tieneSellador);
     await _updateLocalAndDb(updatedPieza);
@@ -144,10 +145,40 @@ class OdontogramaController
 
   // Orden físico de cada arcada (para calcular los dientes "entre" dos piezas).
   static const List<int> _upperAdult = [
-    18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28,
+    18,
+    17,
+    16,
+    15,
+    14,
+    13,
+    12,
+    11,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
   ];
   static const List<int> _lowerAdult = [
-    48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38,
+    48,
+    47,
+    46,
+    45,
+    44,
+    43,
+    42,
+    41,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
   ];
   static const List<int> _upperPed = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65];
   static const List<int> _lowerPed = [85, 84, 83, 82, 81, 71, 72, 73, 74, 75];

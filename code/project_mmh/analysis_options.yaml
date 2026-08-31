@@ -1,1 +1,13 @@
 include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - prefer_const_constructors
+    - prefer_const_constructors_in_immutables
+    - prefer_const_declarations
+    - require_trailing_commas
+    - use_decorated_box
+    - use_colored_box
+    - avoid_redundant_argument_values
+    - sized_box_for_whitespace
+    - unnecessary_parenthesis

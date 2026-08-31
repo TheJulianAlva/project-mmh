@@ -76,7 +76,6 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
       enabled: _prefs.getBool(_keyEnabled) ?? false,
       hour: _prefs.getInt(_keyHour) ?? 7,
       minute: _prefs.getInt(_keyMinute) ?? 0,
-      summaryToday: true, // Always true
       summaryTomorrow: _prefs.getBool(_keySummaryTomorrow) ?? false,
       summaryDayAfter: _prefs.getBool(_keySummaryDayAfter) ?? false,
     );

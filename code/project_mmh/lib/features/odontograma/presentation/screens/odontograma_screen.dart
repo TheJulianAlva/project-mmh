@@ -78,7 +78,6 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
       ],
       slivers: [
         SliverFillRemaining(
-          hasScrollBody: true,
           child: Column(
             children: [
               Expanded(
@@ -100,7 +99,6 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                       ),
                   data: (piezas) {
                     return SingleChildScrollView(
-                      scrollDirection: Axis.vertical,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Padding(
@@ -298,7 +296,6 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
             'Se eliminará el trabajo registrado en las piezas temporales '
             '(51-85). Esta acción no se puede deshacer.',
         confirmLabel: 'Eliminar',
-        cancelLabel: 'Cancelar',
         destructive: true,
       );
       if (!confirmed) return;

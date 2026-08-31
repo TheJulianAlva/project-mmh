@@ -636,7 +636,7 @@ void _showPeriodPicker(
                     label: 'Cancelar',
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Text('Periodo Académico', style: AppText.cardTitle),
+                  const Text('Periodo Académico', style: AppText.cardTitle),
                   AppButton.text(
                     label: 'Listo',
                     onPressed: () => Navigator.pop(context),

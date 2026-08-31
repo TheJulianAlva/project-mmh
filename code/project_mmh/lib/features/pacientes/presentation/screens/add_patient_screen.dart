@@ -308,7 +308,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                                   _selectedImages.removeAt(index);
                                 });
                               },
-                              child: Container(
+                              child: ColoredBox(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.error.withValues(alpha: 0.8),

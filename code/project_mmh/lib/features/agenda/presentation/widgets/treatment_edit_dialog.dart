@@ -291,7 +291,6 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
                                     ),
                                     items: [
                                       DropdownMenuItem<int?>(
-                                        value: null,
                                         child: Text(
                                           '-- Otro / Personalizado --',
                                           style: TextStyle(

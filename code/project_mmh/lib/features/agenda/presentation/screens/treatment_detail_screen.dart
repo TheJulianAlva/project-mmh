@@ -253,7 +253,7 @@ class TreatmentDetailScreen extends ConsumerWidget {
         builder:
             (ctx) => CupertinoAlertDialog(
               title: const Text('Límite Alcanzado'),
-              content: Text(
+              content: const Text(
                 'No se pueden agregar más de $kMaxSesionesPorTratamiento '
                 'sesiones a un tratamiento.',
               ),

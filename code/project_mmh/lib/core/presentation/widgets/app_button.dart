@@ -80,7 +80,7 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final effectiveOnPressed = loading ? null : onPressed;
-    final shape = const RoundedRectangleBorder(borderRadius: AppRadii.pillAll);
+    const shape = RoundedRectangleBorder(borderRadius: AppRadii.pillAll);
     const padding = EdgeInsets.symmetric(
       horizontal: AppSpacing.xl,
       vertical: AppSpacing.md,

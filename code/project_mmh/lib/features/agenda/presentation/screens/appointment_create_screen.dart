@@ -132,7 +132,7 @@ class _AppointmentCreateScreenState
                                   () =>
                                       periodos.isNotEmpty
                                           ? periodos.first
-                                          : Periodo(
+                                          : const Periodo(
                                             nombrePeriodo: 'Sin Periodos',
                                           ),
                             );
@@ -470,7 +470,7 @@ class _AppointmentCreateScreenState
                             builder:
                                 (ctx) => CupertinoAlertDialog(
                                   title: const Text('Límite Alcanzado'),
-                                  content: Text(
+                                  content: const Text(
                                     'No se pueden agregar más de $kMaxSesionesPorTratamiento '
                                     'sesiones a un tratamiento.',
                                   ),
@@ -714,7 +714,8 @@ class _AppointmentCreateScreenState
   ) {
     patientsAsync.whenData((patients) {
       // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
-      showModalBottomSheet( // design-system-ignore: selector de appointment_create fuera del guion D3
+      showModalBottomSheet(
+        // design-system-ignore: selector de appointment_create fuera del guion D3
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
@@ -803,7 +804,8 @@ class _AppointmentCreateScreenState
 
   void _showPeriodPicker(BuildContext context, List<Periodo> periodos) {
     // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
-    showModalBottomSheet( // design-system-ignore: selector de appointment_create fuera del guion D3
+    showModalBottomSheet(
+      // design-system-ignore: selector de appointment_create fuera del guion D3
       context: context,
       builder: (context) {
         return SizedBox(
@@ -828,7 +830,8 @@ class _AppointmentCreateScreenState
 
   void _showClinicPicker(BuildContext context, List<dynamic> clinicas) {
     // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
-    showModalBottomSheet( // design-system-ignore: selector de appointment_create fuera del guion D3
+    showModalBottomSheet(
+      // design-system-ignore: selector de appointment_create fuera del guion D3
       context: context,
       builder: (context) {
         return SizedBox(
@@ -858,7 +861,8 @@ class _AppointmentCreateScreenState
     ]; // null represents "Ninguno / Personalizado"
 
     // design-system-ignore: selector de appointment_create fuera del guion D3, migración cambiaría comportamiento
-    showModalBottomSheet( // design-system-ignore: selector de appointment_create fuera del guion D3
+    showModalBottomSheet(
+      // design-system-ignore: selector de appointment_create fuera del guion D3
       context: context,
       builder: (context) {
         return SizedBox(

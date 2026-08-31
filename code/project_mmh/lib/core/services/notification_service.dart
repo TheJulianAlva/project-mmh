@@ -48,11 +48,7 @@ class NotificationService {
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/launcher_icon',
     );
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    const iosSettings = DarwinInitializationSettings();
 
     const initSettings = InitializationSettings(
       android: androidSettings,
@@ -211,7 +207,6 @@ class NotificationService {
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        matchDateTimeComponents: null, // One-shot, not repeating
       );
     }
   }

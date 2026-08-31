@@ -270,25 +270,28 @@ class _ToothPainter extends CustomPainter {
       if (state == OdontogramaTools.caries) {
         paint.color = palette.caries;
         paint.style = PaintingStyle.fill;
-        if (rect != null)
+        if (rect != null) {
           canvas.drawRect(rect, paint);
-        else
+        } else {
           canvas.drawPath(path, paint);
+        }
       } else if (state == OdontogramaTools.obturacion) {
         paint.color = palette.obturacion;
         paint.style = PaintingStyle.fill;
-        if (rect != null)
+        if (rect != null) {
           canvas.drawRect(rect, paint);
-        else
+        } else {
           canvas.drawPath(path, paint);
+        }
       } else if (state == OdontogramaTools.restauracionFiltrada) {
         // Blue Fill
         paint.color = palette.obturacion;
         paint.style = PaintingStyle.fill;
-        if (rect != null)
+        if (rect != null) {
           canvas.drawRect(rect, paint);
-        else
+        } else {
           canvas.drawPath(path, paint);
+        }
 
         // Red Border (on top of normal border, so we draw it separately or just change stroke color?)
         // Requirement: "borde de color rojo".
@@ -301,26 +304,29 @@ class _ToothPainter extends CustomPainter {
               ..color = palette.caries
               ..strokeWidth = 2.0;
 
-        if (rect != null)
+        if (rect != null) {
           canvas.drawRect(rect, redBorderPaint);
-        else
+        } else {
           canvas.drawPath(path, redBorderPaint);
+        }
       } else {
         paint.color = palette.fill; // Sano
         paint.style = PaintingStyle.fill;
-        if (rect != null)
+        if (rect != null) {
           canvas.drawRect(rect, paint);
-        else
+        } else {
           canvas.drawPath(path, paint);
+        }
       }
 
       // Draw Border
       paint.color = palette.border;
       paint.style = PaintingStyle.stroke;
-      if (rect != null)
+      if (rect != null) {
         canvas.drawRect(rect, strokePaint);
-      else
+      } else {
         canvas.drawPath(path, strokePaint);
+      }
 
       // Fractura (Zigzag)
       if (state == OdontogramaTools.fractura) {
@@ -335,12 +341,12 @@ class _ToothPainter extends CustomPainter {
           path.moveTo(p1.dx, p1.dy);
           final dx = p2.dx - p1.dx;
           final dy = p2.dy - p1.dy;
-          final steps = 4;
+          const steps = 4;
           for (int i = 0; i < steps; i++) {
             final x = p1.dx + dx * (i + 0.5) / steps;
             final y = p1.dy + dy * (i + 0.5) / steps;
             // Simple approx: wiggle perp to main dir
-            final len = 3.0; // Amplitude
+            const len = 3.0; // Amplitude
             double perpX = 0;
             double perpY = 0;
             if (dx.abs() > dy.abs()) {
