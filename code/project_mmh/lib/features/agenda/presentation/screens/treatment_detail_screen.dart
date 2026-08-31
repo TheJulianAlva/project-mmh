@@ -13,9 +13,12 @@ import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 
 // Widgets
 import 'package:project_mmh/core/constants/app_constants.dart';
+import 'package:project_mmh/core/presentation/widgets/app_confirm.dart';
+import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
+import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
 import 'package:project_mmh/core/theme/clinic_palette.dart';
-import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/treatment_edit_dialog.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_edit_dialog.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/treatment_info_card.dart';
@@ -48,212 +51,182 @@ class TreatmentDetailScreen extends ConsumerWidget {
             ? ref.watch(clinicaByIdProvider(tratamientoAsync.value!.idClinica))
             : const AsyncValue.data(null);
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Tratamiento'),
-            previousPageTitle: 'Atrás',
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surface.withValues(alpha: 0.95),
-            border: null,
-          ),
-
-          // ── Content ──
-          tratamientoAsync.when(
-            data: (tratamiento) {
-              if (tratamiento == null) {
-                return const SliverFillRemaining(
-                  child: Center(child: Text('Tratamiento no encontrado')),
-                );
-              }
-
-              // Nombre del paciente (no usar 'Cargando...'/'Error' como nombre real)
-              String patientName = '';
-              if (patientAsync.hasValue && patientAsync.value != null) {
-                final p = patientAsync.value!;
-                patientName = '${p.nombre} ${p.primerApellido}';
-              }
-
-              // Determine Clinic Info
-              String? clinicName;
-              Color? clinicColor;
-              if (clinicAsync.hasValue && clinicAsync.value != null) {
-                clinicName = clinicAsync.value!.nombreClinica;
-                clinicColor = ClinicPalette.parse(clinicAsync.value!.color);
-              }
-
-              final isConcluded =
-                  tratamiento.estado == EstadoTratamiento.concluido;
-
-              return SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 20,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 1. Info Card
-                      TreatmentInfoCard(
-                        treatmentName: tratamiento.nombreTratamiento,
-                        patientName: patientName.isEmpty ? '—' : patientName,
-                        clinicName: clinicName,
-                        status: tratamiento.estado,
-                        clinicColor: clinicColor,
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 2. Action Bar
-                      TreatmentActionBar(
-                        isConcluded: isConcluded,
-                        onAddSession:
-                            () => _addSesion(
-                              context,
-                              tratamientoId,
-                              sesionesAsync.value?.length,
-                            ),
-                        onEdit: () => _editTreatment(context, tratamiento),
-                        onFinalize:
-                            isConcluded
-                                ? null
-                                : () => _finalizeTreatment(
-                                  context,
-                                  ref,
-                                  tratamiento.idClinica,
-                                ),
-                        onDelete:
-                            isConcluded
-                                ? () => _deleteTreatment(
-                                  context,
-                                  ref,
-                                  tratamientoId,
-                                  tratamiento.idClinica,
-                                )
-                                : null,
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // 3. Timeline Title
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, bottom: 16),
-                        child: Text(
-                          'Historial de Sesiones',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-
-                      // 4. Timeline List
-                      sesionesAsync.when(
-                        data: (sesiones) {
-                          if (sesiones.isEmpty) {
-                            return _buildEmptyState(context);
-                          }
-
-                          // Convert to Rich Model for Timeline
-                          // Note: We create rich models on the fly using available data
-                          final richSessions =
-                              sesiones
-                                  .map(
-                                    (s) => SesionRichModel(
-                                      sesion: s,
-                                      nombrePaciente: patientName,
-                                      nombreTratamiento:
-                                          tratamiento.nombreTratamiento,
-                                      nombreClinica: clinicName ?? 'Clínica',
-                                      colorClinica:
-                                          clinicAsync.value?.color ?? '#000000',
-                                    ),
-                                  )
-                                  .toList();
-
-                          // Sort by date desc (if not already) or asc depending on preference.
-                          // Usually timelines are newest top, but agenda is often oldest top?
-                          // Let's assume the provider gives them in correct order.
-
-                          return TreatmentTimelineList(
-                            sessions: richSessions,
-                            onRefresh: () {
-                              ref.invalidate(
-                                sesionesByTratamientoProvider(tratamientoId),
-                              );
-                              ref.invalidate(
-                                tratamientoByIdProvider(tratamientoId),
-                              );
-                              ref.invalidate(allTratamientosRichProvider);
-                            },
-                          );
-                        },
-                        loading:
-                            () => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                        error:
-                            (e, _) => AppErrorView(
-                              message: 'No se pudieron cargar las sesiones.',
-                              compact: true,
-                              onRetry:
-                                  () => ref.invalidate(
-                                    sesionesByTratamientoProvider(
-                                      tratamientoId,
-                                    ),
-                                  ),
-                            ),
-                      ),
-
-                      // Extra padding for safe area
-                      const SizedBox(height: 40),
-                    ],
-                  ),
-                ),
+    return AppScaffold(
+      title: 'Tratamiento',
+      slivers: [
+        // ── Content ──
+        tratamientoAsync.when(
+          data: (tratamiento) {
+            if (tratamiento == null) {
+              return const SliverFillRemaining(
+                child: Center(child: Text('Tratamiento no encontrado')),
               );
-            },
-            loading:
-                () => const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
+            }
+
+            // Nombre del paciente (no usar 'Cargando...'/'Error' como nombre real)
+            String patientName = '';
+            if (patientAsync.hasValue && patientAsync.value != null) {
+              final p = patientAsync.value!;
+              patientName = '${p.nombre} ${p.primerApellido}';
+            }
+
+            // Determine Clinic Info
+            String? clinicName;
+            Color? clinicColor;
+            if (clinicAsync.hasValue && clinicAsync.value != null) {
+              clinicName = clinicAsync.value!.nombreClinica;
+              clinicColor = ClinicPalette.parse(clinicAsync.value!.color);
+            }
+
+            final isConcluded =
+                tratamiento.estado == EstadoTratamiento.concluido;
+
+            return SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
                 ),
-            error:
-                (e, _) => SliverFillRemaining(
-                  child: AppErrorView(
-                    message: 'No se pudo cargar el tratamiento.',
-                    onRetry:
-                        () => ref.invalidate(
-                          tratamientoByIdProvider(tratamientoId),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. Info Card
+                    TreatmentInfoCard(
+                      treatmentName: tratamiento.nombreTratamiento,
+                      patientName: patientName.isEmpty ? '—' : patientName,
+                      clinicName: clinicName,
+                      status: tratamiento.estado,
+                      clinicColor: clinicColor,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 2. Action Bar
+                    TreatmentActionBar(
+                      isConcluded: isConcluded,
+                      onAddSession:
+                          () => _addSesion(
+                            context,
+                            tratamientoId,
+                            sesionesAsync.value?.length,
+                          ),
+                      onEdit: () => _editTreatment(context, tratamiento),
+                      onFinalize:
+                          isConcluded
+                              ? null
+                              : () => _finalizeTreatment(
+                                context,
+                                ref,
+                                tratamiento.idClinica,
+                              ),
+                      onDelete:
+                          isConcluded
+                              ? () => _deleteTreatment(
+                                context,
+                                ref,
+                                tratamientoId,
+                                tratamiento.idClinica,
+                              )
+                              : null,
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // 3. Timeline Title
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 16),
+                      child: Text(
+                        'Historial de Sesiones',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
-                  ),
+                      ),
+                    ),
+
+                    // 4. Timeline List
+                    sesionesAsync.when(
+                      data: (sesiones) {
+                        if (sesiones.isEmpty) {
+                          return _buildEmptyState(context);
+                        }
+
+                        // Convert to Rich Model for Timeline
+                        // Note: We create rich models on the fly using available data
+                        final richSessions =
+                            sesiones
+                                .map(
+                                  (s) => SesionRichModel(
+                                    sesion: s,
+                                    nombrePaciente: patientName,
+                                    nombreTratamiento:
+                                        tratamiento.nombreTratamiento,
+                                    nombreClinica: clinicName ?? 'Clínica',
+                                    colorClinica:
+                                        clinicAsync.value?.color ?? '#000000',
+                                  ),
+                                )
+                                .toList();
+
+                        // Sort by date desc (if not already) or asc depending on preference.
+                        // Usually timelines are newest top, but agenda is often oldest top?
+                        // Let's assume the provider gives them in correct order.
+
+                        return TreatmentTimelineList(
+                          sessions: richSessions,
+                          onRefresh: () {
+                            ref.invalidate(
+                              sesionesByTratamientoProvider(tratamientoId),
+                            );
+                            ref.invalidate(
+                              tratamientoByIdProvider(tratamientoId),
+                            );
+                            ref.invalidate(allTratamientosRichProvider);
+                          },
+                        );
+                      },
+                      loading:
+                          () =>
+                              const Center(child: CircularProgressIndicator()),
+                      error:
+                          (e, _) => AppErrorView(
+                            message: 'No se pudieron cargar las sesiones.',
+                            compact: true,
+                            onRetry:
+                                () => ref.invalidate(
+                                  sesionesByTratamientoProvider(tratamientoId),
+                                ),
+                          ),
+                    ),
+
+                    // Extra padding for safe area
+                    const SizedBox(height: 40),
+                  ],
                 ),
-          ),
-        ],
-      ),
+              ),
+            );
+          },
+          loading:
+              () => const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+          error:
+              (e, _) => SliverFillRemaining(
+                child: AppErrorView(
+                  message: 'No se pudo cargar el tratamiento.',
+                  onRetry:
+                      () => ref.invalidate(
+                        tratamientoByIdProvider(tratamientoId),
+                      ),
+                ),
+              ),
+        ),
+      ],
     );
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Column(
-          children: [
-            Icon(
-              CupertinoIcons.calendar_badge_plus,
-              size: 48,
-              color: Theme.of(context).disabledColor.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No hay sesiones registradas',
-              style: TextStyle(
-                color: Theme.of(context).disabledColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return const AppEmptyState(
+      icon: CupertinoIcons.calendar_badge_plus,
+      title: 'No hay sesiones registradas',
     );
   }
 
@@ -295,16 +268,16 @@ class TreatmentDetailScreen extends ConsumerWidget {
       return;
     }
 
-    showCustomBottomSheet(
-      context: context,
-      child: SessionEditSheet(idTratamiento: idTratamiento),
+    showAppSheet(
+      context,
+      builder: (_) => SessionEditSheet(idTratamiento: idTratamiento),
     );
   }
 
   void _editTreatment(BuildContext context, dynamic tratamiento) {
-    showCustomBottomSheet(
-      context: context,
-      child: TreatmentEditSheet(tratamiento: tratamiento),
+    showAppSheet(
+      context,
+      builder: (_) => TreatmentEditSheet(tratamiento: tratamiento),
     );
   }
 
@@ -313,28 +286,15 @@ class TreatmentDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     int clinicId,
   ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('¿Finalizar Tratamiento?'),
-            content: const Text(
-              'Esto marcará el tratamiento como concluido y actualizará el progreso del objetivo asociado.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Finalizar'),
-              ),
-            ],
-          ),
+    final confirmed = await showAppConfirm(
+      context,
+      title: '¿Finalizar Tratamiento?',
+      message:
+          'Esto marcará el tratamiento como concluido y actualizará el progreso del objetivo asociado.',
+      confirmLabel: 'Finalizar',
     );
 
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       final repo = ref.read(agendaRepositoryProvider);
@@ -365,35 +325,16 @@ class TreatmentDetailScreen extends ConsumerWidget {
     int id,
     int clinicId,
   ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Eliminar Tratamiento'),
-            content: const Text(
-              '¿Estás seguro de eliminar este tratamiento? Se eliminarán también todas sus sesiones asociadas.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(ctx).colorScheme.error,
-                  foregroundColor: Theme.of(ctx).colorScheme.onError,
-                ),
-                child: const Text(
-                  'Eliminar',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
+    final confirmed = await showAppConfirm(
+      context,
+      title: 'Eliminar Tratamiento',
+      message:
+          '¿Estás seguro de eliminar este tratamiento? Se eliminarán también todas sus sesiones asociadas.',
+      confirmLabel: 'Eliminar',
+      destructive: true,
     );
 
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       final repo = ref.read(agendaRepositoryProvider);

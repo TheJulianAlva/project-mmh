@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:project_mmh/core/constants/app_constants.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_date_time_sheet.dart';
+import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
+import 'package:project_mmh/core/presentation/widgets/app_section_header.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,485 +83,450 @@ class _AppointmentCreateScreenState
       _selectedPeriodId = periodosDisponibles.first.idPeriodo;
     }
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Nuevo Tratamiento'),
-            backgroundColor: colorScheme.surface.withValues(alpha: 0.9),
-            trailing: TextButton(
-              onPressed: _isSaving ? null : _saveAppointment,
-              child: Text(
-                _isSaving ? 'Guardando…' : 'Guardar',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.primary,
-                ),
-              ),
-            ),
-            previousPageTitle: 'Atrás',
-          ),
-          SliverToBoxAdapter(
-            child: FormBuilder(
-              key: _formKey,
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
+    return AppScaffold(
+      title: 'Nuevo Tratamiento',
+      actions: [
+        AppButton.primary(
+          label: 'Guardar',
+          loading: _isSaving,
+          onPressed: _saveAppointment,
+        ),
+      ],
+      slivers: [
+        SliverToBoxAdapter(
+          child: FormBuilder(
+            key: _formKey,
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
 
-                  // ─── SECTION 1: QUIÉN & CUÁNDO (PACIENTE & PERIODO) ───
-                  _buildSectionHeader(context, 'INFORMACIÓN BÁSICA'),
-                  _buildGroupedSection(
-                    context,
-                    children: [
-                      // Paciente Selector
-                      _buildSelectorRow(
-                        context,
-                        label: 'Paciente',
-                        value:
-                            _selectedPatient != null
-                                ? '${_selectedPatient!.nombre} ${_selectedPatient!.primerApellido}'
-                                : _selectedPatientId ?? 'Seleccionar',
-                        isPlaceholder:
-                            _selectedPatient == null &&
-                            _selectedPatientId == null,
-                        icon: CupertinoIcons.person_fill,
-                        onTap: () => _showPatientPicker(context, patientsAsync),
-                      ),
-                      _buildDivider(context),
-                      // Periodo Selector
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final periodosAsync = ref.watch(periodosProvider);
-                          return periodosAsync.when(
-                            data: (periodos) {
-                              final selected = periodos.firstWhere(
-                                (p) => p.idPeriodo == _selectedPeriodId,
-                                orElse:
-                                    () =>
-                                        periodos.isNotEmpty
-                                            ? periodos.first
-                                            : Periodo(
-                                              nombrePeriodo: 'Sin Periodos',
-                                            ),
-                              );
-                              return _buildSelectorRow(
-                                context,
-                                label: 'Periodo',
-                                value: selected.nombrePeriodo,
-                                icon: CupertinoIcons.calendar,
-                                onTap:
-                                    () => _showPeriodPicker(context, periodos),
-                              );
-                            },
-                            loading:
-                                () => _buildLoadingRow(
-                                  context,
-                                  'Cargando periodos...',
-                                ),
-                            error:
-                                (_, __) => _buildErrorRow(
-                                  context,
-                                  'Error en periodos',
-                                ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ─── SECTION 2: DÓNDE & QUÉ (CLÍNICA & TRATAMIENTO) ───
-                  _buildSectionHeader(context, 'TRATAMIENTO'),
-                  if (_selectedPeriodId != null)
+                // ─── SECTION 1: QUIÉN & CUÁNDO (PACIENTE & PERIODO) ───
+                _buildSectionHeader(context, 'INFORMACIÓN BÁSICA'),
+                _buildGroupedSection(
+                  context,
+                  children: [
+                    // Paciente Selector
+                    _buildSelectorRow(
+                      context,
+                      label: 'Paciente',
+                      value:
+                          _selectedPatient != null
+                              ? '${_selectedPatient!.nombre} ${_selectedPatient!.primerApellido}'
+                              : _selectedPatientId ?? 'Seleccionar',
+                      isPlaceholder:
+                          _selectedPatient == null &&
+                          _selectedPatientId == null,
+                      icon: CupertinoIcons.person_fill,
+                      onTap: () => _showPatientPicker(context, patientsAsync),
+                    ),
+                    _buildDivider(context),
+                    // Periodo Selector
                     Consumer(
                       builder: (context, ref, _) {
-                        final clinicasAsync = ref.watch(
-                          clinicasByPeriodoProvider(_selectedPeriodId!),
-                        );
-                        return clinicasAsync.when(
-                          data: (clinicas) {
-                            // Auto-select if only one or if null
-                            if (_selectedClinicaId == null &&
-                                clinicas.isNotEmpty) {
-                              // Avoid state update during build - handle in logic or just display placeholder
-                            }
-
-                            final displayValue =
-                                _selectedClinicaId != null
-                                    ? clinicas
-                                        .firstWhere(
-                                          (c) =>
-                                              c.idClinica == _selectedClinicaId,
-                                          orElse: () => clinicas.first,
-                                        )
-                                        .nombreClinica
-                                    : 'Seleccionar Clínica';
-
-                            return _buildGroupedSection(
+                        final periodosAsync = ref.watch(periodosProvider);
+                        return periodosAsync.when(
+                          data: (periodos) {
+                            final selected = periodos.firstWhere(
+                              (p) => p.idPeriodo == _selectedPeriodId,
+                              orElse:
+                                  () =>
+                                      periodos.isNotEmpty
+                                          ? periodos.first
+                                          : Periodo(
+                                            nombrePeriodo: 'Sin Periodos',
+                                          ),
+                            );
+                            return _buildSelectorRow(
                               context,
-                              children: [
-                                _buildSelectorRow(
-                                  context,
-                                  label: 'Clínica',
-                                  value: displayValue,
-                                  isPlaceholder: _selectedClinicaId == null,
-                                  icon: CupertinoIcons.building_2_fill,
-                                  onTap:
-                                      () =>
-                                          _showClinicPicker(context, clinicas),
-                                ),
-                                _buildDivider(context),
-                                // Objetivo / Tratamiento Selector
-                                if (_selectedClinicaId != null) ...[
-                                  Consumer(
-                                    builder: (context, ref, _) {
-                                      final objetivosAsync = ref.watch(
-                                        obj_prov.objetivosByClinicaProvider(
-                                          _selectedClinicaId!,
-                                        ),
-                                      );
-                                      return objetivosAsync.when(
-                                        data: (objetivos) {
-                                          // We need to store a custom treatment name if "Custom" is selected
-                                          // For now, let's keep it simple: Treatment Name Input
-                                          // Ideally detailed picker for "Existing Goal" vs "Custom"
-                                          return Column(
-                                            children: [
-                                              _buildSelectorRow(
-                                                context,
-                                                label: 'Objetivo',
-                                                value:
-                                                    _selectedObjetivo
-                                                        ?.nombreTratamiento ??
-                                                    'Ninguno (Personalizado)',
-                                                icon: CupertinoIcons.scope,
-                                                onTap:
-                                                    () => _showObjetivoPicker(
-                                                      context,
-                                                      objetivos,
-                                                    ),
-                                              ),
-                                              _buildDivider(context),
-                                              _buildTextFieldRow(
-                                                context,
-                                                name: 'nombre_tratamiento',
-                                                label: 'Nombre',
-                                                placeholder: 'Ej. Endodoncia',
-                                                icon:
-                                                    CupertinoIcons
-                                                        .doc_text_fill,
-                                                maxLength:
-                                                    kMaxNombreTratamiento,
-                                                validator: (val) {
-                                                  if (val == null ||
-                                                      val.trim().isEmpty) {
-                                                    return 'Nombre inválido';
-                                                  }
-                                                  return null;
-                                                },
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                        loading:
-                                            () => _buildLoadingRow(
-                                              context,
-                                              'Cargando objetivos...',
-                                            ),
-                                        error:
-                                            (_, __) => _buildErrorRow(
-                                              context,
-                                              'Error al cargar objetivos',
-                                            ),
-                                      );
-                                    },
-                                  ),
-                                ] else ...[
-                                  _buildDisabledRow(
-                                    context,
-                                    'Seleccione una clínica primero',
-                                  ),
-                                ],
-                              ],
+                              label: 'Periodo',
+                              value: selected.nombrePeriodo,
+                              icon: CupertinoIcons.calendar,
+                              onTap: () => _showPeriodPicker(context, periodos),
                             );
                           },
                           loading:
-                              () => _buildGroupedSection(
+                              () => _buildLoadingRow(
                                 context,
-                                children: [
-                                  _buildLoadingRow(
-                                    context,
-                                    'Cargando clínicas...',
-                                  ),
-                                ],
+                                'Cargando periodos...',
                               ),
                           error:
-                              (_, __) => _buildGroupedSection(
-                                context,
-                                children: [
-                                  _buildErrorRow(
-                                    context,
-                                    'Error al cargar clínicas',
-                                  ),
-                                ],
-                              ),
+                              (_, __) =>
+                                  _buildErrorRow(context, 'Error en periodos'),
                         );
                       },
                     ),
+                  ],
+                ),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-                  // ─── SECTION 3: PROGRAMACIÓN (SESIONES) ───
-                  _buildSectionHeader(context, 'PLANIFICACIÓN'),
+                // ─── SECTION 2: DÓNDE & QUÉ (CLÍNICA & TRATAMIENTO) ───
+                _buildSectionHeader(context, 'TRATAMIENTO'),
+                if (_selectedPeriodId != null)
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final clinicasAsync = ref.watch(
+                        clinicasByPeriodoProvider(_selectedPeriodId!),
+                      );
+                      return clinicasAsync.when(
+                        data: (clinicas) {
+                          // Auto-select if only one or if null
+                          if (_selectedClinicaId == null &&
+                              clinicas.isNotEmpty) {
+                            // Avoid state update during build - handle in logic or just display placeholder
+                          }
 
-                  _buildGroupedSection(
-                    context,
-                    children: [
-                      // Session 1 Header
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        color: Theme.of(context).colorScheme.surface,
-                        child: Row(
-                          children: [
-                            Icon(
-                              CupertinoIcons.clock_fill,
-                              size: 20,
-                              color: colorScheme.primary,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Sesión Inicial',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
+                          final displayValue =
+                              _selectedClinicaId != null
+                                  ? clinicas
+                                      .firstWhere(
+                                        (c) =>
+                                            c.idClinica == _selectedClinicaId,
+                                        orElse: () => clinicas.first,
+                                      )
+                                      .nombreClinica
+                                  : 'Seleccionar Clínica';
+
+                          return _buildGroupedSection(
+                            context,
+                            children: [
+                              _buildSelectorRow(
+                                context,
+                                label: 'Clínica',
+                                value: displayValue,
+                                isPlaceholder: _selectedClinicaId == null,
+                                icon: CupertinoIcons.building_2_fill,
+                                onTap:
+                                    () => _showClinicPicker(context, clinicas),
                               ),
+                              _buildDivider(context),
+                              // Objetivo / Tratamiento Selector
+                              if (_selectedClinicaId != null) ...[
+                                Consumer(
+                                  builder: (context, ref, _) {
+                                    final objetivosAsync = ref.watch(
+                                      obj_prov.objetivosByClinicaProvider(
+                                        _selectedClinicaId!,
+                                      ),
+                                    );
+                                    return objetivosAsync.when(
+                                      data: (objetivos) {
+                                        // We need to store a custom treatment name if "Custom" is selected
+                                        // For now, let's keep it simple: Treatment Name Input
+                                        // Ideally detailed picker for "Existing Goal" vs "Custom"
+                                        return Column(
+                                          children: [
+                                            _buildSelectorRow(
+                                              context,
+                                              label: 'Objetivo',
+                                              value:
+                                                  _selectedObjetivo
+                                                      ?.nombreTratamiento ??
+                                                  'Ninguno (Personalizado)',
+                                              icon: CupertinoIcons.scope,
+                                              onTap:
+                                                  () => _showObjetivoPicker(
+                                                    context,
+                                                    objetivos,
+                                                  ),
+                                            ),
+                                            _buildDivider(context),
+                                            _buildTextFieldRow(
+                                              context,
+                                              name: 'nombre_tratamiento',
+                                              label: 'Nombre',
+                                              placeholder: 'Ej. Endodoncia',
+                                              icon:
+                                                  CupertinoIcons.doc_text_fill,
+                                              maxLength: kMaxNombreTratamiento,
+                                              validator: (val) {
+                                                if (val == null ||
+                                                    val.trim().isEmpty) {
+                                                  return 'Nombre inválido';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                      loading:
+                                          () => _buildLoadingRow(
+                                            context,
+                                            'Cargando objetivos...',
+                                          ),
+                                      error:
+                                          (_, __) => _buildErrorRow(
+                                            context,
+                                            'Error al cargar objetivos',
+                                          ),
+                                    );
+                                  },
+                                ),
+                              ] else ...[
+                                _buildDisabledRow(
+                                  context,
+                                  'Seleccione una clínica primero',
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                        loading:
+                            () => _buildGroupedSection(
+                              context,
+                              children: [
+                                _buildLoadingRow(
+                                  context,
+                                  'Cargando clínicas...',
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                        error:
+                            (_, __) => _buildGroupedSection(
+                              context,
+                              children: [
+                                _buildErrorRow(
+                                  context,
+                                  'Error al cargar clínicas',
+                                ),
+                              ],
+                            ),
+                      );
+                    },
+                  ),
+
+                const SizedBox(height: 24),
+
+                // ─── SECTION 3: PROGRAMACIÓN (SESIONES) ───
+                _buildSectionHeader(context, 'PLANIFICACIÓN'),
+
+                _buildGroupedSection(
+                  context,
+                  children: [
+                    // Session 1 Header
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
-                      _buildDivider(context),
-                      // Date & Time Picker
-                      // We need a custom row that opens a date picker
-                      FormBuilderField<DateTime>(
-                        name: 'fecha_inicio',
-                        initialValue: widget.initialDate ?? DateTime.now(),
-                        builder: (field) {
-                          return _buildLinkRow(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.clock_fill,
+                            size: 20,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Sesión Inicial',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _buildDivider(context),
+                    // Date & Time Picker
+                    // We need a custom row that opens a date picker
+                    FormBuilderField<DateTime>(
+                      name: 'fecha_inicio',
+                      initialValue: widget.initialDate ?? DateTime.now(),
+                      builder: (field) {
+                        return _buildLinkRow(
+                          context,
+                          label: 'Empieza',
+                          value: DateFormat(
+                            'EEE, d MMM yyyy  HH:mm',
+                            'es_ES',
+                          ).format(field.value ?? DateTime.now()),
+                          onTap: () => _showDateTimePicker(context, field),
+                        );
+                      },
+                    ),
+                    _buildDivider(context),
+                    FormBuilderField<DateTime>(
+                      name: 'fecha_fin',
+                      initialValue: (widget.initialDate ?? DateTime.now()).add(
+                        const Duration(hours: 1),
+                      ),
+                      builder: (field) {
+                        return _buildLinkRow(
+                          context,
+                          label: 'Termina',
+                          value: DateFormat(
+                            'EEE, d MMM yyyy  HH:mm',
+                            'es_ES',
+                          ).format(field.value ?? DateTime.now()),
+                          onTap: () => _showDateTimePicker(context, field),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+
+                // Additional Sessions
+                if (_additionalSessions.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(context, 'SESIONES ADICIONALES'),
+                  ..._additionalSessions.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final draft = entry.value;
+                    return Padding(
+                      key: ValueKey(draft.key),
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: _buildGroupedSection(
+                        context,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Sesión ${index + 2}',
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _additionalSessions.remove(draft);
+                                    });
+                                  },
+                                  child: Icon(
+                                    CupertinoIcons.trash,
+                                    color: colorScheme.error,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _buildDivider(context),
+                          _buildLinkRow(
                             context,
                             label: 'Empieza',
                             value: DateFormat(
-                              'EEE, d MMM yyyy  HH:mm',
+                              'EEE, d MMM HH:mm',
                               'es_ES',
-                            ).format(field.value ?? DateTime.now()),
-                            onTap: () => _showDateTimePicker(context, field),
-                          );
-                        },
-                      ),
-                      _buildDivider(context),
-                      FormBuilderField<DateTime>(
-                        name: 'fecha_fin',
-                        initialValue: (widget.initialDate ?? DateTime.now())
-                            .add(const Duration(hours: 1)),
-                        builder: (field) {
-                          return _buildLinkRow(
+                            ).format(draft.inicio),
+                            onTap:
+                                () => _pickDraftDate(
+                                  draft.inicio,
+                                  (val) => setState(() {
+                                    draft.inicio = val;
+                                    if (!draft.fin.isAfter(val)) {
+                                      draft.fin = val.add(
+                                        kDuracionSesionDefault,
+                                      );
+                                    }
+                                  }),
+                                ),
+                          ),
+                          _buildDivider(context),
+                          _buildLinkRow(
                             context,
                             label: 'Termina',
                             value: DateFormat(
-                              'EEE, d MMM yyyy  HH:mm',
+                              'EEE, d MMM HH:mm',
                               'es_ES',
-                            ).format(field.value ?? DateTime.now()),
-                            onTap: () => _showDateTimePicker(context, field),
-                          );
-                        },
+                            ).format(draft.fin),
+                            onTap:
+                                () => _pickDraftDate(
+                                  draft.fin,
+                                  (val) => setState(() => draft.fin = val),
+                                ),
+                          ),
+                        ],
                       ),
-                    ],
+                    );
+                  }),
+                ],
+
+                const SizedBox(height: 24),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
                   ),
-
-                  // Additional Sessions
-                  if (_additionalSessions.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    _buildSectionHeader(context, 'SESIONES ADICIONALES'),
-                    ..._additionalSessions.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final draft = entry.value;
-                      return Padding(
-                        key: ValueKey(draft.key),
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: _buildGroupedSection(
-                          context,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Sesión ${index + 2}',
-                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                      fontWeight: FontWeight.w600,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: AppButton.primary(
+                      icon: CupertinoIcons.add,
+                      label: 'Agregar Sesión',
+                      onPressed: () {
+                        // Límite: 1 sesión inicial + adicionales.
+                        if (1 + _additionalSessions.length >=
+                            kMaxSesionesPorTratamiento) {
+                          showCupertinoDialog(
+                            context: context,
+                            builder:
+                                (ctx) => CupertinoAlertDialog(
+                                  title: const Text('Límite Alcanzado'),
+                                  content: Text(
+                                    'No se pueden agregar más de $kMaxSesionesPorTratamiento '
+                                    'sesiones a un tratamiento.',
+                                  ),
+                                  actions: [
+                                    CupertinoDialogAction(
+                                      child: const Text('OK'),
+                                      onPressed: () => Navigator.pop(ctx),
                                     ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _additionalSessions.remove(draft);
-                                      });
-                                    },
-                                    child: Icon(
-                                      CupertinoIcons.trash,
-                                      color: colorScheme.error,
-                                      size: 20,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            _buildDivider(context),
-                            _buildLinkRow(
-                              context,
-                              label: 'Empieza',
-                              value: DateFormat(
-                                'EEE, d MMM HH:mm',
-                                'es_ES',
-                              ).format(draft.inicio),
-                              onTap:
-                                  () => _pickDraftDate(
-                                    draft.inicio,
-                                    (val) => setState(() {
-                                      draft.inicio = val;
-                                      if (!draft.fin.isAfter(val)) {
-                                        draft.fin = val.add(
-                                          kDuracionSesionDefault,
-                                        );
-                                      }
-                                    }),
-                                  ),
-                            ),
-                            _buildDivider(context),
-                            _buildLinkRow(
-                              context,
-                              label: 'Termina',
-                              value: DateFormat(
-                                'EEE, d MMM HH:mm',
-                                'es_ES',
-                              ).format(draft.fin),
-                              onTap:
-                                  () => _pickDraftDate(
-                                    draft.fin,
-                                    (val) => setState(() => draft.fin = val),
-                                  ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
+                                  ],
+                                ),
+                          );
+                          return;
+                        }
 
-                  const SizedBox(height: 24),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: CupertinoButton(
-                        color: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
-                        borderRadius: BorderRadius.circular(32),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(CupertinoIcons.add, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Agregar Sesión',
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onPrimary,
-                              ),
+                        setState(() {
+                          final base =
+                              _additionalSessions.isNotEmpty
+                                  ? _additionalSessions.last.inicio
+                                  : (_formKey
+                                              .currentState
+                                              ?.fields['fecha_inicio']
+                                              ?.value
+                                          as DateTime? ??
+                                      widget.initialDate ??
+                                      DateTime.now());
+                          final inicio = base.add(const Duration(days: 7));
+                          _additionalSessions.add(
+                            _SessionDraft(
+                              key: _sessionKeyCounter++,
+                              inicio: inicio,
+                              fin: inicio.add(kDuracionSesionDefault),
                             ),
-                          ],
-                        ),
-                        onPressed: () {
-                          // Límite: 1 sesión inicial + adicionales.
-                          if (1 + _additionalSessions.length >=
-                              kMaxSesionesPorTratamiento) {
-                            showCupertinoDialog(
-                              context: context,
-                              builder:
-                                  (ctx) => CupertinoAlertDialog(
-                                    title: const Text('Límite Alcanzado'),
-                                    content: Text(
-                                      'No se pueden agregar más de $kMaxSesionesPorTratamiento '
-                                      'sesiones a un tratamiento.',
-                                    ),
-                                    actions: [
-                                      CupertinoDialogAction(
-                                        child: const Text('OK'),
-                                        onPressed: () => Navigator.pop(ctx),
-                                      ),
-                                    ],
-                                  ),
-                            );
-                            return;
-                          }
-
-                          setState(() {
-                            final base =
-                                _additionalSessions.isNotEmpty
-                                    ? _additionalSessions.last.inicio
-                                    : (_formKey
-                                                .currentState
-                                                ?.fields['fecha_inicio']
-                                                ?.value
-                                            as DateTime? ??
-                                        widget.initialDate ??
-                                        DateTime.now());
-                            final inicio = base.add(const Duration(days: 7));
-                            _additionalSessions.add(
-                              _SessionDraft(
-                                key: _sessionKeyCounter++,
-                                inicio: inicio,
-                                fin: inicio.add(kDuracionSesionDefault),
-                              ),
-                            );
-                          });
-                        },
-                      ),
+                          );
+                        });
+                      },
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 50),
-                ],
-              ),
+                const SizedBox(height: 50),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   // ─── WIDGET BUILDERS ───
 
   Widget _buildSectionHeader(BuildContext context, String title) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.only(left: 20, bottom: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-        ),
+    return AppSectionHeader(
+      title,
+      padding: const EdgeInsets.only(
+        left: AppSpacing.xl,
+        bottom: AppSpacing.sm,
       ),
     );
   }
@@ -930,21 +900,12 @@ class _AppointmentCreateScreenState
     _pickDraftDate(field.value ?? DateTime.now(), field.didChange);
   }
 
-  void _pickDraftDate(DateTime initial, ValueChanged<DateTime> onChanged) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SizedBox(
-          height: 300,
-          child: CupertinoDatePicker(
-            initialDateTime: initial,
-            mode: CupertinoDatePickerMode.dateAndTime,
-            use24hFormat: true,
-            onDateTimeChanged: onChanged,
-          ),
-        );
-      },
-    );
+  void _pickDraftDate(
+    DateTime initial,
+    ValueChanged<DateTime> onChanged,
+  ) async {
+    final picked = await AppDateTimeSheet.pick(context, initial: initial);
+    if (picked != null) onChanged(picked);
   }
 
   void _saveAppointment() async {
