@@ -443,6 +443,16 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
       String surfaceLeftName = isLeftSideOfScreen ? 'distal' : 'mesial';
       String surfaceRightName = isLeftSideOfScreen ? 'mesial' : 'distal';
 
+      final bridgeArch =
+          _bridgeStartPiece == null
+              ? null
+              : ref
+                  .read(
+                    odontogramaControllerProvider(widget.pacienteId).notifier,
+                  )
+                  .archFor(_bridgeStartPiece!.iso);
+      final dimmed = bridgeArch != null && !bridgeArch.contains(iso);
+
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2.0),
         child: ToothWidget(
@@ -459,6 +469,7 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
           globalState: pieza.estadoGeneral,
           hasSellador: pieza.tieneSellador,
           isBridgeStart: _bridgeStartPiece?.iso == pieza.iso,
+          dimmed: dimmed,
 
           onTapTop: () => _handleTap(pieza, surfaceTopName, selectedTool),
           onTapBottom: () => _handleTap(pieza, surfaceBottomName, selectedTool),

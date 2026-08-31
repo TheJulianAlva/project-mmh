@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
 import 'package:project_mmh/core/theme/app_semantic_colors.dart';
 import 'package:project_mmh/features/odontograma/presentation/controllers/odontograma_controller.dart';
 
@@ -50,6 +51,8 @@ class ToothWidget extends StatelessWidget {
   final String globalState;
   final bool hasSellador; // Draws 'S'
   final bool isBridgeStart; // Resalta la pieza elegida como inicio de puente
+  final bool
+  dimmed; // atenúa y desactiva la pieza (p. ej. arcada opuesta al trazar un puente)
 
   // Callbacks
   final VoidCallback? onTapTop;
@@ -71,6 +74,7 @@ class ToothWidget extends StatelessWidget {
     this.globalState = 'Sano',
     this.hasSellador = false,
     this.isBridgeStart = false,
+    this.dimmed = false,
     this.onTapTop,
     this.onTapBottom,
     this.onTapLeft,
@@ -81,7 +85,7 @@ class ToothWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = ToothPalette.of(context);
-    return Column(
+    final tooth = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
@@ -128,6 +132,11 @@ class ToothWidget extends StatelessWidget {
           ),
         ),
       ],
+    );
+    if (!dimmed) return tooth;
+    return Opacity(
+      opacity: AppOpacity.muted,
+      child: IgnorePointer(child: tooth),
     );
   }
 }

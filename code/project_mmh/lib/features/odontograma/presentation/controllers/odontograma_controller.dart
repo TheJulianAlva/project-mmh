@@ -188,6 +188,10 @@ class OdontogramaController
     71, 72, 73, 74, 75, 81, 82, 83, 84, 85,
   };
 
+  /// Lista de ISOs de la arcada física (adulta o temporal, superior o
+  /// inferior) a la que pertenece [iso]. Null si el ISO no es válido.
+  List<int>? archFor(int iso) => _archFor(iso);
+
   List<int>? _archFor(int iso) {
     for (final arch in [_upperAdult, _lowerAdult, _upperPed, _lowerPed]) {
       if (arch.contains(iso)) return arch;
