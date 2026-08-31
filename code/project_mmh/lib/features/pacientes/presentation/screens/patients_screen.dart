@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_mmh/core/presentation/widgets/app_button.dart';
-import 'package:project_mmh/core/presentation/widgets/app_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
 import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
 import 'package:project_mmh/core/presentation/widgets/app_search_field.dart';
 import 'package:project_mmh/core/services/image_service.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
 import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
@@ -82,33 +83,33 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                     AppSpacing.md,
                     AppSpacing.sm,
                   ),
-                  child: AppCard(
-                    padding: EdgeInsets.zero,
+                  child: AppEntityCard(
+                    title: patient.nombreCompleto,
+                    leading: CircleAvatar(
+                      backgroundImage:
+                          patient.imagenesPaths.isNotEmpty
+                              ? FileImage(
+                                ImageService.resolveFile(
+                                  patient.imagenesPaths.first,
+                                ),
+                              )
+                              : null,
+                      onBackgroundImageError:
+                          patient.imagenesPaths.isNotEmpty ? (_, __) {} : null,
+                      child:
+                          patient.imagenesPaths.isEmpty
+                              ? const Icon(Icons.person)
+                              : null,
+                    ),
                     onTap: () {
                       context.push('/pacientes/${patient.idExpediente}');
                     },
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage:
-                            patient.imagenesPaths.isNotEmpty
-                                ? FileImage(
-                                  ImageService.resolveFile(
-                                    patient.imagenesPaths.first,
-                                  ),
-                                )
-                                : null,
-                        onBackgroundImageError:
-                            patient.imagenesPaths.isNotEmpty
-                                ? (_, __) {}
-                                : null,
-                        child:
-                            patient.imagenesPaths.isEmpty
-                                ? const Icon(Icons.person)
-                                : null,
+                    child: Text(
+                      'Exp: ${patient.idExpediente}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface
+                            .withValues(alpha: AppOpacity.muted),
                       ),
-                      title: Text(patient.nombreCompleto),
-                      subtitle: Text('Exp: ${patient.idExpediente}'),
-                      trailing: const Icon(Icons.chevron_right),
                     ),
                   ),
                 );

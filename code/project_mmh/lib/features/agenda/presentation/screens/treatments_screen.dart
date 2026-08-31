@@ -10,15 +10,15 @@ import 'package:project_mmh/features/clinicas_metas/domain/periodo.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart'; // Implemented activeClinicIdProvider
 import 'package:project_mmh/core/presentation/widgets/app_button.dart';
-import 'package:project_mmh/core/presentation/widgets/app_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
 import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
 import 'package:project_mmh/core/presentation/widgets/app_search_field.dart';
 import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
 import 'package:project_mmh/core/theme/app_semantic_colors.dart';
 import 'package:project_mmh/core/theme/app_spacing.dart';
-import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_filter_chip.dart';
 
 class TreatmentsScreen extends ConsumerStatefulWidget {
@@ -486,56 +486,36 @@ class _TreatmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final clinicaColor = ClinicPalette.parse(item.colorClinica);
-
     final nextSession = item.proximaSesion;
     final isCompleted = item.tratamiento.estado == EstadoTratamiento.concluido;
     final dateFormat = DateFormat('d MMM, HH:mm', 'es_ES');
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return AppCard(
-      accentColor: clinicaColor,
+    return AppEntityCard(
+      title: item.tratamiento.nombreTratamiento,
       onTap:
           () => context.push('/tratamientos/${item.tratamiento.idTratamiento}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                item.tratamiento.nombreTratamiento,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const Spacer(),
-              Icon(
-                CupertinoIcons.chevron_right,
-                size: 20,
-                color: colorScheme.onSurface.withValues(alpha: 0.2),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
           Text(
             '${item.nombrePaciente} • ${item.nombreClinica}',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
+              color: colorScheme.onSurface.withValues(alpha: AppOpacity.muted),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Icon(
                 CupertinoIcons.clock,
                 size: 14,
-                color: colorScheme.onSurface.withValues(alpha: 0.6),
+                color: colorScheme.onSurface.withValues(
+                  alpha: AppOpacity.muted,
+                ),
               ),
               const SizedBox(width: 6),
               if (isCompleted)
@@ -555,7 +535,9 @@ class _TreatmentCard extends StatelessWidget {
                     color:
                         nextSession != null
                             ? colorScheme.onSurface
-                            : colorScheme.onSurface.withValues(alpha: 0.5),
+                            : colorScheme.onSurface.withValues(
+                              alpha: AppOpacity.muted,
+                            ),
                     fontWeight:
                         nextSession != null
                             ? FontWeight.w500

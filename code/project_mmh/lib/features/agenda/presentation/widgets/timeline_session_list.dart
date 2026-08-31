@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_action_dialog.dart';
-import 'package:project_mmh/core/presentation/widgets/app_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
 import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
 import 'package:project_mmh/core/presentation/widgets/app_status_badge.dart';
 import 'package:intl/intl.dart';
-import 'package:project_mmh/core/theme/clinic_palette.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/core/utils/formatters.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -338,13 +339,7 @@ class _TimelineRow extends StatelessWidget {
             ),
           ),
           // ── Card ──
-          Expanded(
-            child: _TimelineSessionCard(
-              session: session,
-              colorScheme: colorScheme,
-              isDark: isDark,
-            ),
-          ),
+          Expanded(child: _TimelineSessionCard(session: session)),
         ],
       ),
     );
@@ -433,14 +428,8 @@ class _AnimatedNodeState extends State<_AnimatedNode>
 
 class _TimelineSessionCard extends StatelessWidget {
   final SesionRichModel session;
-  final ColorScheme colorScheme;
-  final bool isDark;
 
-  const _TimelineSessionCard({
-    required this.session,
-    required this.colorScheme,
-    required this.isDark,
-  });
+  const _TimelineSessionCard({required this.session});
 
   @override
   Widget build(BuildContext context) {
@@ -448,10 +437,9 @@ class _TimelineSessionCard extends StatelessWidget {
     final endTime = DateTime.parse(session.sesion.fechaFin);
     final duration = endTime.difference(startTime);
     final durationStr = formatDuration(duration);
-    final clinicColor = ClinicPalette.parse(session.colorClinica);
 
-    return AppCard(
-      accentColor: clinicColor,
+    return AppEntityCard(
+      title: session.nombreTratamiento,
       onTap: () {
         showAppSheet(
           context,
@@ -461,57 +449,42 @@ class _TimelineSessionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Treatment name
-          Text(
-            session.nombreTratamiento,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          _iconRow(
+            context,
+            CupertinoIcons.clock,
+            '${DateFormat('HH:mm').format(startTime)} – ${DateFormat('HH:mm').format(endTime)}  ·  $durationStr',
           ),
-          const SizedBox(height: 4),
-          // Time + duration
-          Row(
-            children: [
-              Icon(
-                CupertinoIcons.clock,
-                size: 12,
-                color: colorScheme.onSurface.withValues(alpha: 0.45),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '${DateFormat('HH:mm').format(startTime)} – ${DateFormat('HH:mm').format(endTime)}  ·  $durationStr',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.55),
-                ),
-              ),
-            ],
+          const SizedBox(height: AppSpacing.xs),
+          _iconRow(
+            context,
+            CupertinoIcons.person,
+            '${session.nombrePaciente}  ·  ${session.nombreClinica}',
           ),
-          const SizedBox(height: 3),
-          // Patient + clinic
-          Row(
-            children: [
-              Icon(
-                CupertinoIcons.person,
-                size: 12,
-                color: colorScheme.onSurface.withValues(alpha: 0.45),
-              ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  '${session.nombrePaciente}  ·  ${session.nombreClinica}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.55),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          // Status badge
+          const SizedBox(height: AppSpacing.sm),
           AppStatusBadge.asistencia(session.sesion.estadoAsistencia),
         ],
       ),
+    );
+  }
+
+  Widget _iconRow(BuildContext context, IconData icon, String text) {
+    final onSurfaceMuted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: AppOpacity.muted);
+    return Row(
+      children: [
+        Icon(icon, size: 12, color: onSurfaceMuted),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            text,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: onSurfaceMuted),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

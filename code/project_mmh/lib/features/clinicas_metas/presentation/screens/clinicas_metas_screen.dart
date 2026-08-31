@@ -5,6 +5,7 @@ import 'package:project_mmh/core/constants/app_constants.dart';
 import 'package:project_mmh/core/presentation/widgets/app_button.dart';
 import 'package:project_mmh/core/presentation/widgets/app_card.dart';
 import 'package:project_mmh/core/presentation/widgets/app_confirm.dart';
+import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
 import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
@@ -13,7 +14,6 @@ import 'package:project_mmh/core/presentation/widgets/app_text_field.dart';
 import 'package:project_mmh/core/theme/app_opacity.dart';
 import 'package:project_mmh/core/theme/app_radii.dart';
 import 'package:project_mmh/core/theme/app_spacing.dart';
-import 'package:project_mmh/core/theme/app_typography.dart';
 import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
@@ -358,11 +358,12 @@ class _ClinicasList extends ConsumerWidget {
           children: [
             ...clinicas.map((clinica) {
               final clinicColor = ClinicPalette.parse(clinica.color);
+              final hasHorarios =
+                  clinica.horarios != null && clinica.horarios!.isNotEmpty;
               return Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: AppCard(
-                  padding: EdgeInsets.zero,
-                  accentColor: clinicColor,
+                child: AppEntityCard(
+                  title: clinica.nombreClinica,
                   onTap:
                       () => _showObjetivosDialog(
                         context,
@@ -370,75 +371,55 @@ class _ClinicasList extends ConsumerWidget {
                         clinica.idClinica!,
                         clinica.nombreClinica,
                       ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: AppSpacing.sm,
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: clinicColor.withValues(alpha: AppOpacity.subtle),
+                      shape: BoxShape.circle,
                     ),
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: clinicColor.withValues(alpha: AppOpacity.subtle),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.local_hospital, color: clinicColor),
-                    ),
-                    title: Text(
-                      clinica.nombreClinica,
-                      style: AppText.cardTitle.copyWith(
-                        color: theme.colorScheme.onSurface,
+                    child: Icon(Icons.local_hospital, color: clinicColor),
+                  ),
+                  trailing: IconButton(
+                    icon: Icon(
+                      Icons.more_horiz,
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: AppOpacity.muted,
                       ),
                     ),
-                    subtitle:
-                        (clinica.horarios != null &&
-                                clinica.horarios!.isNotEmpty)
-                            ? Padding(
-                              padding: const EdgeInsets.only(
-                                top: AppSpacing.xs,
+                    onPressed:
+                        () => _showClinicOptions(
+                          context,
+                          ref,
+                          clinica,
+                          clinicas,
+                          idPeriodo,
+                        ),
+                  ),
+                  child:
+                      hasHorarios
+                          ? Row(
+                            children: [
+                              Icon(
+                                Icons.schedule,
+                                size: 14,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: AppOpacity.muted,
+                                ),
                               ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.schedule,
-                                    size: 14,
+                              const SizedBox(width: AppSpacing.xs),
+                              Expanded(
+                                child: Text(
+                                  clinica.horarios!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurface
                                         .withValues(alpha: AppOpacity.muted),
                                   ),
-                                  const SizedBox(width: AppSpacing.xs),
-                                  Expanded(
-                                    child: Text(
-                                      clinica.horarios!,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: theme.colorScheme.onSurface
-                                                .withValues(
-                                                  alpha: AppOpacity.muted,
-                                                ),
-                                          ),
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
-                            )
-                            : null,
-                    trailing: IconButton(
-                      icon: Icon(
-                        Icons.more_horiz,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: AppOpacity.muted,
-                        ),
-                      ),
-                      onPressed:
-                          () => _showClinicOptions(
-                            context,
-                            ref,
-                            clinica,
-                            clinicas,
-                            idPeriodo,
-                          ),
-                    ),
-                  ),
+                            ],
+                          )
+                          : const SizedBox.shrink(),
                 ),
               );
             }),

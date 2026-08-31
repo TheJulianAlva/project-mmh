@@ -29,7 +29,7 @@ class TreatmentInfoCard extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: AppCard(
-        accentColor: clinicColor,
+        tint: clinicColor,
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

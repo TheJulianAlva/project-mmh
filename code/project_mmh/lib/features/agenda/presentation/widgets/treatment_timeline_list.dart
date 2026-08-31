@@ -4,9 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_action_dialog.dart';
-import 'package:project_mmh/core/presentation/widgets/app_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
 import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
 import 'package:project_mmh/core/presentation/widgets/app_status_badge.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/core/utils/formatters.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -359,8 +361,6 @@ class _TimelineRow extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: _TimelineSessionCard(
                 session: session,
-                colorScheme: colorScheme,
-                isDark: isDark,
                 onRefresh: onRefresh,
               ),
             ),
@@ -381,16 +381,9 @@ class _TimelineRow extends StatelessWidget {
 
 class _TimelineSessionCard extends StatelessWidget {
   final SesionRichModel session;
-  final ColorScheme colorScheme;
-  final bool isDark;
   final VoidCallback? onRefresh;
 
-  const _TimelineSessionCard({
-    required this.session,
-    required this.colorScheme,
-    required this.isDark,
-    this.onRefresh,
-  });
+  const _TimelineSessionCard({required this.session, this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -398,9 +391,12 @@ class _TimelineSessionCard extends StatelessWidget {
     final endTime = DateTime.parse(session.sesion.fechaFin);
     final duration = endTime.difference(startTime);
     final durationStr = formatDuration(duration);
+    final onSurfaceMuted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: AppOpacity.muted);
 
-    return AppCard(
-      accentColor: _getNodeColor(),
+    return AppEntityCard(
+      title: 'Sesión de ${session.nombreTratamiento}',
       onTap: () async {
         await showAppSheet(
           context,
@@ -411,41 +407,25 @@ class _TimelineSessionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Sesión de ${session.nombreTratamiento}',
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
           Row(
             children: [
-              Icon(
-                CupertinoIcons.clock,
-                size: 12,
-                color: colorScheme.onSurface.withValues(alpha: 0.45),
-              ),
+              Icon(CupertinoIcons.clock, size: 12, color: onSurfaceMuted),
               const SizedBox(width: 4),
-              Text(
-                '${DateFormat('HH:mm').format(startTime)} - ${DateFormat('HH:mm').format(endTime)} · $durationStr',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+              Flexible(
+                child: Text(
+                  '${DateFormat('HH:mm').format(startTime)} - ${DateFormat('HH:mm').format(endTime)} · $durationStr',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: onSurfaceMuted),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           AppStatusBadge.asistencia(session.sesion.estadoAsistencia),
         ],
       ),
     );
-  }
-
-  Color _getNodeColor() {
-    return switch (session.sesion.estadoAsistencia) {
-      EstadoAsistencia.asistio => colorScheme.secondary,
-      EstadoAsistencia.falto => colorScheme.error,
-      EstadoAsistencia.programada || null => colorScheme.primary,
-    };
   }
 }

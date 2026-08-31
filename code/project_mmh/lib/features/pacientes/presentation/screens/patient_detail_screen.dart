@@ -147,7 +147,7 @@ class PatientDetailScreen extends ConsumerWidget {
           // Info Cards
           const AppSectionHeader('Información Personal'),
           AppCard(
-            accentColor: scheme.primary,
+            tint: scheme.primary,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -164,7 +164,7 @@ class PatientDetailScreen extends ConsumerWidget {
 
           const AppSectionHeader('Información Médica'),
           AppCard(
-            accentColor: scheme.primary,
+            tint: scheme.primary,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
