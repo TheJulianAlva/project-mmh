@@ -106,7 +106,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
     return AppScaffold(
       title: 'Nuevo Paciente',
       actions: [
-        AppButton.primary(
+        AppButton.text(
           label: 'Guardar',
           loading: _isSaving,
           onPressed: _savePatient,

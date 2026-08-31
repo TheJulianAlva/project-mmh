@@ -193,7 +193,7 @@ class _EditPatientFormState extends ConsumerState<_EditPatientForm> {
     return AppScaffold(
       title: 'Editar Paciente',
       actions: [
-        AppButton.primary(
+        AppButton.text(
           label: 'Hecho',
           loading: _isSaving,
           onPressed: _savePatient,
