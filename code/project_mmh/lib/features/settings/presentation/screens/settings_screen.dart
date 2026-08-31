@@ -161,7 +161,7 @@ class SettingsScreen extends ConsumerWidget {
     );
 
     return AppScaffold(
-      title: 'Ajustes',
+      title: 'Configuración',
       showBack: false,
       slivers: [
         SliverToBoxAdapter(
