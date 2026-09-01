@@ -17,6 +17,14 @@ import 'package:project_mmh/features/settings/presentation/screens/settings_scre
 import 'package:project_mmh/features/settings/presentation/screens/reminders_settings_screen.dart';
 import 'package:project_mmh/features/diagnosis/presentation/screens/diagnosis_wizard_screen.dart';
 import 'package:project_mmh/features/dev/presentation/style_guide_screen.dart';
+import 'package:project_mmh/features/notas/presentation/screens/notas_screen.dart';
+import 'package:project_mmh/features/notas/presentation/screens/nota_create_screen.dart';
+import 'package:project_mmh/features/notas/presentation/screens/nota_detail_screen.dart';
+import 'package:project_mmh/features/notas/presentation/screens/prepaciente_create_screen.dart';
+import 'package:project_mmh/features/notas/presentation/screens/prepaciente_detail_screen.dart';
+import 'package:project_mmh/features/notas/presentation/screens/lista_materiales_create_screen.dart';
+import 'package:project_mmh/features/notas/presentation/screens/lista_materiales_detail_screen.dart';
+import 'package:project_mmh/features/notas/presentation/screens/cotizacion_create_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/dashboard',
@@ -138,6 +146,64 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/diagnosis',
       builder: (context, state) => const DiagnosisWizardScreen(),
+    ),
+    GoRoute(
+      path: '/notas',
+      builder: (context, state) => const NotasScreen(),
+    ),
+    GoRoute(
+      path: '/notas/nueva',
+      builder: (context, state) => const NotaCreateScreen(),
+    ),
+    GoRoute(
+      path: '/notas/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '');
+        if (id == null) {
+          return const _RouteErrorScreen(message: 'Nota no válida');
+        }
+        return NotaDetailScreen(notaId: id);
+      },
+    ),
+    GoRoute(
+      path: '/notas/prepacientes/nuevo',
+      builder: (context, state) => const PrepacienteCreateScreen(),
+    ),
+    GoRoute(
+      path: '/notas/prepacientes/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '');
+        if (id == null) {
+          return const _RouteErrorScreen(message: 'Prepaciente no válido');
+        }
+        return PrepacienteDetailScreen(notaId: id);
+      },
+    ),
+    GoRoute(
+      path: '/notas/materiales/nueva',
+      builder: (context, state) => const ListaMaterialesCreateScreen(),
+    ),
+    GoRoute(
+      path: '/notas/materiales/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '');
+        if (id == null) {
+          return const _RouteErrorScreen(message: 'Lista no válida');
+        }
+        return ListaMaterialesDetailScreen(listaId: id);
+      },
+      routes: [
+        GoRoute(
+          path: 'cotizacion-nueva',
+          builder: (context, state) {
+            final id = int.tryParse(state.pathParameters['id'] ?? '');
+            if (id == null) {
+              return const _RouteErrorScreen(message: 'Lista no válida');
+            }
+            return CotizacionCreateScreen(listaId: id);
+          },
+        ),
+      ],
     ),
     // Catálogo visual del sistema de diseño. Solo accesible en debug.
     if (kDebugMode)

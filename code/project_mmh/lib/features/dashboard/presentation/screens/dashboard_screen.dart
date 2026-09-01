@@ -187,6 +187,24 @@ class DashboardScreen extends ConsumerWidget {
                         context.push('/diagnosis');
                       },
                     ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _ActionTile(
+                      icon: CupertinoIcons.pencil_outline,
+                      label: 'Nota Rápida',
+                      subtitle: 'Capturar una nota en segundos',
+                      onPressed: () {
+                        context.push('/notas/nueva');
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _ActionTile(
+                      icon: CupertinoIcons.folder,
+                      label: 'Notas y Listas',
+                      subtitle: 'Prepacientes, materiales y cotizaciones',
+                      onPressed: () {
+                        context.push('/notas');
+                      },
+                    ),
                     // Extra padding at the bottom for better scrolling
                     const SizedBox(height: AppSpacing.xxl + AppSpacing.lg),
                   ],

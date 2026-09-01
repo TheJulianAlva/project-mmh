@@ -12,7 +12,7 @@ class DatabaseHelper {
 
   DatabaseHelper._internal();
 
-  static const int _databaseVersion = 3;
+  static const int _databaseVersion = 4;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -55,6 +55,11 @@ class DatabaseHelper {
       await _migrateToV3(db);
       debugPrint('Migración V3: unicidad de clínica por periodo, índices y '
           'unicidad de odontograma por paciente.');
+    }
+
+    if (oldVersion < 4) {
+      await _migrateToV4(db);
+      debugPrint("Migración V4: tabla 'notas' agregada.");
     }
   }
 
@@ -112,6 +117,38 @@ class DatabaseHelper {
         'CREATE INDEX IF NOT EXISTS idx_sesiones_tratamiento ON sesiones (id_tratamiento)');
     await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_piezas_odontograma ON piezas_dentales (id_odontograma)');
+  }
+
+  /// V4: agrega la tabla `notas` (notas generales, prepacientes, listas de
+  /// materiales y sus cotizaciones).
+  Future<void> _migrateToV4(Database db) async {
+    await db.execute('''
+      CREATE TABLE notas (
+        id_nota INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT NOT NULL CHECK(tipo IN ('general', 'prepaciente', 'lista_materiales', 'cotizacion')),
+        contenido TEXT,
+        fecha TEXT NOT NULL,
+        id_paciente TEXT,
+        id_clinica INTEGER,
+        id_nota_relacionada INTEGER,
+        items_json TEXT,
+        proveedor TEXT,
+        origen TEXT NOT NULL DEFAULT 'manual' CHECK(origen IN ('manual', 'imagen', 'pdf')),
+        nombre_contacto TEXT,
+        telefono TEXT,
+        tratamiento_probable TEXT,
+        convertido INTEGER NOT NULL DEFAULT 0 CHECK(convertido IN (0, 1)),
+        id_paciente_convertido TEXT,
+        FOREIGN KEY (id_paciente) REFERENCES pacientes (id_expediente) ON DELETE SET NULL,
+        FOREIGN KEY (id_clinica) REFERENCES clinicas (id_clinica) ON DELETE SET NULL,
+        FOREIGN KEY (id_nota_relacionada) REFERENCES notas (id_nota) ON DELETE CASCADE,
+        FOREIGN KEY (id_paciente_convertido) REFERENCES pacientes (id_expediente) ON DELETE SET NULL
+      )
+    ''');
+    await db.execute('CREATE INDEX idx_notas_tipo ON notas (tipo)');
+    await db.execute(
+        'CREATE INDEX idx_notas_relacionada ON notas (id_nota_relacionada)');
+    await db.execute('CREATE INDEX idx_notas_paciente ON notas (id_paciente)');
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -223,6 +260,35 @@ class DatabaseHelper {
     ''');
     await db.execute(
         'CREATE INDEX idx_sesiones_tratamiento ON sesiones (id_tratamiento)');
+
+    // 4. Notas (generales, prepacientes, listas de materiales, cotizaciones)
+    await db.execute('''
+      CREATE TABLE notas (
+        id_nota INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT NOT NULL CHECK(tipo IN ('general', 'prepaciente', 'lista_materiales', 'cotizacion')),
+        contenido TEXT,
+        fecha TEXT NOT NULL,
+        id_paciente TEXT,
+        id_clinica INTEGER,
+        id_nota_relacionada INTEGER,
+        items_json TEXT,
+        proveedor TEXT,
+        origen TEXT NOT NULL DEFAULT 'manual' CHECK(origen IN ('manual', 'imagen', 'pdf')),
+        nombre_contacto TEXT,
+        telefono TEXT,
+        tratamiento_probable TEXT,
+        convertido INTEGER NOT NULL DEFAULT 0 CHECK(convertido IN (0, 1)),
+        id_paciente_convertido TEXT,
+        FOREIGN KEY (id_paciente) REFERENCES pacientes (id_expediente) ON DELETE SET NULL,
+        FOREIGN KEY (id_clinica) REFERENCES clinicas (id_clinica) ON DELETE SET NULL,
+        FOREIGN KEY (id_nota_relacionada) REFERENCES notas (id_nota) ON DELETE CASCADE,
+        FOREIGN KEY (id_paciente_convertido) REFERENCES pacientes (id_expediente) ON DELETE SET NULL
+      )
+    ''');
+    await db.execute('CREATE INDEX idx_notas_tipo ON notas (tipo)');
+    await db.execute(
+        'CREATE INDEX idx_notas_relacionada ON notas (id_nota_relacionada)');
+    await db.execute('CREATE INDEX idx_notas_paciente ON notas (id_paciente)');
   }
 
   Future<List<Map<String, dynamic>>> queryAll(

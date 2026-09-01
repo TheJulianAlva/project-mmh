@@ -1,7 +1,7 @@
 name: project_mmh
 description: "Asistente integral de gestión académica y clínica, diseñado para optimizar el seguimiento de metas, agendas y expedientes en el ámbito de la salud."
 publish_to: 'none'
-version: 1.1.2+1
+version: 1.2.0+1
 
 environment:
   sdk: ^3.7.2
@@ -29,6 +29,7 @@ dependencies:
   sqflite: ^2.4.2
   table_calendar: ^3.2.0
   timezone: ^0.10.0
+  url_launcher: ^6.3.1
   uuid: ^4.5.2
   modal_bottom_sheet: ^3.0.0
   cupertino_calendar_picker: ^2.2.6
@@ -45,6 +46,12 @@ dev_dependencies:
   json_serializable: ^6.9.5
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.4
+
+dependency_overrides:
+  # url_launcher_android >= 6.3.26 exige AGP 8.9.1+ (androidx.core 1.17.0 /
+  # androidx.browser 1.9.0); el proyecto usa AGP 8.7.0. Se fija a la última
+  # versión compatible hasta que se actualice el toolchain de Android.
+  url_launcher_android: 6.3.25
 
 flutter_launcher_icons:
   android: "launcher_icon"
