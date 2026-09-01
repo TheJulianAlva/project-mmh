@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 
-enum _Kind { singleLine, multiline, number, phone }
+enum _Kind { singleLine, multiline, number, phone, decimal }
 
 /// Envuelve `FormBuilderTextField` con la decoración del tema. Variantes:
 /// una línea, multilínea, numérica y teléfono. Acepta `maxLength` para
@@ -77,6 +77,23 @@ class AppTextField extends StatelessWidget {
     maxLength: maxLength,
   );
 
+  factory AppTextField.decimal({
+    required String name,
+    required String label,
+    String? initialValue,
+    String? Function(String?)? validator,
+    String? hintText,
+    int? maxLength,
+  }) => AppTextField._(
+    _Kind.decimal,
+    name: name,
+    label: label,
+    initialValue: initialValue,
+    validator: validator,
+    hintText: hintText,
+    maxLength: maxLength,
+  );
+
   factory AppTextField.phone({
     required String name,
     required String label,
@@ -115,14 +132,18 @@ class AppTextField extends StatelessWidget {
       maxLength: maxLength,
       keyboardType: switch (_kind) {
         _Kind.number => TextInputType.number,
+        _Kind.decimal => const TextInputType.numberWithOptions(decimal: true),
         _Kind.phone => TextInputType.phone,
         _Kind.multiline => TextInputType.multiline,
         _Kind.singleLine => TextInputType.text,
       },
-      inputFormatters:
-          _kind == _Kind.number
-              ? [FilteringTextInputFormatter.digitsOnly]
-              : null,
+      inputFormatters: switch (_kind) {
+        _Kind.number => [FilteringTextInputFormatter.digitsOnly],
+        _Kind.decimal => [
+          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+        ],
+        _Kind.phone || _Kind.multiline || _Kind.singleLine => null,
+      },
       decoration: InputDecoration(labelText: label, hintText: hintText),
     );
   }

@@ -59,6 +59,13 @@ class _ListaMaterialesCreateScreenState
         ),
       );
       if (mounted) context.pop();
+    } catch (e) {
+      if (mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al guardar: $message')));
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

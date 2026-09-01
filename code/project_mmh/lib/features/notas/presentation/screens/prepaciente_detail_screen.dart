@@ -55,7 +55,19 @@ class PrepacienteDetailScreen extends ConsumerWidget {
                   AppButton.primary(
                     label: 'Contactar por WhatsApp',
                     icon: Icons.chat,
-                    onPressed: () => launchWhatsApp(nota.telefono!),
+                    onPressed: () async {
+                      try {
+                        await launchWhatsApp(nota.telefono!);
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('No se pudo abrir WhatsApp.'),
+                            ),
+                          );
+                        }
+                      }
+                    },
                   ),
               ],
             ),

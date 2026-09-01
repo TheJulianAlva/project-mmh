@@ -55,7 +55,7 @@ class _NotaItemEditorState extends State<NotaItemEditor> {
                 Row(
                   children: [
                     Expanded(
-                      child: AppTextField.number(
+                      child: AppTextField.decimal(
                         name: 'cantidad',
                         label: 'Cantidad *',
                         initialValue: existing?.cantidad.toString(),
@@ -74,7 +74,7 @@ class _NotaItemEditorState extends State<NotaItemEditor> {
                 ),
                 if (widget.showPrecio) ...[
                   const SizedBox(height: AppSpacing.sm),
-                  AppTextField.number(
+                  AppTextField.decimal(
                     name: 'precio_unitario',
                     label: 'Precio unitario',
                     initialValue: existing?.precioUnitario?.toString(),

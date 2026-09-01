@@ -7,7 +7,6 @@ import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
 import 'package:project_mmh/core/presentation/widgets/app_search_field.dart';
 import 'package:project_mmh/core/theme/app_opacity.dart';
 import 'package:project_mmh/core/theme/app_spacing.dart';
-import 'package:project_mmh/features/core/presentation/widgets/app_filter_chip.dart';
 import 'package:project_mmh/features/notas/domain/nota_tipo.dart';
 import 'package:project_mmh/features/notas/presentation/providers/notas_providers.dart';
 
@@ -21,17 +20,13 @@ class NotaGeneralListView extends ConsumerStatefulWidget {
 
 class _NotaGeneralListViewState extends ConsumerState<NotaGeneralListView> {
   String _query = '';
-  bool _soloConPaciente = false;
 
   @override
   Widget build(BuildContext context) {
     final notas = ref.watch(notasPorTipoProvider(NotaTipo.general));
     final filtradas = notas.where((n) {
-      final matchesQuery =
-          _query.isEmpty ||
+      return _query.isEmpty ||
           (n.contenido ?? '').toLowerCase().contains(_query.toLowerCase());
-      final matchesFiltro = !_soloConPaciente || n.idPaciente != null;
-      return matchesQuery && matchesFiltro;
     }).toList();
 
     return Column(
@@ -49,19 +44,6 @@ class _NotaGeneralListViewState extends ConsumerState<NotaGeneralListView> {
             onChanged: (v) => setState(() => _query = v),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: AppFilterChip(
-              label: 'Con paciente',
-              icon: Icons.person,
-              isActive: _soloConPaciente,
-              onTap: () => setState(() => _soloConPaciente = !_soloConPaciente),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
         Expanded(
           child: filtradas.isEmpty
               ? const AppEmptyState(
