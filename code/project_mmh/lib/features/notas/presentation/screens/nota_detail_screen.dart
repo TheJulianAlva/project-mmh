@@ -27,6 +27,8 @@ class _NotaDetailScreenState extends ConsumerState<NotaDetailScreen> {
     final nota = ref.read(notaByIdProvider(widget.notaId)).asData?.value;
     if (nota == null) return;
 
+    if (!(_formKey.currentState?.saveAndValidate() ?? false)) return;
+
     setState(() => _isSaving = true);
     try {
       final contenido = _formKey.currentState?.value['contenido'] as String?;
@@ -34,6 +36,13 @@ class _NotaDetailScreenState extends ConsumerState<NotaDetailScreen> {
           .read(notasProvider.notifier)
           .updateNota(nota.copyWith(contenido: contenido));
       if (mounted) context.pop();
+    } catch (e) {
+      if (mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al guardar: $message')));
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -48,8 +57,17 @@ class _NotaDetailScreenState extends ConsumerState<NotaDetailScreen> {
       confirmLabel: 'Eliminar',
     );
     if (!confirmed) return;
-    await ref.read(notasProvider.notifier).deleteNota(widget.notaId);
-    if (mounted) context.pop();
+    try {
+      await ref.read(notasProvider.notifier).deleteNota(widget.notaId);
+      if (mounted) context.pop();
+    } catch (e) {
+      if (mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al eliminar: $message')));
+      }
+    }
   }
 
   @override
