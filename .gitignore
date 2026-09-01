@@ -1,3 +1,4 @@
 # Instrucciones locales para asistentes de IA (no versionar)
 CLAUDE.md
 .claude/
+.worktrees/
