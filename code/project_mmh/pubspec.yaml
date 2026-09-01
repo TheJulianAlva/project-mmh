@@ -47,6 +47,12 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.4
 
+dependency_overrides:
+  # url_launcher_android >= 6.3.26 exige AGP 8.9.1+ (androidx.core 1.17.0 /
+  # androidx.browser 1.9.0); el proyecto usa AGP 8.7.0. Se fija a la última
+  # versión compatible hasta que se actualice el toolchain de Android.
+  url_launcher_android: 6.3.25
+
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
