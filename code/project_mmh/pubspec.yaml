@@ -1,7 +1,7 @@
 name: project_mmh
 description: "Asistente integral de gestión académica y clínica, diseñado para optimizar el seguimiento de metas, agendas y expedientes en el ámbito de la salud."
 publish_to: 'none'
-version: 1.1.2+1
+version: 1.2.0+1
 
 environment:
   sdk: ^3.7.2
