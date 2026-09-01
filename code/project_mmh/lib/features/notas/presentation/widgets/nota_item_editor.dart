@@ -27,9 +27,9 @@ class NotaItemEditor extends StatefulWidget {
 }
 
 class _NotaItemEditorState extends State<NotaItemEditor> {
-  late List<NotaItem> _items = List.of(widget.initialItems);
+  late final List<NotaItem> _items = List.of(widget.initialItems);
 
-  void _notify() => widget.onChanged(_items);
+  void _notify() => widget.onChanged(List.of(_items));
 
   Future<void> _openEditor({NotaItem? existing, int? index}) async {
     final formKey = GlobalKey<FormBuilderState>();
@@ -110,7 +110,7 @@ class _NotaItemEditorState extends State<NotaItemEditor> {
       },
     );
 
-    if (result == null) return;
+    if (result == null || !mounted) return;
     setState(() {
       if (index != null) {
         _items[index] = result;
