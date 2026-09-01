@@ -1,19 +1,27 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:project_mmh/core/constants/app_constants.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_confirm.dart';
+import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
+import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
+import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
+import 'package:project_mmh/core/presentation/widgets/app_text_field.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
+import 'package:project_mmh/core/theme/app_radii.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
+import 'package:project_mmh/core/theme/clinic_palette.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/clinica.dart';
+import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
 import 'package:project_mmh/features/clinicas_metas/domain/periodo.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/objetivos_providers.dart';
-import 'package:flutter_form_builder/flutter_form_builder.dart';
-
 import 'package:project_mmh/features/clinicas_metas/presentation/widgets/color_picker_field.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/widgets/weekly_schedule_picker.dart';
-import 'package:project_mmh/features/clinicas_metas/domain/objetivo.dart';
-import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
-import 'package:project_mmh/core/constants/app_constants.dart';
-import 'package:project_mmh/core/theme/clinic_palette.dart';
-import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 
 class ClinicasMetasScreen extends ConsumerWidget {
   const ClinicasMetasScreen({super.key});
@@ -22,162 +30,124 @@ class ClinicasMetasScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final periodosAsync = ref.watch(periodosProvider);
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Gestión Académica'),
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surface.withValues(alpha: 0.9),
-            trailing: TextButton(
-              onPressed: () => _showAddPeriodoDialog(context, ref),
-              child: const Text(
-                'Añadir',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-              ),
-            ),
-            previousPageTitle: 'Configuración',
-          ),
-          periodosAsync.when(
-            data: (periodos) {
-              if (periodos.isEmpty) {
-                return SliverFillRemaining(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('No hay periodos registrados'),
-                        Container(
-                          margin: const EdgeInsets.only(top: 16),
-                          child: ElevatedButton(
-                            onPressed:
-                                () => _showAddPeriodoDialog(context, ref),
-                            child: const Text('Agregar Periodo'),
-                          ),
-                        ),
-                      ],
-                    ),
+    return AppScaffold(
+      title: 'Gestión Académica',
+      actions: [
+        AppButton.text(
+          label: 'Añadir',
+          onPressed: () => _showAddPeriodoDialog(context, ref),
+        ),
+      ],
+      slivers: [
+        periodosAsync.when(
+          data: (periodos) {
+            if (periodos.isEmpty) {
+              return SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppEmptyState(
+                  icon: Icons.calendar_today,
+                  title: 'No hay periodos registrados',
+                  action: AppButton.primary(
+                    label: 'Agregar Periodo',
+                    onPressed: () => _showAddPeriodoDialog(context, ref),
+                  ),
+                ),
+              );
+            }
+            return SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final periodo = periodos[index];
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                  ),
+                  child: AppCard(
+                    padding: EdgeInsets.zero,
+                    child: _buildPeriodoTile(context, ref, periodo),
                   ),
                 );
-              }
-              return SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final periodo = periodos[index];
-                  final theme = Theme.of(context);
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: theme.dividerColor.withValues(alpha: 0.1),
-                      ),
-                    ),
-                    child: ExpansionTile(
-                      shape: const Border(),
-                      collapsedShape: const Border(),
-                      title: Text(
-                        periodo.nombrePeriodo,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.calendar_today,
-                          color: theme.colorScheme.onPrimaryContainer,
-                          size: 20,
-                        ),
-                      ),
-                      childrenPadding: const EdgeInsets.all(16),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, size: 20),
-                            tooltip: 'Editar Periodo',
-                            onPressed:
-                                () => _showEditPeriodoDialog(
-                                  context,
-                                  ref,
-                                  periodo,
-                                ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, size: 20),
-                            tooltip: 'Eliminar Periodo',
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder:
-                                    (context) => AlertDialog(
-                                      title: const Text('Eliminar Periodo'),
-                                      content: const Text(
-                                        '¿Estás seguro? Esto eliminará todas las clínicas y metas asociadas.',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed:
-                                              () =>
-                                                  Navigator.pop(context, false),
-                                          child: const Text('Cancelar'),
-                                        ),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                Theme.of(context).colorScheme.error,
-                                            foregroundColor:
-                                                Theme.of(context).colorScheme.onError,
-                                          ),
-                                          onPressed:
-                                              () =>
-                                                  Navigator.pop(context, true),
-                                          child: const Text('Eliminar'),
-                                        ),
-                                      ],
-                                    ),
-                              );
+              }, childCount: periodos.length),
+            );
+          },
+          loading:
+              () => const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+          error:
+              (err, stack) => SliverFillRemaining(
+                child: AppErrorView(
+                  message: 'No se pudieron cargar los periodos.',
+                  onRetry: () => ref.invalidate(periodosProvider),
+                ),
+              ),
+        ),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+      ],
+    );
+  }
 
-                              if (confirm == true) {
-                                await ref
-                                    .read(periodosProvider.notifier)
-                                    .deletePeriodo(periodo.idPeriodo!);
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                      children: [_ClinicasList(idPeriodo: periodo.idPeriodo!)],
-                    ),
-                  );
-                }, childCount: periodos.length),
-              );
-            },
-            loading:
-                () => const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-            error:
-                (err, stack) => SliverFillRemaining(
-                  child: AppErrorView(
-                    message: 'No se pudieron cargar los periodos.',
-                    onRetry: () => ref.invalidate(periodosProvider),
-                  ),
-                ),
+  Widget _buildPeriodoTile(
+    BuildContext context,
+    WidgetRef ref,
+    Periodo periodo,
+  ) {
+    final theme = Theme.of(context);
+    return ExpansionTile(
+      shape: const Border(),
+      collapsedShape: const Border(),
+      title: Text(
+        periodo.nombrePeriodo,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.onSurface,
+        ),
+      ),
+      leading: Container(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer,
+          borderRadius: AppRadii.smAll,
+        ),
+        child: Icon(
+          Icons.calendar_today,
+          color: theme.colorScheme.onPrimaryContainer,
+          size: 20,
+        ),
+      ),
+      childrenPadding: const EdgeInsets.all(AppSpacing.lg),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit, size: 20),
+            tooltip: 'Editar Periodo',
+            onPressed: () => _showEditPeriodoDialog(context, ref, periodo),
           ),
-          const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+          IconButton(
+            icon: const Icon(Icons.delete, size: 20),
+            tooltip: 'Eliminar Periodo',
+            onPressed: () async {
+              final confirm = await showAppConfirm(
+                context,
+                title: 'Eliminar Periodo',
+                message:
+                    '¿Estás seguro? Esto eliminará todas las clínicas y metas asociadas.',
+                confirmLabel: 'Eliminar',
+                destructive: true,
+              );
+              if (confirm) {
+                await ref
+                    .read(periodosProvider.notifier)
+                    .deletePeriodo(periodo.idPeriodo!);
+              }
+            },
+          ),
         ],
       ),
+      children: [_ClinicasList(idPeriodo: periodo.idPeriodo!)],
     );
   }
 
@@ -186,72 +156,75 @@ class ClinicasMetasScreen extends ConsumerWidget {
     final periodosAsync = ref.read(periodosProvider);
     final List<Periodo> existingPeriodos = periodosAsync.asData?.value ?? [];
 
-    showCustomBottomSheet(
-      context: context,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Nuevo Periodo',
-              style: Theme.of(context).textTheme.titleLarge,
+    showAppSheet<void>(
+      context,
+      title: 'Nuevo Periodo',
+      builder:
+          (sheetContext) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.lg,
             ),
-            const SizedBox(height: 16),
-            FormBuilder(
-              key: formKey,
-              child: FormBuilderTextField(
-                name: 'nombre',
-                maxLength: kMaxNombrePeriodo,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre del Periodo',
-                  counterText: "",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (val) {
-                  if (val == null || val.isEmpty) return 'Requerido';
-                  if (existingPeriodos.any(
-                    (p) => p.nombrePeriodo.toLowerCase() == val.toLowerCase(),
-                  )) {
-                    return 'Este nombre ya existe';
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (formKey.currentState?.saveAndValidate() ?? false) {
-                      try {
-                        final nombre = formKey.currentState?.value['nombre'];
-                        await ref
-                            .read(periodosProvider.notifier)
-                            .addPeriodo(nombre);
-                        if (context.mounted) Navigator.pop(context);
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                        }
+                FormBuilder(
+                  key: formKey,
+                  child: AppTextField.singleLine(
+                    name: 'nombre',
+                    label: 'Nombre del Periodo',
+                    maxLength: kMaxNombrePeriodo,
+                    validator: (val) {
+                      if (val == null || val.isEmpty) return 'Requerido';
+                      if (existingPeriodos.any(
+                        (p) =>
+                            p.nombrePeriodo.toLowerCase() == val.toLowerCase(),
+                      )) {
+                        return 'Este nombre ya existe';
                       }
-                    }
-                  },
-                  child: const Text('Guardar'),
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AppButton.text(
+                      label: 'Cancelar',
+                      onPressed: () => Navigator.pop(sheetContext),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    AppButton.primary(
+                      label: 'Guardar',
+                      onPressed: () async {
+                        if (formKey.currentState?.saveAndValidate() ?? false) {
+                          try {
+                            final nombre =
+                                formKey.currentState?.value['nombre'];
+                            await ref
+                                .read(periodosProvider.notifier)
+                                .addPeriodo(nombre);
+                            if (sheetContext.mounted) {
+                              Navigator.pop(sheetContext);
+                            }
+                          } catch (e) {
+                            if (sheetContext.mounted) {
+                              ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
+                              );
+                            }
+                          }
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -264,82 +237,81 @@ class ClinicasMetasScreen extends ConsumerWidget {
     final periodosAsync = ref.read(periodosProvider);
     final List<Periodo> existingPeriodos = periodosAsync.asData?.value ?? [];
 
-    showCustomBottomSheet(
-      context: context,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Editar Periodo',
-              style: Theme.of(context).textTheme.titleLarge,
+    showAppSheet<void>(
+      context,
+      title: 'Editar Periodo',
+      builder:
+          (sheetContext) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.lg,
             ),
-            const SizedBox(height: 16),
-            FormBuilder(
-              key: formKey,
-              initialValue: {'nombre': periodo.nombrePeriodo},
-              child: FormBuilderTextField(
-                name: 'nombre',
-                maxLength: kMaxNombrePeriodo,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre del Periodo',
-                  counterText: "",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (val) {
-                  if (val == null || val.isEmpty) return 'Requerido';
-                  if (existingPeriodos.any(
-                    (p) =>
-                        p.nombrePeriodo.toLowerCase() == val.toLowerCase() &&
-                        p.idPeriodo != periodo.idPeriodo,
-                  )) {
-                    return 'Este nombre ya existe';
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (formKey.currentState?.saveAndValidate() ?? false) {
-                      try {
-                        final nombre = formKey.currentState?.value['nombre'];
-                        await ref
-                            .read(periodosProvider.notifier)
-                            .updatePeriodo(periodo.idPeriodo!, nombre);
-                        if (context.mounted) Navigator.pop(context);
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                        }
+                FormBuilder(
+                  key: formKey,
+                  initialValue: {'nombre': periodo.nombrePeriodo},
+                  child: AppTextField.singleLine(
+                    name: 'nombre',
+                    label: 'Nombre del Periodo',
+                    maxLength: kMaxNombrePeriodo,
+                    validator: (val) {
+                      if (val == null || val.isEmpty) return 'Requerido';
+                      if (existingPeriodos.any(
+                        (p) =>
+                            p.nombrePeriodo.toLowerCase() ==
+                                val.toLowerCase() &&
+                            p.idPeriodo != periodo.idPeriodo,
+                      )) {
+                        return 'Este nombre ya existe';
                       }
-                    }
-                  },
-                  child: const Text('Guardar'),
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AppButton.text(
+                      label: 'Cancelar',
+                      onPressed: () => Navigator.pop(sheetContext),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    AppButton.primary(
+                      label: 'Guardar',
+                      onPressed: () async {
+                        if (formKey.currentState?.saveAndValidate() ?? false) {
+                          try {
+                            final nombre =
+                                formKey.currentState?.value['nombre'];
+                            await ref
+                                .read(periodosProvider.notifier)
+                                .updatePeriodo(periodo.idPeriodo!, nombre);
+                            if (sheetContext.mounted) {
+                              Navigator.pop(sheetContext);
+                            }
+                          } catch (e) {
+                            if (sheetContext.mounted) {
+                              ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
+                              );
+                            }
+                          }
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
-
-  // ...
 }
-
-// ... Previous Dialog Methods ...
 
 class _ClinicasList extends ConsumerWidget {
   final int idPeriodo;
@@ -348,33 +320,36 @@ class _ClinicasList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final clinicasAsync = ref.watch(clinicasByPeriodoProvider(idPeriodo));
+    final theme = Theme.of(context);
 
     return clinicasAsync.when(
       data: (clinicas) {
         if (clinicas.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Column(
-                children: [
-                  Text(
-                    'No hay clínicas registradas.',
-                    style: TextStyle(color: Theme.of(context).disabledColor),
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+            child: Column(
+              children: [
+                Text(
+                  'No hay clínicas registradas.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(
+                      alpha: AppOpacity.muted,
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text('Agregar Clínica'),
-                    onPressed:
-                        () => _showAddClinicaDialog(
-                          context,
-                          ref,
-                          idPeriodo,
-                          clinicas,
-                        ),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                AppButton.secondary(
+                  icon: Icons.add,
+                  label: 'Agregar Clínica',
+                  onPressed:
+                      () => _showAddClinicaDialog(
+                        context,
+                        ref,
+                        idPeriodo,
+                        clinicas,
+                      ),
+                ),
+              ],
             ),
           );
         }
@@ -383,64 +358,12 @@ class _ClinicasList extends ConsumerWidget {
           children: [
             ...clinicas.map((clinica) {
               final clinicColor = ClinicPalette.parse(clinica.color);
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).dividerColor.withValues(alpha: 0.1),
-                  ),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: clinicColor.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.local_hospital, color: clinicColor),
-                  ),
-                  title: Text(
-                    clinica.nombreClinica,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (clinica.horarios != null &&
-                          clinica.horarios!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.schedule,
-                                size: 14,
-                                color: Theme.of(context).disabledColor,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  clinica.horarios!,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context).disabledColor,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
+              final hasHorarios =
+                  clinica.horarios != null && clinica.horarios!.isNotEmpty;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: AppEntityCard(
+                  title: clinica.nombreClinica,
                   onTap:
                       () => _showObjetivosDialog(
                         context,
@@ -448,10 +371,21 @@ class _ClinicasList extends ConsumerWidget {
                         clinica.idClinica!,
                         clinica.nombreClinica,
                       ),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: clinicColor.withValues(alpha: AppOpacity.subtle),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.local_hospital, color: clinicColor),
+                  ),
                   trailing: IconButton(
                     icon: Icon(
                       Icons.more_horiz,
-                      color: Theme.of(context).disabledColor,
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: AppOpacity.muted,
+                      ),
                     ),
                     onPressed:
                         () => _showClinicOptions(
@@ -462,29 +396,38 @@ class _ClinicasList extends ConsumerWidget {
                           idPeriodo,
                         ),
                   ),
+                  child:
+                      hasHorarios
+                          ? Row(
+                            children: [
+                              Icon(
+                                Icons.schedule,
+                                size: 14,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: AppOpacity.muted,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.xs),
+                              Expanded(
+                                child: Text(
+                                  clinica.horarios!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: AppOpacity.muted),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                          : const SizedBox.shrink(),
                 ),
               );
             }),
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text(
-                  'Agregar Clínica',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                style: OutlinedButton.styleFrom(
-                  shape: const StadiumBorder(),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 20,
-                  ),
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.5),
-                  ),
-                ),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              child: AppButton.secondary(
+                icon: Icons.add,
+                label: 'Agregar Clínica',
                 onPressed:
                     () => _showAddClinicaDialog(
                       context,
@@ -498,10 +441,11 @@ class _ClinicasList extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) => const AppErrorView(
-        message: 'No se pudieron cargar las clínicas.',
-        compact: true,
-      ),
+      error:
+          (e, s) => const AppErrorView(
+            message: 'No se pudieron cargar las clínicas.',
+            compact: true,
+          ),
     );
   }
 
@@ -512,69 +456,53 @@ class _ClinicasList extends ConsumerWidget {
     List<Clinica> clinicas,
     int idPeriodo,
   ) {
-    showCupertinoModalPopup<void>(
-      context: context,
+    showAppSheet<void>(
+      context,
+      title: clinica.nombreClinica,
       builder:
-          (BuildContext sheetContext) => CupertinoActionSheet(
-            title: Text(clinica.nombreClinica),
-            message: const Text('Selecciona una opción'),
-            actions: <CupertinoActionSheetAction>[
-              CupertinoActionSheetAction(
-                child: const Text('Editar'),
-                onPressed: () {
-                  Navigator.pop(sheetContext);
-                  _showEditClinicaDialog(context, ref, clinica, clinicas);
-                },
-              ),
-              CupertinoActionSheetAction(
-                isDestructiveAction: true,
-                onPressed: () async {
-                  Navigator.pop(sheetContext);
-                  // Delete logic
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder:
-                        (dialogContext) => AlertDialog(
-                          title: const Text('Eliminar Clínica'),
-                          content: const Text(
-                            '¿Estás seguro? Esto eliminará todos los objetivos de esta clínica.',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed:
-                                  () => Navigator.pop(dialogContext, false),
-                              child: const Text('Cancelar'),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Theme.of(dialogContext).colorScheme.error,
-                                foregroundColor:
-                                    Theme.of(dialogContext).colorScheme.onError,
-                              ),
-                              onPressed:
-                                  () => Navigator.pop(dialogContext, true),
-                              child: const Text('Eliminar'),
-                            ),
-                          ],
-                        ),
-                  );
-
-                  if (confirm == true) {
-                    await ref
-                        .read(clinicasByPeriodoProvider(idPeriodo).notifier)
-                        .deleteClinica(clinica.idClinica!);
-                  }
-                },
-                child: const Text('Eliminar'),
-              ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              isDefaultAction: true,
-              onPressed: () {
-                Navigator.pop(sheetContext);
-              },
-              child: const Text('Cancelar'),
+          (sheetContext) => Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('Selecciona una opción'),
+                const SizedBox(height: AppSpacing.md),
+                AppButton.secondary(
+                  icon: Icons.edit,
+                  label: 'Editar',
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    _showEditClinicaDialog(context, ref, clinica, clinicas);
+                  },
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                AppButton.destructive(
+                  icon: Icons.delete,
+                  label: 'Eliminar',
+                  onPressed: () async {
+                    Navigator.pop(sheetContext);
+                    final confirm = await showAppConfirm(
+                      context,
+                      title: 'Eliminar Clínica',
+                      message:
+                          '¿Estás seguro? Esto eliminará todos los objetivos de esta clínica.',
+                      confirmLabel: 'Eliminar',
+                      destructive: true,
+                    );
+                    if (confirm) {
+                      await ref
+                          .read(clinicasByPeriodoProvider(idPeriodo).notifier)
+                          .deleteClinica(clinica.idClinica!);
+                    }
+                  },
+                ),
+              ],
             ),
           ),
     );
@@ -587,91 +515,87 @@ class _ClinicasList extends ConsumerWidget {
     List<Clinica> existingClinicas,
   ) {
     final formKey = GlobalKey<FormBuilderState>();
-    showCustomBottomSheet(
-      context: context,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Nueva Clínica',
-              style: Theme.of(context).textTheme.titleLarge,
+    showAppSheet<void>(
+      context,
+      title: 'Nueva Clínica',
+      builder:
+          (sheetContext) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.lg,
             ),
-            const SizedBox(height: 16),
-            FormBuilder(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  FormBuilderTextField(
-                    name: 'nombre',
-                    maxLength: 30,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre Clínica',
-                      counterText: "",
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (val == null || val.isEmpty) return 'Requerido';
-                      if (existingClinicas.any(
-                        (c) =>
-                            c.nombreClinica.toLowerCase() == val.toLowerCase(),
-                      )) {
-                        return 'Este nombre ya existe';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  ColorPickerField(
-                    name: 'color',
-                    initialValue: '#007AFF',
-                    decoration: const InputDecoration(
-                      labelText: 'Color',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  WeeklySchedulePicker(
-                    name: 'horarios',
-                    decoration: const InputDecoration(
-                      labelText: 'Horarios',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
+                FormBuilder(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppTextField.singleLine(
+                        name: 'nombre',
+                        label: 'Nombre Clínica',
+                        maxLength: 30,
+                        validator: (val) {
+                          if (val == null || val.isEmpty) return 'Requerido';
+                          if (existingClinicas.any(
+                            (c) =>
+                                c.nombreClinica.toLowerCase() ==
+                                val.toLowerCase(),
+                          )) {
+                            return 'Este nombre ya existe';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      const ColorPickerField(
+                        name: 'color',
+                        initialValue: '#007AFF',
+                        label: 'Color',
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      const WeeklySchedulePicker(
+                        name: 'horarios',
+                        label: 'Horarios',
+                      ),
+                    ],
+                  ),
                 ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (formKey.currentState?.saveAndValidate() ?? false) {
-                      final vals = formKey.currentState!.value;
-                      await ref
-                          .read(clinicasByPeriodoProvider(idPeriodo).notifier)
-                          .addClinica(
-                            nombre: vals['nombre'],
-                            color: vals['color'] ?? '#007AFF',
-                            horarios: vals['horarios'] ?? '',
-                          );
-                      if (context.mounted) Navigator.pop(context);
-                    }
-                  },
-                  child: const Text('Guardar'),
+                const SizedBox(height: AppSpacing.xl),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AppButton.text(
+                      label: 'Cancelar',
+                      onPressed: () => Navigator.pop(sheetContext),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    AppButton.primary(
+                      label: 'Guardar',
+                      onPressed: () async {
+                        if (formKey.currentState?.saveAndValidate() ?? false) {
+                          final vals = formKey.currentState!.value;
+                          await ref
+                              .read(
+                                clinicasByPeriodoProvider(idPeriodo).notifier,
+                              )
+                              .addClinica(
+                                nombre: vals['nombre'],
+                                color: vals['color'] ?? '#007AFF',
+                                horarios: vals['horarios'] ?? '',
+                              );
+                          if (sheetContext.mounted) Navigator.pop(sheetContext);
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -682,104 +606,97 @@ class _ClinicasList extends ConsumerWidget {
     List<Clinica> existingClinicas,
   ) {
     final formKey = GlobalKey<FormBuilderState>();
-    showCustomBottomSheet(
-      context: context,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Editar Clínica',
-              style: Theme.of(context).textTheme.titleLarge,
+    showAppSheet<void>(
+      context,
+      title: 'Editar Clínica',
+      builder:
+          (sheetContext) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.lg,
             ),
-            const SizedBox(height: 16),
-            FormBuilder(
-              key: formKey,
-              initialValue: {
-                'nombre': clinica.nombreClinica,
-                'color': clinica.color,
-                'horarios': clinica.horarios,
-              },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  FormBuilderTextField(
-                    name: 'nombre',
-                    maxLength: 30,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre Clínica',
-                      counterText: "",
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (val) {
-                      if (val == null || val.isEmpty) return 'Requerido';
-                      if (existingClinicas.any(
-                        (c) =>
-                            c.nombreClinica.toLowerCase() ==
-                                val.toLowerCase() &&
-                            c.idClinica != clinica.idClinica,
-                      )) {
-                        return 'Este nombre ya existe';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  ColorPickerField(
-                    name: 'color',
-                    initialValue: clinica.color,
-                    decoration: const InputDecoration(
-                      labelText: 'Color',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  WeeklySchedulePicker(
-                    name: 'horarios',
-                    initialValue: clinica.horarios,
-                    decoration: const InputDecoration(
-                      labelText: 'Horarios',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (formKey.currentState?.saveAndValidate() ?? false) {
-                      final vals = formKey.currentState!.value;
-                      final updated = clinica.copyWith(
-                        nombreClinica: vals['nombre'],
-                        color: vals['color'] ?? '#2196F3',
-                        horarios: vals['horarios'] ?? '',
-                      );
-                      await ref
-                          .read(
-                            clinicasByPeriodoProvider(
-                              clinica.idPeriodo,
-                            ).notifier,
-                          )
-                          .updateClinica(updated);
-                      if (context.mounted) Navigator.pop(context);
-                    }
+                FormBuilder(
+                  key: formKey,
+                  initialValue: {
+                    'nombre': clinica.nombreClinica,
+                    'color': clinica.color,
+                    'horarios': clinica.horarios,
                   },
-                  child: const Text('Guardar'),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppTextField.singleLine(
+                        name: 'nombre',
+                        label: 'Nombre Clínica',
+                        maxLength: 30,
+                        validator: (val) {
+                          if (val == null || val.isEmpty) return 'Requerido';
+                          if (existingClinicas.any(
+                            (c) =>
+                                c.nombreClinica.toLowerCase() ==
+                                    val.toLowerCase() &&
+                                c.idClinica != clinica.idClinica,
+                          )) {
+                            return 'Este nombre ya existe';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      ColorPickerField(
+                        name: 'color',
+                        initialValue: clinica.color,
+                        label: 'Color',
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      WeeklySchedulePicker(
+                        name: 'horarios',
+                        initialValue: clinica.horarios,
+                        label: 'Horarios',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AppButton.text(
+                      label: 'Cancelar',
+                      onPressed: () => Navigator.pop(sheetContext),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    AppButton.primary(
+                      label: 'Guardar',
+                      onPressed: () async {
+                        if (formKey.currentState?.saveAndValidate() ?? false) {
+                          final vals = formKey.currentState!.value;
+                          final updated = clinica.copyWith(
+                            nombreClinica: vals['nombre'],
+                            color: vals['color'] ?? '#2196F3',
+                            horarios: vals['horarios'] ?? '',
+                          );
+                          await ref
+                              .read(
+                                clinicasByPeriodoProvider(
+                                  clinica.idPeriodo,
+                                ).notifier,
+                              )
+                              .updateClinica(updated);
+                          if (sheetContext.mounted) Navigator.pop(sheetContext);
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -789,12 +706,14 @@ class _ClinicasList extends ConsumerWidget {
     int idClinica,
     String nombreClinica,
   ) {
-    showCustomBottomSheet(
-      context: context,
-      child: _ObjetivosDialog(
-        idClinica: idClinica,
-        nombreClinica: nombreClinica,
-      ),
+    showAppSheet<void>(
+      context,
+      title: 'Metas: $nombreClinica',
+      builder:
+          (_) => _ObjetivosDialog(
+            idClinica: idClinica,
+            nombreClinica: nombreClinica,
+          ),
     );
   }
 }
@@ -811,28 +730,26 @@ class _ObjetivosDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final objetivosAsync = ref.watch(objetivosByClinicaProvider(idClinica));
+    final theme = Theme.of(context);
 
-    // We remove AlertDialog and return the content directly for the BottomSheet
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Metas: $nombreClinica',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 16),
           SizedBox(
-            // Constrain height if list is long, to keep sheet manageable?
-            // Helper handles it. But we don't want it to take full screen blindly.
             height: 300,
             child: objetivosAsync.when(
               data: (objetivos) {
                 if (objetivos.isEmpty) {
                   return const Center(
                     child: Padding(
-                      padding: EdgeInsets.all(16.0),
+                      padding: EdgeInsets.all(AppSpacing.lg),
                       child: Text(
                         'No hay metas definidas. ¡Agrega una!',
                         textAlign: TextAlign.center,
@@ -849,7 +766,9 @@ class _ObjetivosDialog extends ConsumerWidget {
                       contentPadding: EdgeInsets.zero,
                       title: Text(
                         obj.nombreTratamiento,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       subtitle: Text('Meta: ${obj.cantidadMeta}'),
                       trailing: Row(
@@ -857,13 +776,11 @@ class _ObjetivosDialog extends ConsumerWidget {
                         children: [
                           Text(
                             '${obj.cantidadActual} / ${obj.cantidadMeta}',
-                            style: TextStyle(
-                              color:
-                                  Theme.of(context).textTheme.bodySmall?.color,
+                            style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           IconButton(
                             icon: const Icon(Icons.edit, size: 20),
                             onPressed:
@@ -874,10 +791,15 @@ class _ObjetivosDialog extends ConsumerWidget {
                             icon: Icon(
                               Icons.delete,
                               size: 20,
-                              color: Theme.of(context).colorScheme.error,
+                              color: theme.colorScheme.error,
                             ),
-                            onPressed: () =>
-                                _confirmDeleteObjetivo(context, ref, idClinica, obj),
+                            onPressed:
+                                () => _confirmDeleteObjetivo(
+                                  context,
+                                  ref,
+                                  idClinica,
+                                  obj,
+                                ),
                           ),
                         ],
                       ),
@@ -890,26 +812,28 @@ class _ObjetivosDialog extends ConsumerWidget {
                     height: 100,
                     child: Center(child: CircularProgressIndicator()),
                   ),
-              error: (e, s) => const SizedBox(
-                height: 100,
-                child: AppErrorView(
-                  message: 'No se pudieron cargar los objetivos.',
-                  compact: true,
-                ),
-              ),
+              error:
+                  (e, s) => const SizedBox(
+                    height: 100,
+                    child: AppErrorView(
+                      message: 'No se pudieron cargar los objetivos.',
+                      compact: true,
+                    ),
+                  ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton(
+              AppButton.text(
+                label: 'Cerrar',
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cerrar'),
               ),
-              ElevatedButton(
+              const SizedBox(width: AppSpacing.sm),
+              AppButton.primary(
+                label: 'Agregar Meta',
                 onPressed: () => _showAddObjetivoDialog(context, ref),
-                child: const Text('Agregar Meta'),
               ),
             ],
           ),
@@ -924,31 +848,17 @@ class _ObjetivosDialog extends ConsumerWidget {
     int idClinica,
     Objetivo obj,
   ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('¿Eliminar objetivo?'),
-        content: Text(
+    final confirmed = await showAppConfirm(
+      context,
+      title: '¿Eliminar objetivo?',
+      message:
           'Se eliminará "${obj.nombreTratamiento}". Los tratamientos ya '
           'registrados para este objetivo se conservarán, pero perderán el '
           'vínculo y su aporte al progreso.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Eliminar',
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       await ref
@@ -964,146 +874,165 @@ class _ObjetivosDialog extends ConsumerWidget {
     }
   }
 
-  // New Edit Method
   void _showEditObjetivoDialog(
     BuildContext context,
     WidgetRef ref,
     Objetivo objetivo,
   ) {
     final formKey = GlobalKey<FormBuilderState>();
-    showDialog(
-      context: context,
+    showAppSheet<void>(
+      context,
+      title: 'Editar Meta',
       builder:
-          (context) => AlertDialog(
-            title: const Text('Editar Meta'),
-            content: SingleChildScrollView(
-              child: FormBuilder(
-                key: formKey,
-                initialValue: {
-                  'nombre': objetivo.nombreTratamiento,
-                  'meta': objetivo.cantidadMeta.toString(),
-                },
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FormBuilderTextField(
-                      name: 'nombre',
-                      maxLength: 30,
-                      decoration: const InputDecoration(
-                        labelText: 'Tratamiento',
-                        counterText: "",
+          (sheetContext) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
+            child: FormBuilder(
+              key: formKey,
+              initialValue: {
+                'nombre': objetivo.nombreTratamiento,
+                'meta': objetivo.cantidadMeta.toString(),
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppTextField.singleLine(
+                    name: 'nombre',
+                    label: 'Tratamiento',
+                    maxLength: 30,
+                    validator:
+                        (val) =>
+                            val == null || val.isEmpty ? 'Requerido' : null,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  AppTextField.number(
+                    name: 'meta',
+                    label: 'Cantidad Meta',
+                    validator: (val) {
+                      if (val == null || val.isEmpty) return 'Requerido';
+                      final number = int.tryParse(val);
+                      if (number == null || number <= 0) return 'Válido > 0';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      AppButton.text(
+                        label: 'Cancelar',
+                        onPressed: () => Navigator.pop(sheetContext),
                       ),
-                      validator:
-                          (val) =>
-                              val == null || val.isEmpty ? 'Requerido' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    FormBuilderTextField(
-                      name: 'meta',
-                      decoration: const InputDecoration(
-                        labelText: 'Cantidad Meta',
+                      const SizedBox(width: AppSpacing.sm),
+                      AppButton.primary(
+                        label: 'Guardar',
+                        onPressed: () async {
+                          if (formKey.currentState?.saveAndValidate() ??
+                              false) {
+                            final vals = formKey.currentState!.value;
+                            final updatedObj = objetivo.copyWith(
+                              nombreTratamiento: vals['nombre'],
+                              cantidadMeta: int.parse(vals['meta']),
+                            );
+                            await ref
+                                .read(
+                                  objetivosByClinicaProvider(
+                                    idClinica,
+                                  ).notifier,
+                                )
+                                .updateObjetivo(updatedObj);
+                            if (sheetContext.mounted) {
+                              Navigator.pop(sheetContext);
+                            }
+                          }
+                        },
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (val) {
-                        if (val == null || val.isEmpty) return 'Requerido';
-                        final number = int.tryParse(val);
-                        if (number == null || number <= 0) return 'Válido > 0';
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (formKey.currentState?.saveAndValidate() ?? false) {
-                    final vals = formKey.currentState!.value;
-                    final updatedObj = objetivo.copyWith(
-                      nombreTratamiento: vals['nombre'],
-                      cantidadMeta: int.parse(vals['meta']),
-                    );
-                    await ref
-                        .read(objetivosByClinicaProvider(idClinica).notifier)
-                        .updateObjetivo(updatedObj);
-                    if (context.mounted) Navigator.pop(context);
-                  }
-                },
-                child: const Text('Guardar'),
-              ),
-            ],
           ),
     );
   }
 
   void _showAddObjetivoDialog(BuildContext context, WidgetRef ref) {
     final formKey = GlobalKey<FormBuilderState>();
-    showDialog(
-      context: context,
+    showAppSheet<void>(
+      context,
+      title: 'Nueva Meta',
       builder:
-          (context) => AlertDialog(
-            title: const Text('Nueva Meta'),
-            content: SingleChildScrollView(
-              child: FormBuilder(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FormBuilderTextField(
-                      name: 'nombre',
-                      maxLength: 30,
-                      decoration: const InputDecoration(
-                        labelText: 'Tratamiento',
-                        counterText: "",
+          (sheetContext) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
+            child: FormBuilder(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppTextField.singleLine(
+                    name: 'nombre',
+                    label: 'Tratamiento',
+                    maxLength: 30,
+                    validator:
+                        (val) =>
+                            val == null || val.isEmpty ? 'Requerido' : null,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  AppTextField.number(
+                    name: 'meta',
+                    label: 'Cantidad Meta',
+                    validator: (val) {
+                      if (val == null || val.isEmpty) return 'Requerido';
+                      final number = int.tryParse(val);
+                      if (number == null || number <= 0) return 'Válido > 0';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      AppButton.text(
+                        label: 'Cancelar',
+                        onPressed: () => Navigator.pop(sheetContext),
                       ),
-                      validator:
-                          (val) =>
-                              val == null || val.isEmpty ? 'Requerido' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    FormBuilderTextField(
-                      name: 'meta',
-                      decoration: const InputDecoration(
-                        labelText: 'Cantidad Meta',
+                      const SizedBox(width: AppSpacing.sm),
+                      AppButton.primary(
+                        label: 'Guardar',
+                        onPressed: () async {
+                          if (formKey.currentState?.saveAndValidate() ??
+                              false) {
+                            final vals = formKey.currentState!.value;
+                            await ref
+                                .read(
+                                  objetivosByClinicaProvider(
+                                    idClinica,
+                                  ).notifier,
+                                )
+                                .addObjetivo(
+                                  nombreTratamiento: vals['nombre'],
+                                  cantidadMeta: int.parse(vals['meta']),
+                                );
+                            if (sheetContext.mounted) {
+                              Navigator.pop(sheetContext);
+                            }
+                          }
+                        },
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (val) {
-                        if (val == null || val.isEmpty) return 'Requerido';
-                        final number = int.tryParse(val);
-                        if (number == null || number <= 0) return 'Válido > 0';
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (formKey.currentState?.saveAndValidate() ?? false) {
-                    final vals = formKey.currentState!.value;
-                    await ref
-                        .read(objetivosByClinicaProvider(idClinica).notifier)
-                        .addObjetivo(
-                          nombreTratamiento: vals['nombre'],
-                          cantidadMeta: int.parse(vals['meta']),
-                        );
-                    if (context.mounted) Navigator.pop(context);
-                  }
-                },
-                child: const Text('Guardar'),
-              ),
-            ],
           ),
     );
   }

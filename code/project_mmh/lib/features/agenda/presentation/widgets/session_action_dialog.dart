@@ -2,10 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_confirm.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/core/utils/formatters.dart';
 import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
-import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_edit_dialog.dart';
@@ -81,7 +84,7 @@ class SessionActionSheet extends ConsumerWidget {
                   border: Border.all(
                     color:
                         isDark
-                            ? Colors.white.withValues(alpha: 0.06)
+                            ? colorScheme.onSurface.withValues(alpha: 0.06)
                             : colorScheme.primary.withValues(alpha: 0.08),
                   ),
                 ),
@@ -214,29 +217,18 @@ class SessionActionSheet extends ConsumerWidget {
               const SizedBox(height: 28),
 
               // ── Actions ──
-              OutlinedButton.icon(
+              AppButton.secondary(
                 onPressed: () => _reprogramar(context, ref),
-                icon: const Icon(CupertinoIcons.calendar_badge_plus, size: 18),
-                label: const Text('Reprogramar'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: const StadiumBorder(),
-                  side: BorderSide(
-                    color: colorScheme.primary.withValues(alpha: 0.3),
-                  ),
-                ),
+                icon: CupertinoIcons.calendar_badge_plus,
+                label: 'Reprogramar',
               ),
-              const SizedBox(height: 10),
-              TextButton.icon(
+              const SizedBox(height: AppSpacing.sm),
+              AppButton.destructive(
                 onPressed: () => _confirmDelete(context, ref),
-                icon: const Icon(CupertinoIcons.trash, size: 16),
-                label: const Text('Eliminar Sesión'),
-                style: TextButton.styleFrom(
-                  foregroundColor: colorScheme.error,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
+                icon: CupertinoIcons.trash,
+                label: 'Eliminar Sesión',
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
             ],
           ),
         );
@@ -319,59 +311,38 @@ class SessionActionSheet extends ConsumerWidget {
 
   void _reprogramar(BuildContext context, WidgetRef ref) async {
     Navigator.of(context).pop();
-    showCustomBottomSheet(
-      context: context,
-      child: SessionEditSheet(
-        idTratamiento: sesion.idTratamiento,
-        sesion: sesion,
-      ),
+    showAppSheet(
+      context,
+      builder:
+          (_) => SessionEditSheet(
+            idTratamiento: sesion.idTratamiento,
+            sesion: sesion,
+          ),
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref) {
-    showCupertinoDialog(
-      context: context,
-      builder:
-          (ctx) => CupertinoAlertDialog(
-            title: const Text('Eliminar Sesión'),
-            content: const Text(
-              '¿Estás seguro de que deseas eliminar esta sesión?',
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cancelar'),
-              ),
-              CupertinoDialogAction(
-                isDestructiveAction: true,
-                onPressed: () async {
-                  Navigator.of(ctx).pop();
-                  try {
-                    final repo = ref.read(agendaRepositoryProvider);
-                    await repo.deleteSesion(sesion.idSesion!);
-                    _invalidateSessionProviders(ref);
-                    if (context.mounted) Navigator.of(context).pop();
-                  } catch (e) {
-                    if (context.mounted) {
-                      final message = e.toString().replaceAll(
-                        'Exception: ',
-                        '',
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'No se pudo eliminar la sesión: $message',
-                          ),
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: const Text('Eliminar'),
-              ),
-            ],
-          ),
+  void _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showAppConfirm(
+      context,
+      title: 'Eliminar Sesión',
+      message: '¿Estás seguro de que deseas eliminar esta sesión?',
+      confirmLabel: 'Eliminar',
+      destructive: true,
     );
+    if (!confirmed) return;
+    try {
+      final repo = ref.read(agendaRepositoryProvider);
+      await repo.deleteSesion(sesion.idSesion!);
+      _invalidateSessionProviders(ref);
+      if (context.mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (context.mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar la sesión: $message')),
+        );
+      }
+    }
   }
 }
 
@@ -424,10 +395,10 @@ class _StatusChip extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 11,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected ? color : Theme.of(context).disabledColor,
+                letterSpacing: 0,
               ),
               textAlign: TextAlign.center,
             ),

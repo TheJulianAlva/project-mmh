@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
 import 'package:project_mmh/core/theme/app_semantic_colors.dart';
 import 'package:project_mmh/features/odontograma/presentation/controllers/odontograma_controller.dart';
 
 /// Paleta del odontograma resuelta desde el tema (para que funcione en claro y
-/// oscuro; antes usaba `Colors.white/black` fijos).
+/// oscuro; antes usaba blanco/negro fijos).
 class ToothPalette {
   const ToothPalette({
     required this.fill,
@@ -50,6 +51,8 @@ class ToothWidget extends StatelessWidget {
   final String globalState;
   final bool hasSellador; // Draws 'S'
   final bool isBridgeStart; // Resalta la pieza elegida como inicio de puente
+  final bool
+  dimmed; // atenúa y desactiva la pieza (p. ej. arcada opuesta al trazar un puente)
 
   // Callbacks
   final VoidCallback? onTapTop;
@@ -71,6 +74,7 @@ class ToothWidget extends StatelessWidget {
     this.globalState = 'Sano',
     this.hasSellador = false,
     this.isBridgeStart = false,
+    this.dimmed = false,
     this.onTapTop,
     this.onTapBottom,
     this.onTapLeft,
@@ -81,28 +85,29 @@ class ToothWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = ToothPalette.of(context);
-    return Column(
+    final tooth = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           isoNumber,
-          style: TextStyle(
-            fontSize: 10,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.bold,
             color: palette.label,
+            letterSpacing: 0,
           ),
         ),
         Container(
           width: size,
           height: size,
-          decoration: isBridgeStart
-              ? BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.tertiary,
-                    width: 2,
-                  ),
-                )
-              : null,
+          decoration:
+              isBridgeStart
+                  ? BoxDecoration(
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.tertiary,
+                      width: 2,
+                    ),
+                  )
+                  : null,
           child: CustomPaint(
             painter: _ToothPainter(
               stateTop: stateTop,
@@ -127,6 +132,11 @@ class ToothWidget extends StatelessWidget {
           ),
         ),
       ],
+    );
+    if (!dimmed) return tooth;
+    return Opacity(
+      opacity: AppOpacity.muted,
+      child: IgnorePointer(child: tooth),
     );
   }
 }
@@ -269,25 +279,28 @@ class _ToothPainter extends CustomPainter {
       if (state == OdontogramaTools.caries) {
         paint.color = palette.caries;
         paint.style = PaintingStyle.fill;
-        if (rect != null)
+        if (rect != null) {
           canvas.drawRect(rect, paint);
-        else
+        } else {
           canvas.drawPath(path, paint);
+        }
       } else if (state == OdontogramaTools.obturacion) {
         paint.color = palette.obturacion;
         paint.style = PaintingStyle.fill;
-        if (rect != null)
+        if (rect != null) {
           canvas.drawRect(rect, paint);
-        else
+        } else {
           canvas.drawPath(path, paint);
+        }
       } else if (state == OdontogramaTools.restauracionFiltrada) {
         // Blue Fill
         paint.color = palette.obturacion;
         paint.style = PaintingStyle.fill;
-        if (rect != null)
+        if (rect != null) {
           canvas.drawRect(rect, paint);
-        else
+        } else {
           canvas.drawPath(path, paint);
+        }
 
         // Red Border (on top of normal border, so we draw it separately or just change stroke color?)
         // Requirement: "borde de color rojo".
@@ -300,26 +313,29 @@ class _ToothPainter extends CustomPainter {
               ..color = palette.caries
               ..strokeWidth = 2.0;
 
-        if (rect != null)
+        if (rect != null) {
           canvas.drawRect(rect, redBorderPaint);
-        else
+        } else {
           canvas.drawPath(path, redBorderPaint);
+        }
       } else {
         paint.color = palette.fill; // Sano
         paint.style = PaintingStyle.fill;
-        if (rect != null)
+        if (rect != null) {
           canvas.drawRect(rect, paint);
-        else
+        } else {
           canvas.drawPath(path, paint);
+        }
       }
 
       // Draw Border
       paint.color = palette.border;
       paint.style = PaintingStyle.stroke;
-      if (rect != null)
+      if (rect != null) {
         canvas.drawRect(rect, strokePaint);
-      else
+      } else {
         canvas.drawPath(path, strokePaint);
+      }
 
       // Fractura (Zigzag)
       if (state == OdontogramaTools.fractura) {
@@ -334,12 +350,12 @@ class _ToothPainter extends CustomPainter {
           path.moveTo(p1.dx, p1.dy);
           final dx = p2.dx - p1.dx;
           final dy = p2.dy - p1.dy;
-          final steps = 4;
+          const steps = 4;
           for (int i = 0; i < steps; i++) {
             final x = p1.dx + dx * (i + 0.5) / steps;
             final y = p1.dy + dy * (i + 0.5) / steps;
             // Simple approx: wiggle perp to main dir
-            final len = 3.0; // Amplitude
+            const len = 3.0; // Amplitude
             double perpX = 0;
             double perpY = 0;
             if (dx.abs() > dy.abs()) {
@@ -391,10 +407,16 @@ class _ToothPainter extends CustomPainter {
             ..color = palette.obturacion
             ..strokeWidth = 2.5
             ..style = PaintingStyle.stroke;
-      canvas.drawLine(Offset(w * 0.15, h * 0.15),
-          Offset(w * 0.85, h * 0.85), blueStroke);
-      canvas.drawLine(Offset(w * 0.85, h * 0.15),
-          Offset(w * 0.15, h * 0.85), blueStroke);
+      canvas.drawLine(
+        Offset(w * 0.15, h * 0.15),
+        Offset(w * 0.85, h * 0.85),
+        blueStroke,
+      );
+      canvas.drawLine(
+        Offset(w * 0.85, h * 0.15),
+        Offset(w * 0.15, h * 0.85),
+        blueStroke,
+      );
     }
 
     if (globalState == OdontogramaTools.porExtraer) {
@@ -463,10 +485,11 @@ class _ToothPainter extends CustomPainter {
       canvas.drawRect(Rect.fromLTWH(1, 1, w - 2, h - 2), stroke);
       // Barra conectora horizontal: las de piezas contiguas se encuentran en el
       // borde compartido y el puente se lee como una unidad.
-      final bar = Paint()
-        ..color = palette.global
-        ..strokeWidth = 3.0
-        ..style = PaintingStyle.stroke;
+      final bar =
+          Paint()
+            ..color = palette.global
+            ..strokeWidth = 3.0
+            ..style = PaintingStyle.stroke;
       canvas.drawLine(Offset(0, h / 2), Offset(w, h / 2), bar);
     }
 
@@ -474,6 +497,7 @@ class _ToothPainter extends CustomPainter {
     if (hasSellador) {
       final textStyle = TextStyle(
         color: palette.obturacion,
+        // design-system-ignore: CustomPainter, tamaño de glifo dinámico
         fontSize: h * 0.55,
         fontWeight: FontWeight.bold,
       );

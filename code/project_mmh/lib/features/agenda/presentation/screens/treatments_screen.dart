@@ -9,11 +9,17 @@ import 'package:project_mmh/features/agenda/presentation/providers/agenda_provid
 import 'package:project_mmh/features/clinicas_metas/domain/periodo.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart'; // Implemented activeClinicIdProvider
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
+import 'package:project_mmh/core/presentation/widgets/app_search_field.dart';
+import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
 import 'package:project_mmh/core/theme/app_semantic_colors.dart';
-import 'package:project_mmh/core/theme/clinic_palette.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_filter_chip.dart';
-import 'package:project_mmh/features/core/presentation/widgets/app_entity_card.dart';
 
 class TreatmentsScreen extends ConsumerStatefulWidget {
   final String? initialPatientId;
@@ -85,225 +91,184 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
 
     final activeClinicId = ref.watch(treatmentsActiveClinicIdProvider);
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Tratamientos'),
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surface.withValues(alpha: 0.9),
-            border: null, // Remove default border for cleaner look
-            trailing: TextButton(
-              onPressed: () => _handleAddPressed(context),
-              child: Text(
-                'Añadir',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
+    return AppScaffold(
+      title: 'Tratamientos',
+      showBack: false,
+      actions: [
+        AppButton.text(
+          label: 'Añadir',
+          onPressed: () => _handleAddPressed(context),
+        ),
+      ],
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              children: [
+                // Search Bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: AppSearchField(
+                    controller: _searchController,
+                    hintText: 'Buscar tratamiento, paciente...',
+                    onChanged: (val) {
+                      setState(() {
+                        searchQuery = val.toLowerCase();
+                      });
+                    },
+                  ),
                 ),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                children: [
-                  // Search Bar
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: CupertinoSearchTextField(
-                      controller: _searchController,
-                      placeholder: 'Buscar tratamiento, paciente...',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      onChanged: (val) {
-                        setState(() {
-                          searchQuery = val.toLowerCase();
-                        });
-                      },
-                      onSuffixTap: () {
-                        _searchController.clear();
-                        setState(() {
-                          searchQuery = '';
-                        });
-                        FocusManager.instance.primaryFocus?.unfocus();
-                      },
-                    ),
-                  ),
-                  // Filters
-                  _buildFilters(context, periodosAsync),
-                  const SizedBox(height: 16),
-                  // Segmented Control
-                  SizedBox(
-                    width: double.infinity,
-                    child: CupertinoSlidingSegmentedControl<int>(
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
-                      thumbColor: Theme.of(context).colorScheme.primary,
-                      groupValue: _selectedSegment,
-                      children: {
-                        0: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 6,
-                          ),
-                          child: Text(
-                            'Pendientes',
-                            style: TextStyle(
-                              color:
-                                  _selectedSegment == 0
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                      : Theme.of(context).colorScheme.primary
-                                          .withValues(alpha: 0.6),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                // Filters
+                _buildFilters(context, periodosAsync),
+                const SizedBox(height: 16),
+                // Segmented Control
+                SizedBox(
+                  width: double.infinity,
+                  child: CupertinoSlidingSegmentedControl<int>(
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
+                    thumbColor: Theme.of(context).colorScheme.primary,
+                    groupValue: _selectedSegment,
+                    children: {
+                      0: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 6,
                         ),
-                        1: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 6,
-                          ),
-                          child: Text(
-                            'Concluidos',
-                            style: TextStyle(
-                              color:
-                                  _selectedSegment == 1
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                      : Theme.of(context).colorScheme.primary
-                                          .withValues(alpha: 0.6),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      },
-                      onValueChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedSegment = value;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          ),
-          // Content
-          tratamientosAsync.when(
-            data: (tratamientos) {
-              // Filter logic
-              var filtered = tratamientos;
-              // Filter by Clinic if specific clinic selected (local override)
-              if (activeClinicId != null) {
-                filtered =
-                    filtered
-                        .where((t) => t.tratamiento.idClinica == activeClinicId)
-                        .toList();
-              }
-
-              if (searchQuery.isNotEmpty) {
-                filtered =
-                    filtered.where((t) {
-                      final query = searchQuery.toLowerCase();
-                      final treatmentName =
-                          t.tratamiento.nombreTratamiento.toLowerCase();
-                      final patientName = t.nombrePaciente.toLowerCase();
-                      final fileId = t.tratamiento.idExpediente.toLowerCase();
-
-                      return treatmentName.contains(query) ||
-                          patientName.contains(query) ||
-                          fileId.contains(query);
-                    }).toList();
-              }
-
-              final pending =
-                  filtered
-                      .where(
-                        (t) =>
-                            t.tratamiento.estado != EstadoTratamiento.concluido,
-                      )
-                      .toList();
-              final completed =
-                  filtered
-                      .where(
-                        (t) =>
-                            t.tratamiento.estado == EstadoTratamiento.concluido,
-                      )
-                      .toList();
-
-              final displayList = _selectedSegment == 0 ? pending : completed;
-
-              if (displayList.isEmpty) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          CupertinoIcons.doc_text_search,
-                          size: 64,
-                          color: CupertinoColors.systemGrey.withValues(
-                            alpha: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _selectedSegment == 0
-                              ? 'No hay tratamientos pendientes'
-                              : 'No hay tratamientos concluidos',
+                        child: Text(
+                          'Pendientes',
                           style: TextStyle(
-                            color: CupertinoColors.systemGrey,
-                            fontSize: 16,
+                            color:
+                                _selectedSegment == 0
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : Theme.of(context).colorScheme.primary
+                                        .withValues(alpha: 0.6),
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 4.0,
-                    ),
-                    child: _TreatmentCard(item: displayList[index]),
-                  );
-                }, childCount: displayList.length),
-              );
-            },
-            loading:
-                () => const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-            error:
-                (e, st) => SliverFillRemaining(
-                  child: AppErrorView(
-                    message: 'No se pudieron cargar los tratamientos.',
-                    onRetry:
-                        () => ref.invalidate(
-                          allTratamientosRichProvider(activePeriodId),
+                      ),
+                      1: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 6,
                         ),
+                        child: Text(
+                          'Concluidos',
+                          style: TextStyle(
+                            color:
+                                _selectedSegment == 1
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : Theme.of(context).colorScheme.primary
+                                        .withValues(alpha: 0.6),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    },
+                    onValueChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedSegment = value;
+                        });
+                      }
+                    },
                   ),
                 ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
-          // Bottom padding for scroll
-          const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
-        ],
-      ),
+        ),
+        // Content
+        tratamientosAsync.when(
+          data: (tratamientos) {
+            // Filter logic
+            var filtered = tratamientos;
+            // Filter by Clinic if specific clinic selected (local override)
+            if (activeClinicId != null) {
+              filtered =
+                  filtered
+                      .where((t) => t.tratamiento.idClinica == activeClinicId)
+                      .toList();
+            }
+
+            if (searchQuery.isNotEmpty) {
+              filtered =
+                  filtered.where((t) {
+                    final query = searchQuery.toLowerCase();
+                    final treatmentName =
+                        t.tratamiento.nombreTratamiento.toLowerCase();
+                    final patientName = t.nombrePaciente.toLowerCase();
+                    final fileId = t.tratamiento.idExpediente.toLowerCase();
+
+                    return treatmentName.contains(query) ||
+                        patientName.contains(query) ||
+                        fileId.contains(query);
+                  }).toList();
+            }
+
+            final pending =
+                filtered
+                    .where(
+                      (t) =>
+                          t.tratamiento.estado != EstadoTratamiento.concluido,
+                    )
+                    .toList();
+            final completed =
+                filtered
+                    .where(
+                      (t) =>
+                          t.tratamiento.estado == EstadoTratamiento.concluido,
+                    )
+                    .toList();
+
+            final displayList = _selectedSegment == 0 ? pending : completed;
+
+            if (displayList.isEmpty) {
+              return SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppEmptyState(
+                  icon: CupertinoIcons.doc_text_search,
+                  title:
+                      _selectedSegment == 0
+                          ? 'No hay tratamientos pendientes'
+                          : 'No hay tratamientos concluidos',
+                ),
+              );
+            }
+
+            return SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 4.0,
+                  ),
+                  child: _TreatmentCard(item: displayList[index]),
+                );
+              }, childCount: displayList.length),
+            );
+          },
+          loading:
+              () => const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+          error:
+              (e, st) => SliverFillRemaining(
+                child: AppErrorView(
+                  message: 'No se pudieron cargar los tratamientos.',
+                  onRetry:
+                      () => ref.invalidate(
+                        allTratamientosRichProvider(activePeriodId),
+                      ),
+                ),
+              ),
+        ),
+        // Bottom padding for scroll
+        const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
+      ],
     );
   }
 
@@ -349,7 +314,7 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
     if (activePeriodId != null && periodosAsync.hasValue) {
       final p = periodosAsync.value!.firstWhere(
         (element) => element.idPeriodo == activePeriodId,
-        orElse: () => Periodo(nombrePeriodo: 'Periodo Actual'),
+        orElse: () => const Periodo(nombrePeriodo: 'Periodo Actual'),
       );
       periodLabel = p.nombrePeriodo;
     } else if (activePeriodId != null) {
@@ -447,45 +412,28 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
     int initialIndex = periodos.indexWhere((p) => p.idPeriodo == currentId);
     if (initialIndex == -1) initialIndex = 0;
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    showAppSheet(
+      context,
+      title: 'Filtrar por Periodo',
       builder:
-          (context) => Container(
+          (context) => SizedBox(
             height: 320,
-            padding: const EdgeInsets.only(top: 12),
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      TextButton(
+                      AppButton.text(
+                        label: 'Cancelar',
                         onPressed: () => Navigator.pop(context),
-                        child: Text(
-                          'Cancelar',
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                        ),
                       ),
-                      Text(
-                        'Filtrar por Periodo',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      TextButton(
+                      AppButton.text(
+                        label: 'Listo',
                         onPressed: () => Navigator.pop(context),
-                        child: const Text(
-                          'Listo',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
                       ),
                     ],
                   ),
@@ -516,7 +464,8 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
                               (p) => Center(
                                 child: Text(
                                   p.nombrePeriodo,
-                                  style: const TextStyle(fontSize: 20),
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium,
                                 ),
                               ),
                             )
@@ -537,8 +486,6 @@ class _TreatmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final clinicaColor = ClinicPalette.parse(item.colorClinica);
-
     final nextSession = item.proximaSesion;
     final isCompleted = item.tratamiento.estado == EstadoTratamiento.concluido;
     final dateFormat = DateFormat('d MMM, HH:mm', 'es_ES');
@@ -546,56 +493,35 @@ class _TreatmentCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return AppEntityCard(
-      accentColor: clinicaColor,
+      title: item.tratamiento.nombreTratamiento,
       onTap:
           () => context.push('/tratamientos/${item.tratamiento.idTratamiento}'),
-      margin: const EdgeInsets.all(0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                item.tratamiento.nombreTratamiento,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const Spacer(),
-              Icon(
-                CupertinoIcons.chevron_right,
-                size: 20,
-                color: colorScheme.onSurface.withValues(alpha: 0.2),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
           Text(
             '${item.nombrePaciente} • ${item.nombreClinica}',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
-              fontSize: 13,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: AppOpacity.muted),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Icon(
                 CupertinoIcons.clock,
                 size: 14,
-                color: colorScheme.onSurface.withValues(alpha: 0.6),
+                color: colorScheme.onSurface.withValues(
+                  alpha: AppOpacity.muted,
+                ),
               ),
               const SizedBox(width: 6),
               if (isCompleted)
                 Text(
                   'Completado',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: context.semantic.success,
                   ),
@@ -605,12 +531,13 @@ class _TreatmentCard extends StatelessWidget {
                   nextSession != null
                       ? 'Próxima: ${dateFormat.format(nextSession)}'
                       : 'Sin sesiones próximas',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: theme.textTheme.bodySmall?.copyWith(
                     color:
                         nextSession != null
                             ? colorScheme.onSurface
-                            : colorScheme.onSurface.withValues(alpha: 0.5),
+                            : colorScheme.onSurface.withValues(
+                              alpha: AppOpacity.muted,
+                            ),
                     fontWeight:
                         nextSession != null
                             ? FontWeight.w500

@@ -53,4 +53,39 @@ void main() {
     final field = t.widget<TextField>(find.byType(TextField));
     expect(field.keyboardType, TextInputType.number);
   });
+
+  testWidgets('AppTextField.singleLine propaga maxLength', (t) async {
+    await t.pumpWidget(
+      wrap(
+        FormBuilder(
+          child: AppTextField.singleLine(
+            name: 'nombre',
+            label: 'Nombre',
+            maxLength: 5,
+          ),
+        ),
+      ),
+    );
+    final field = t.widget<TextField>(find.byType(TextField));
+    expect(field.maxLength, 5);
+  });
+
+  testWidgets('AppTextField.phone usa teclado de teléfono y maxLength', (
+    t,
+  ) async {
+    await t.pumpWidget(
+      wrap(
+        FormBuilder(
+          child: AppTextField.phone(
+            name: 'telefono',
+            label: 'Teléfono',
+            maxLength: 10,
+          ),
+        ),
+      ),
+    );
+    final field = t.widget<TextField>(find.byType(TextField));
+    expect(field.keyboardType, TextInputType.phone);
+    expect(field.maxLength, 10);
+  });
 }

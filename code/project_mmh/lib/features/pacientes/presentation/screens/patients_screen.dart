@@ -1,9 +1,15 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
+import 'package:project_mmh/core/presentation/widgets/app_search_field.dart';
 import 'package:project_mmh/core/services/image_service.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 
 class PatientsScreen extends ConsumerStatefulWidget {
@@ -14,95 +20,71 @@ class PatientsScreen extends ConsumerStatefulWidget {
 }
 
 class _PatientsScreenState extends ConsumerState<PatientsScreen> {
-  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final patientsAsync = ref.watch(patientsProvider);
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Pacientes'),
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surface.withValues(alpha: 0.9),
-            trailing: TextButton(
-              onPressed: () => context.push('/patient-create'),
-              child: const Text(
-                'Añadir',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-              ),
+    return AppScaffold(
+      title: 'Pacientes',
+      showBack: false,
+      actions: [
+        AppButton.text(
+          label: 'Añadir',
+          onPressed: () => context.push('/patient-create'),
+        ),
+      ],
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.md,
+              AppSpacing.sm,
+            ),
+            child: AppSearchField(
+              hintText: 'Buscar paciente',
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
             ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Buscar paciente',
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                  suffixIcon:
-                      _searchQuery.isNotEmpty
-                          ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                _searchQuery = '';
-                              });
-                              FocusManager.instance.primaryFocus?.unfocus();
-                            },
-                          )
-                          : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        ),
+        patientsAsync.when(
+          data: (patients) {
+            final filteredPatients =
+                patients.where((patient) {
+                  final fullName = patient.nombreCompleto.toLowerCase();
+                  return fullName.contains(_searchQuery) ||
+                      patient.idExpediente.toLowerCase().contains(_searchQuery);
+                }).toList();
+
+            if (filteredPatients.isEmpty) {
+              return const SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppEmptyState(
+                  icon: Icons.people_outline,
+                  title: 'No hay pacientes que coincidan.',
                 ),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value.toLowerCase();
-                  });
-                },
-              ),
-            ),
-          ),
-          patientsAsync.when(
-            data: (patients) {
-              final filteredPatients =
-                  patients.where((patient) {
-                    final fullName = patient.nombreCompleto.toLowerCase();
-                    return fullName.contains(_searchQuery) ||
-                        patient.idExpediente.toLowerCase().contains(
-                          _searchQuery,
-                        );
-                  }).toList();
+              );
+            }
 
-              if (filteredPatients.isEmpty) {
-                return const SliverFillRemaining(
-                  child: Center(child: Text('No hay pacientes que coincidan.')),
-                );
-              }
-
-              return SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final patient = filteredPatients[index];
-                  return ListTile(
+            return SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final patient = filteredPatients[index];
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.sm,
+                  ),
+                  child: AppEntityCard(
+                    title: patient.nombreCompleto,
                     leading: CircleAvatar(
                       backgroundImage:
                           patient.imagenesPaths.isNotEmpty
@@ -113,43 +95,42 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                               )
                               : null,
                       onBackgroundImageError:
-                          patient.imagenesPaths.isNotEmpty
-                              ? (_, __) {}
-                              : null,
+                          patient.imagenesPaths.isNotEmpty ? (_, __) {} : null,
                       child:
                           patient.imagenesPaths.isEmpty
                               ? const Icon(Icons.person)
                               : null,
                     ),
-                    title: Text(
-                      patient.nombreCompleto,
-                    ),
-                    subtitle: Text('Exp: ${patient.idExpediente}'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [const Icon(Icons.chevron_right)],
-                    ),
                     onTap: () {
                       context.push('/pacientes/${patient.idExpediente}');
                     },
-                  );
-                }, childCount: filteredPatients.length),
-              );
-            },
-            loading:
-                () => const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-            error:
-                (err, stack) => SliverFillRemaining(
-                  child: AppErrorView(
-                    message: 'No se pudo cargar la lista de pacientes.',
-                    onRetry: () => ref.invalidate(patientsProvider),
+                    child: Text(
+                      'Exp: ${patient.idExpediente}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface
+                            .withValues(alpha: AppOpacity.muted),
+                      ),
+                    ),
                   ),
+                );
+              }, childCount: filteredPatients.length),
+            );
+          },
+          loading:
+              () => const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+          error:
+              (err, stack) => SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppErrorView(
+                  message: 'No se pudo cargar la lista de pacientes.',
+                  onRetry: () => ref.invalidate(patientsProvider),
                 ),
-          ),
-        ],
-      ),
+              ),
+        ),
+      ],
     );
   }
 }

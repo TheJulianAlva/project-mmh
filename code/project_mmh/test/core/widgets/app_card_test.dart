@@ -31,6 +31,33 @@ void main() {
     expect(bar.color, const Color(0xFF00C7BE));
   });
 
+  testWidgets('AppCard con tint pinta el fondo tintado y sin sombra', (
+    t,
+  ) async {
+    await t.pumpWidget(
+      wrap(const AppCard(tint: Color(0xFF0000FF), child: Text('x'))),
+    );
+    final material = t.widget<Material>(
+      find
+          .descendant(of: find.byType(AppCard), matching: find.byType(Material))
+          .first,
+    );
+    expect(material.elevation, 0);
+  });
+
+  testWidgets('AppCard con accentColor y tint a la vez lanza assert', (
+    t,
+  ) async {
+    expect(
+      () => AppCard(
+        accentColor: const Color(0xFF00FF00),
+        tint: const Color(0xFF0000FF),
+        child: const Text('x'),
+      ),
+      throwsAssertionError,
+    );
+  });
+
   testWidgets('AppSectionHeader pone el label en mayúsculas', (t) async {
     await t.pumpWidget(wrap(const AppSectionHeader('Información médica')));
     expect(find.text('INFORMACIÓN MÉDICA'), findsOneWidget);

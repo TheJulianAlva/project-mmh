@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
-import 'package:project_mmh/core/presentation/widgets/cupertino_date_picker_field.dart';
+import 'package:intl/intl.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_date_time_sheet.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/features/agenda/domain/sesion.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
@@ -68,7 +71,7 @@ class _SessionEditSheetState extends ConsumerState<SessionEditSheet> {
               border: Border.all(
                 color:
                     isDark
-                        ? Colors.white.withValues(alpha: 0.06)
+                        ? colorScheme.onSurface.withValues(alpha: 0.06)
                         : colorScheme.primary.withValues(alpha: 0.08),
               ),
             ),
@@ -77,30 +80,39 @@ class _SessionEditSheetState extends ConsumerState<SessionEditSheet> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CupertinoDatePickerField(
+                  FormBuilderField<DateTime>(
                     name: 'fecha_inicio',
                     initialValue:
                         isEditing
                             ? DateTime.parse(widget.sesion!.fechaInicio)
                             : DateTime.now(),
-                    pickerType: CupertinoDatePickerType.dateTime,
-                    decoration: _getInputDecoration(
-                      'Inicio',
-                      CupertinoIcons.calendar,
-                      colorScheme,
-                      isDark,
-                    ),
                     validator: FormBuilderValidators.required(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        _formKey.currentState?.fields['fecha_fin']?.didChange(
-                          val.add(const Duration(hours: 2)),
-                        );
-                      }
+                    builder: (field) {
+                      return _DateFieldRow(
+                        label: 'Inicio',
+                        icon: CupertinoIcons.calendar,
+                        value: field.value,
+                        errorText: field.errorText,
+                        onTap: () async {
+                          final picked = await AppDateTimeSheet.pick(
+                            context,
+                            initial: field.value ?? DateTime.now(),
+                          );
+                          if (picked != null) {
+                            field.didChange(picked);
+                            _formKey.currentState?.fields['fecha_fin']
+                                ?.didChange(
+                                  picked.add(const Duration(hours: 2)),
+                                );
+                          }
+                        },
+                      );
                     },
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.sm,
+                    ),
                     child: Row(
                       children: [
                         const SizedBox(width: 12),
@@ -120,62 +132,43 @@ class _SessionEditSheetState extends ConsumerState<SessionEditSheet> {
                       ],
                     ),
                   ),
-                  CupertinoDatePickerField(
+                  FormBuilderField<DateTime>(
                     name: 'fecha_fin',
                     initialValue:
                         isEditing
                             ? DateTime.parse(widget.sesion!.fechaFin)
                             : DateTime.now().add(const Duration(hours: 2)),
-                    pickerType: CupertinoDatePickerType.dateTime,
-                    decoration: _getInputDecoration(
-                      'Fin',
-                      CupertinoIcons.clock,
-                      colorScheme,
-                      isDark,
-                    ),
                     validator: FormBuilderValidators.required(),
+                    builder: (field) {
+                      return _DateFieldRow(
+                        label: 'Fin',
+                        icon: CupertinoIcons.clock,
+                        value: field.value,
+                        errorText: field.errorText,
+                        onTap: () async {
+                          final picked = await AppDateTimeSheet.pick(
+                            context,
+                            initial: field.value ?? DateTime.now(),
+                          );
+                          if (picked != null) field.didChange(picked);
+                        },
+                      );
+                    },
                   ),
                 ],
               ),
             ),
           ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: AppSpacing.xl),
 
           // ── Save Button ──
-          SizedBox(
-            height: 48,
-            child: ElevatedButton(
-              onPressed: _isSaving ? null : () => _save(isEditing),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.primary,
-                foregroundColor: colorScheme.onPrimary,
-                shape: const StadiumBorder(),
-                elevation: 0,
-                disabledBackgroundColor: colorScheme.primary.withValues(
-                  alpha: 0.5,
-                ),
-              ),
-              child:
-                  _isSaving
-                      ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: colorScheme.onPrimary,
-                        ),
-                      )
-                      : Text(
-                        isEditing ? 'Guardar Cambios' : 'Crear Sesión',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-            ),
+          AppButton.primary(
+            loading: _isSaving,
+            onPressed: () => _save(isEditing),
+            label: isEditing ? 'Guardar Cambios' : 'Crear Sesión',
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
         ],
       ),
     );
@@ -250,42 +243,57 @@ class _SessionEditSheetState extends ConsumerState<SessionEditSheet> {
       if (mounted) setState(() => _isSaving = false);
     }
   }
+}
 
-  InputDecoration _getInputDecoration(
-    String label,
-    IconData icon,
-    ColorScheme colorScheme,
-    bool isDark,
-  ) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(
-        icon,
-        size: 18,
-        color: colorScheme.primary.withValues(alpha: 0.6),
-      ),
-      filled: true,
-      fillColor: isDark ? colorScheme.surface : Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: colorScheme.primary.withValues(alpha: 0.12),
+/// Fila tocable que muestra una fecha/hora y abre `AppDateTimeSheet.pick`.
+class _DateFieldRow extends StatelessWidget {
+  const _DateFieldRow({
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.onTap,
+    this.errorText,
+  });
+
+  final String label;
+  final IconData icon;
+  final DateTime? value;
+  final VoidCallback onTap;
+  final String? errorText;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final text =
+        value == null
+            ? 'Seleccionar'
+            : DateFormat("EEE, d MMM yyyy  HH:mm", 'es_ES').format(value!);
+
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        errorText: errorText,
+        prefixIcon: Icon(icon, size: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
         ),
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: colorScheme.primary.withValues(alpha: 0.12),
+      child: InkWell(
+        onTap: onTap,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+            ),
+            Icon(
+              CupertinoIcons.chevron_up_chevron_down,
+              size: 14,
+              color: colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+          ],
         ),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
-      ),
-      labelStyle: TextStyle(
-        color: colorScheme.onSurface.withValues(alpha: 0.5),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 }

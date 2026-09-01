@@ -8,7 +8,10 @@ import 'package:project_mmh/features/agenda/presentation/widgets/timeline_sessio
 import 'package:table_calendar/table_calendar.dart' hide isSameDay;
 import 'package:table_calendar/table_calendar.dart' as tc show isSameDay;
 import 'package:intl/intl.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
+import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
 import 'package:project_mmh/features/core/presentation/widgets/app_filter_chip.dart';
 
 class AgendaScreen extends ConsumerStatefulWidget {
@@ -104,233 +107,220 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
     final statusFilter = ref.watch(statusFilterProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          CupertinoSliverNavigationBar(
-            largeTitle: const Text('Agenda'),
-            backgroundColor: colorScheme.surface.withValues(alpha: 0.9),
-            trailing: TextButton(
-              onPressed: _openAppointmentForm,
-              child: const Text(
-                'Añadir',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-
-          // ── Collapsible Calendar ──
-          SliverToBoxAdapter(
-            child: GestureDetector(
-              onVerticalDragEnd: (details) {
-                if (details.primaryVelocity == null) return;
-                // Swipe up → collapse to week, swipe down → expand to month
-                if (details.primaryVelocity! < -100 &&
-                    _calendarFormat == CalendarFormat.month) {
-                  _toggleCalendarFormat();
-                } else if (details.primaryVelocity! > 100 &&
-                    _calendarFormat == CalendarFormat.week) {
-                  _toggleCalendarFormat();
-                }
-              },
-              child: AnimatedSize(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOutCubic,
-                alignment: Alignment.topCenter,
-                child: sessionsAsync.when(
-                  data:
-                      (allSessions) => Column(
-                        children: [
-                          TableCalendar(
-                            locale: 'es_ES',
-                            firstDay: DateTime.utc(2020, 1, 1),
-                            lastDay: DateTime.utc(2030, 12, 31),
-                            focusedDay: _focusedDay,
-                            calendarFormat: _calendarFormat,
-                            onPageChanged: (focusedDay) {
-                              // No usar setState aquí (recomendación de
-                              // table_calendar): solo persistir la página.
-                              _focusedDay = focusedDay;
-                            },
-                            startingDayOfWeek: StartingDayOfWeek.monday,
-                            availableCalendarFormats: const {
-                              CalendarFormat.month: 'Mes',
-                              CalendarFormat.week: 'Semana',
-                            },
-                            headerStyle: HeaderStyle(
-                              formatButtonVisible: true,
-                              formatButtonShowsNext: false,
-                              formatButtonDecoration: BoxDecoration(
-                                border: Border.all(
-                                  color: colorScheme.primary.withValues(
-                                    alpha: 0.3,
-                                  ),
+    return AppScaffold(
+      title: 'Agenda',
+      showBack: false,
+      actions: [
+        AppButton.text(label: 'Añadir', onPressed: _openAppointmentForm),
+      ],
+      slivers: [
+        // ── Collapsible Calendar ──
+        SliverToBoxAdapter(
+          child: GestureDetector(
+            onVerticalDragEnd: (details) {
+              if (details.primaryVelocity == null) return;
+              // Swipe up → collapse to week, swipe down → expand to month
+              if (details.primaryVelocity! < -100 &&
+                  _calendarFormat == CalendarFormat.month) {
+                _toggleCalendarFormat();
+              } else if (details.primaryVelocity! > 100 &&
+                  _calendarFormat == CalendarFormat.week) {
+                _toggleCalendarFormat();
+              }
+            },
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOutCubic,
+              alignment: Alignment.topCenter,
+              child: sessionsAsync.when(
+                data:
+                    (allSessions) => Column(
+                      children: [
+                        TableCalendar(
+                          locale: 'es_ES',
+                          firstDay: DateTime.utc(2020),
+                          lastDay: DateTime.utc(2030, 12, 31),
+                          focusedDay: _focusedDay,
+                          calendarFormat: _calendarFormat,
+                          onPageChanged: (focusedDay) {
+                            // No usar setState aquí (recomendación de
+                            // table_calendar): solo persistir la página.
+                            _focusedDay = focusedDay;
+                          },
+                          startingDayOfWeek: StartingDayOfWeek.monday,
+                          availableCalendarFormats: const {
+                            CalendarFormat.month: 'Mes',
+                            CalendarFormat.week: 'Semana',
+                          },
+                          headerStyle: HeaderStyle(
+                            formatButtonShowsNext: false,
+                            formatButtonDecoration: BoxDecoration(
+                              border: Border.all(
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.3,
                                 ),
-                                borderRadius: BorderRadius.circular(14),
                               ),
-                              formatButtonTextStyle: TextStyle(
-                                color: colorScheme.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              titleCentered: true,
-                              titleTextStyle:
-                                  Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w600) ??
-                                  const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            // design-system-ignore: table_calendar CalendarStyle requiere TextStyle
+                            formatButtonTextStyle: TextStyle(
+                              color: colorScheme.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            titleCentered: true,
+                            titleTextStyle:
+                                Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600) ??
+                                // design-system-ignore: table_calendar CalendarStyle requiere TextStyle
+                                const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                            leftChevronIcon: Icon(
+                              CupertinoIcons.chevron_left,
+                              size: 16,
+                              color: colorScheme.primary,
+                            ),
+                            rightChevronIcon: Icon(
+                              CupertinoIcons.chevron_right,
+                              size: 16,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          daysOfWeekStyle: DaysOfWeekStyle(
+                            // design-system-ignore: table_calendar CalendarStyle requiere TextStyle
+                            weekdayStyle: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.primary.withValues(alpha: 0.7),
+                            ),
+                            // design-system-ignore: table_calendar CalendarStyle requiere TextStyle
+                            weekendStyle: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.primary.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          selectedDayPredicate:
+                              (day) => tc.isSameDay(selectedDate, day),
+                          onDaySelected: (selectedDay, focusedDay) {
+                            ref.read(selectedDateProvider.notifier).state =
+                                selectedDay;
+                            setState(() => _focusedDay = focusedDay);
+                          },
+                          onFormatChanged: (format) {
+                            setState(() {
+                              _calendarFormat = format;
+                            });
+                          },
+                          eventLoader: (day) {
+                            return allSessions
+                                .where(
+                                  (s) => tc.isSameDay(
+                                    DateTime.parse(s.fechaInicio),
+                                    day,
                                   ),
-                              leftChevronIcon: Icon(
-                                CupertinoIcons.chevron_left,
-                                size: 16,
-                                color: colorScheme.primary,
+                                )
+                                .toList();
+                          },
+                          calendarStyle: CalendarStyle(
+                            outsideDaysVisible: false,
+                            todayDecoration: BoxDecoration(
+                              color: colorScheme.primary.withValues(
+                                alpha: 0.15,
                               ),
-                              rightChevronIcon: Icon(
-                                CupertinoIcons.chevron_right,
-                                size: 16,
-                                color: colorScheme.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            todayTextStyle: TextStyle(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            selectedDecoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            markerDecoration: BoxDecoration(
+                              color: colorScheme.secondary,
+                              shape: BoxShape.circle,
+                            ),
+                            markerSize: 5,
+                            markersMaxCount: 3,
+                            defaultTextStyle: TextStyle(
+                              color: colorScheme.onSurface,
+                            ),
+                            weekendTextStyle: TextStyle(
+                              color: colorScheme.onSurface.withValues(
+                                alpha: 0.6,
                               ),
                             ),
-                            daysOfWeekStyle: DaysOfWeekStyle(
-                              weekdayStyle: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.primary.withValues(
-                                  alpha: 0.7,
-                                ),
-                              ),
-                              weekendStyle: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.primary.withValues(
-                                  alpha: 0.4,
-                                ),
-                              ),
-                            ),
-                            selectedDayPredicate:
-                                (day) => tc.isSameDay(selectedDate, day),
-                            onDaySelected: (selectedDay, focusedDay) {
-                              ref.read(selectedDateProvider.notifier).state =
-                                  selectedDay;
-                              setState(() => _focusedDay = focusedDay);
-                            },
-                            onFormatChanged: (format) {
-                              setState(() {
-                                _calendarFormat = format;
-                              });
-                            },
-                            eventLoader: (day) {
-                              return allSessions
-                                  .where(
-                                    (s) => tc.isSameDay(
-                                      DateTime.parse(s.fechaInicio),
-                                      day,
-                                    ),
-                                  )
-                                  .toList();
-                            },
-                            calendarStyle: CalendarStyle(
-                              outsideDaysVisible: false,
-                              todayDecoration: BoxDecoration(
-                                color: colorScheme.primary.withValues(
-                                  alpha: 0.15,
-                                ),
-                                shape: BoxShape.circle,
-                              ),
-                              todayTextStyle: TextStyle(
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              selectedDecoration: BoxDecoration(
-                                color: colorScheme.primary,
-                                shape: BoxShape.circle,
-                              ),
-                              markerDecoration: BoxDecoration(
-                                color: colorScheme.secondary,
-                                shape: BoxShape.circle,
-                              ),
-                              markerSize: 5,
-                              markersMaxCount: 3,
-                              defaultTextStyle: TextStyle(
-                                color: colorScheme.onSurface,
-                              ),
-                              weekendTextStyle: TextStyle(
+                          ),
+                        ),
+                        // Swipe handle indicator
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 2),
+                          child: Center(
+                            child: Container(
+                              width: 36,
+                              height: 4,
+                              decoration: BoxDecoration(
                                 color: colorScheme.onSurface.withValues(
-                                  alpha: 0.6,
+                                  alpha: 0.12,
                                 ),
+                                borderRadius: BorderRadius.circular(2),
                               ),
                             ),
                           ),
-                          // Swipe handle indicator
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4, bottom: 2),
-                            child: Center(
-                              child: Container(
-                                width: 36,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.onSurface.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                  loading:
-                      () => const Center(child: CircularProgressIndicator()),
-                  error:
-                      (e, _) => AppErrorView(
-                        message: 'No se pudo cargar la agenda.',
-                        onRetry: () {
-                          ref.invalidate(allSesionesProvider);
-                          ref.invalidate(enrichedSesionesProvider);
-                        },
-                      ),
-                ),
+                        ),
+                      ],
+                    ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error:
+                    (e, _) => AppErrorView(
+                      message: 'No se pudo cargar la agenda.',
+                      onRetry: () {
+                        ref.invalidate(allSesionesProvider);
+                        ref.invalidate(enrichedSesionesProvider);
+                      },
+                    ),
               ),
             ),
           ),
+        ),
 
-          // ── Day Header ──
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Divider(
-                height: 1,
-                color: colorScheme.onSurface.withValues(alpha: 0.06),
-              ),
+        // ── Day Header ──
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Divider(
+              height: 1,
+              color: colorScheme.onSurface.withValues(alpha: 0.06),
             ),
           ),
-          SliverToBoxAdapter(
-            child: _buildDayHeader(
-              context,
-              colorScheme,
-              selectedDate,
-              enrichedToday.length,
-            ),
+        ),
+        SliverToBoxAdapter(
+          child: _buildDayHeader(
+            context,
+            colorScheme,
+            selectedDate,
+            enrichedToday.length,
           ),
+        ),
 
-          // ── Status Filter Chips ──
+        // ── Status Filter Chips ──
+        SliverToBoxAdapter(child: _buildFilterChips(colorScheme, statusFilter)),
+
+        // ── Timeline or Empty State ──
+        if (enrichedToday.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: _buildEmptyState(context, colorScheme, statusFilter),
+          )
+        else
           SliverToBoxAdapter(
-            child: _buildFilterChips(colorScheme, statusFilter),
+            child: TimelineSessionList(sessions: enrichedToday),
           ),
-
-          // ── Timeline or Empty State ──
-          if (enrichedToday.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: _buildEmptyState(context, colorScheme, statusFilter),
-            )
-          else
-            SliverToBoxAdapter(
-              child: TimelineSessionList(sessions: enrichedToday),
-            ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -386,22 +376,22 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
     EstadoAsistencia? activeFilter,
   ) {
     final filters = <_FilterOption>[
-      _FilterOption(
+      const _FilterOption(
         label: 'Todas',
         value: null,
         icon: CupertinoIcons.list_bullet,
       ),
-      _FilterOption(
+      const _FilterOption(
         label: 'Pendientes',
         value: EstadoAsistencia.programada,
         icon: CupertinoIcons.circle_fill,
       ),
-      _FilterOption(
+      const _FilterOption(
         label: 'Asistió',
         value: EstadoAsistencia.asistio,
         icon: CupertinoIcons.checkmark_alt,
       ),
-      _FilterOption(
+      const _FilterOption(
         label: 'No asistió',
         value: EstadoAsistencia.falto,
         icon: CupertinoIcons.person_badge_minus,
@@ -445,44 +435,29 @@ class _AgendaScreenState extends ConsumerState<AgendaScreen>
   ) {
     final isFiltered = statusFilter != null;
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isFiltered
-                ? CupertinoIcons.search
-                : CupertinoIcons.calendar_badge_minus,
-            size: 56,
-            color: colorScheme.onSurface.withValues(alpha: 0.2),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            isFiltered
-                ? 'No hay citas con este filtro'
-                : 'No hay citas programadas',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.4),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (isFiltered)
-            TextButton.icon(
-              onPressed: () {
-                ref.read(statusFilterProvider.notifier).state = null;
-              },
-              icon: const Icon(CupertinoIcons.arrow_counterclockwise, size: 16),
-              label: const Text('Mostrar todas'),
-            )
-          else
-            TextButton.icon(
-              onPressed: _openAppointmentForm,
-              icon: const Icon(CupertinoIcons.add, size: 18),
-              label: const Text('Agendar cita'),
-            ),
-        ],
-      ),
+    return AppEmptyState(
+      icon:
+          isFiltered
+              ? CupertinoIcons.search
+              : CupertinoIcons.calendar_badge_minus,
+      title:
+          isFiltered
+              ? 'No hay citas con este filtro'
+              : 'No hay citas programadas',
+      action:
+          isFiltered
+              ? AppButton.text(
+                label: 'Mostrar todas',
+                icon: CupertinoIcons.arrow_counterclockwise,
+                onPressed: () {
+                  ref.read(statusFilterProvider.notifier).state = null;
+                },
+              )
+              : AppButton.text(
+                label: 'Agendar cita',
+                icon: CupertinoIcons.add,
+                onPressed: _openAppointmentForm,
+              ),
     );
   }
 }

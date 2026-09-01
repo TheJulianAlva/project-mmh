@@ -29,10 +29,10 @@ abstract class Patient with _$Patient {
 
   /// Nombre completo sin espacios sobrantes (segundo apellido opcional).
   String get nombreCompleto => [
-        nombre.trim(),
-        primerApellido.trim(),
-        (segundoApellido ?? '').trim(),
-      ].where((s) => s.isNotEmpty).join(' ');
+    nombre.trim(),
+    primerApellido.trim(),
+    (segundoApellido ?? '').trim(),
+  ].where((s) => s.isNotEmpty).join(' ');
 }
 
 List<String> _parseImages(Object? value) {

@@ -51,6 +51,7 @@ class AppFilterChip extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
+              // design-system-ignore: etiqueta de chip compacta, sin rol AppText equivalente
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,

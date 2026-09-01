@@ -4,8 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:project_mmh/features/agenda/domain/estado_asistencia.dart';
 import 'package:project_mmh/features/agenda/domain/sesion_rich_model.dart';
 import 'package:project_mmh/features/agenda/presentation/widgets/session_action_dialog.dart';
-import 'package:project_mmh/core/presentation/widgets/custom_bottom_sheet.dart';
-import 'package:project_mmh/features/core/presentation/widgets/app_entity_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
+import 'package:project_mmh/core/presentation/widgets/app_status_badge.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/core/utils/formatters.dart';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -235,7 +238,9 @@ class _DateHeader extends StatelessWidget {
             ),
             child: Text(
               group.label,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 8),
@@ -324,7 +329,6 @@ class _TimelineRow extends StatelessWidget {
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.5),
                       fontWeight: FontWeight.w600,
-                      fontSize: 11,
                     ),
                   ),
                 ),
@@ -357,8 +361,6 @@ class _TimelineRow extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: _TimelineSessionCard(
                 session: session,
-                colorScheme: colorScheme,
-                isDark: isDark,
                 onRefresh: onRefresh,
               ),
             ),
@@ -379,16 +381,9 @@ class _TimelineRow extends StatelessWidget {
 
 class _TimelineSessionCard extends StatelessWidget {
   final SesionRichModel session;
-  final ColorScheme colorScheme;
-  final bool isDark;
   final VoidCallback? onRefresh;
 
-  const _TimelineSessionCard({
-    required this.session,
-    required this.colorScheme,
-    required this.isDark,
-    this.onRefresh,
-  });
+  const _TimelineSessionCard({required this.session, this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -396,99 +391,39 @@ class _TimelineSessionCard extends StatelessWidget {
     final endTime = DateTime.parse(session.sesion.fechaFin);
     final duration = endTime.difference(startTime);
     final durationStr = formatDuration(duration);
+    final onSurfaceMuted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: AppOpacity.muted);
 
     return AppEntityCard(
-      accentColor: _getNodeColor(),
+      title: 'Sesión de ${session.nombreTratamiento}',
       onTap: () async {
-        await showCustomBottomSheet(
-          context: context,
-          child: SessionActionSheet(sesion: session.sesion),
+        await showAppSheet(
+          context,
+          builder: (_) => SessionActionSheet(sesion: session.sesion),
         );
         onRefresh?.call();
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Sesión de ${session.nombreTratamiento}',
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
           Row(
             children: [
-              Icon(
-                CupertinoIcons.clock,
-                size: 12,
-                color: colorScheme.onSurface.withValues(alpha: 0.45),
-              ),
+              Icon(CupertinoIcons.clock, size: 12, color: onSurfaceMuted),
               const SizedBox(width: 4),
-              Text(
-                '${DateFormat('HH:mm').format(startTime)} - ${DateFormat('HH:mm').format(endTime)} · $durationStr',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+              Flexible(
+                child: Text(
+                  '${DateFormat('HH:mm').format(startTime)} - ${DateFormat('HH:mm').format(endTime)} · $durationStr',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: onSurfaceMuted),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          _buildStatusBadge(context, session.sesion.estadoAsistencia),
-        ],
-      ),
-    );
-  }
-
-  Color _getNodeColor() {
-    return switch (session.sesion.estadoAsistencia) {
-      EstadoAsistencia.asistio => colorScheme.secondary,
-      EstadoAsistencia.falto => colorScheme.error,
-      EstadoAsistencia.programada || null => colorScheme.primary,
-    };
-  }
-
-  Widget _buildStatusBadge(BuildContext context, EstadoAsistencia? status) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    final Color color;
-    final String label;
-    final IconData icon;
-
-    switch (status) {
-      case EstadoAsistencia.asistio:
-        color = colorScheme.secondary;
-        label = 'ASISTIÓ';
-        icon = CupertinoIcons.checkmark_alt;
-      case EstadoAsistencia.falto:
-        color = colorScheme.error;
-        label = 'NO ASISTIÓ';
-        icon = CupertinoIcons.person_badge_minus;
-      case EstadoAsistencia.programada:
-      case null:
-        color = colorScheme.primary;
-        label = 'PROGRAMADA';
-        icon = CupertinoIcons.circle_fill;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 10, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          const SizedBox(height: AppSpacing.sm),
+          AppStatusBadge.asistencia(session.sesion.estadoAsistencia),
         ],
       ),
     );

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:project_mmh/core/presentation/widgets/app_button.dart';
 import 'package:project_mmh/core/presentation/widgets/app_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
 import 'package:project_mmh/core/presentation/widgets/app_confirm.dart';
 import 'package:project_mmh/core/presentation/widgets/app_date_time_sheet.dart';
 import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_list_tile.dart';
 import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
 import 'package:project_mmh/core/presentation/widgets/app_search_field.dart';
+import 'package:project_mmh/core/presentation/widgets/app_selection_sheet.dart';
 import 'package:project_mmh/core/presentation/widgets/app_section_header.dart';
 import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
 import 'package:project_mmh/core/presentation/widgets/app_status_badge.dart';
@@ -129,6 +131,17 @@ class StyleGuideScreen extends StatelessWidget {
                 accentColor: Color(0xFF00C7BE),
                 child: Text('AppCard con barra de acento'),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              const AppCard(
+                tint: Color(0xFFD81B60),
+                child: Text('AppCard tint (panel)'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppEntityCard(
+                title: 'AppEntityCard',
+                onTap: () {},
+                child: const Text('fila de entidad tocable'),
+              ),
 
               const AppSectionHeader('Campos'),
               const AppSearchField(),
@@ -206,6 +219,17 @@ class StyleGuideScreen extends StatelessWidget {
                   AppButton.secondary(
                     label: 'AppDateTimeSheet',
                     onPressed: () => AppDateTimeSheet.pick(context),
+                  ),
+                  AppButton.secondary(
+                    label: 'showAppSelectionSheet',
+                    onPressed:
+                        () => showAppSelectionSheet<String>(
+                          context,
+                          title: 'Elige',
+                          options: const ['Uno', 'Dos', 'Tres'],
+                          labelOf: (s) => s,
+                          selected: 'Dos',
+                        ),
                   ),
                 ],
               ),

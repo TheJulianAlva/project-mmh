@@ -3,6 +3,9 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:project_mmh/core/constants/app_constants.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_text_field.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/features/agenda/domain/tratamiento.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 import 'package:project_mmh/features/agenda/presentation/providers/agenda_providers.dart';
@@ -42,18 +45,7 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 8),
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             'Editar Tratamiento',
             style: Theme.of(
@@ -96,11 +88,12 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
                         }
 
                         return InputDecorator(
-                          decoration: _getInputDecoration('Paciente').copyWith(
+                          decoration: InputDecoration(
+                            labelText: 'Paciente',
                             errorText: field.errorText,
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
+                              horizontal: AppSpacing.lg,
+                              vertical: AppSpacing.lg,
                             ),
                           ),
                           child: Autocomplete<Patient>(
@@ -225,7 +218,9 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
                           return FormBuilderDropdown<int>(
                             name: 'id_clinica',
                             initialValue: _selectedClinicaId,
-                            decoration: _getInputDecoration('Clínica'),
+                            decoration: const InputDecoration(
+                              labelText: 'Clínica',
+                            ),
                             validator: FormBuilderValidators.required(),
                             items:
                                 clinicas
@@ -289,15 +284,13 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
 
                                   return FormBuilderDropdown<int?>(
                                     name: 'id_objetivo',
-                                    decoration: _getInputDecoration(
-                                      'Objetivo',
-                                    ).copyWith(
+                                    decoration: const InputDecoration(
+                                      labelText: 'Objetivo',
                                       helperText:
                                           'Seleccione "Personalizado" si no aplica',
                                     ),
                                     items: [
                                       DropdownMenuItem<int?>(
-                                        value: null,
                                         child: Text(
                                           '-- Otro / Personalizado --',
                                           style: TextStyle(
@@ -338,12 +331,10 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
                                 },
                               ),
                               const SizedBox(height: 12),
-                              FormBuilderTextField(
+                              AppTextField.singleLine(
                                 name: 'nombre_tratamiento',
+                                label: 'Nombre del Tratamiento',
                                 maxLength: kMaxNombreTratamiento,
-                                decoration: _getInputDecoration(
-                                  'Nombre del Tratamiento',
-                                ),
                                 validator: FormBuilderValidators.compose([
                                   FormBuilderValidators.required(),
                                   (val) {
@@ -364,48 +355,20 @@ class _TreatmentEditSheetState extends ConsumerState<TreatmentEditSheet> {
               ],
             ),
           ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: _isSaving ? null : _saveChanges,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: const StadiumBorder(),
-              elevation: 0,
-            ),
-            child: Text(_isSaving ? 'Guardando…' : 'Guardar'),
+          const SizedBox(height: AppSpacing.xxl),
+          AppButton.primary(
+            loading: _isSaving,
+            onPressed: _saveChanges,
+            label: 'Guardar',
           ),
-          const SizedBox(height: 8),
-          TextButton(
+          const SizedBox(height: AppSpacing.sm),
+          AppButton.text(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancelar',
-              style: TextStyle(color: Theme.of(context).disabledColor),
-            ),
+            label: 'Cancelar',
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
         ],
       ),
-    );
-  }
-
-  InputDecoration _getInputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Theme.of(context).colorScheme.surface,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-        ),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
   }
 

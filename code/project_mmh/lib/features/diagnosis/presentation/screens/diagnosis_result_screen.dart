@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_card.dart';
+import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
+import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/features/diagnosis/domain/models/node.dart';
 
 class DiagnosisResultScreen extends StatelessWidget {
@@ -17,21 +22,36 @@ class DiagnosisResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    if (result.title.trim().isEmpty) {
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: SafeArea(
+          child: AppEmptyState(
+            icon: Icons.medical_services_outlined,
+            title: 'Sin diagnóstico',
+            message: 'No se obtuvo un resultado para las respuestas dadas.',
+            action: AppButton.primary(
+              label: 'Nuevo Diagnóstico',
+              onPressed: onRestart,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 40),
               // Icono / Indicador Visual
               Container(
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: result.color.withValues(alpha: 0.2),
+                  color: result.color.withValues(alpha: AppOpacity.subtle),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -42,7 +62,7 @@ class DiagnosisResultScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxl),
 
               // Título del Diagnóstico
               Text(
@@ -52,7 +72,7 @@ class DiagnosisResultScreen extends StatelessWidget {
                   letterSpacing: 1.5,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -67,7 +87,7 @@ class DiagnosisResultScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   IconButton(
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: result.title));
@@ -81,43 +101,29 @@ class DiagnosisResultScreen extends StatelessWidget {
                     },
                     icon: Icon(
                       Icons.copy_rounded,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: AppOpacity.muted,
+                      ),
                     ),
                     tooltip: 'Copiar diagnóstico',
                   ),
                 ],
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
 
               // Descripción
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      result.description,
-                      textAlign:
-                          TextAlign
-                              .left, // Left align within the card looks better for reading
-                      style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
-                    ),
-                  ],
+              AppCard(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Text(
+                  result.description,
+                  // Left align within the card looks better for reading
+                  textAlign: TextAlign.left,
+                  style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxl),
 
               // Recomendación de Tratamiento
               Align(
@@ -127,53 +133,34 @@ class DiagnosisResultScreen extends StatelessWidget {
                   style: theme.textTheme.titleMedium,
                 ),
               ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: SelectableText(
-                  result.treatmentRecommendation?.trim().isNotEmpty == true
-                      ? result.treatmentRecommendation!
-                      : 'Sin recomendación de tratamiento para este diagnóstico.',
-                  style: theme.textTheme.bodyMedium,
+              const SizedBox(height: AppSpacing.md),
+              AppCard(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: SelectableText(
+                    result.treatmentRecommendation?.trim().isNotEmpty == true
+                        ? result.treatmentRecommendation!
+                        : 'Sin recomendación de tratamiento para este diagnóstico.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
                 ),
               ),
 
-              const SizedBox(height: 48),
+              const SizedBox(height: AppSpacing.xxl),
 
               // Botones de Acción
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: AppButton.primary(
+                  label: 'Nuevo Diagnóstico',
                   onPressed: onRestart,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    'Nuevo Diagnóstico',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              TextButton(
+              const SizedBox(height: AppSpacing.lg),
+              AppButton.text(
+                label: 'Volver al Inicio',
                 onPressed: () => context.pop(),
-                child: Text(
-                  'Volver al Inicio',
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
               ),
             ],
           ),

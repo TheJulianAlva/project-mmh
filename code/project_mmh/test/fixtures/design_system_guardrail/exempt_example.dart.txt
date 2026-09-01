@@ -1,0 +1,4 @@
+// design-system-ignore: gradiente decorativo del héroe, no es una tarjeta
+final d = BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF000000), Color(0xFFFFFFFF)]));
+// design-system-ignore: AppBar de la pantalla de error de arranque, antes de tener tema
+final e = AppBar(title: Text('error'));
