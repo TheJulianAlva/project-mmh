@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_entity_card.dart';
+import 'package:project_mmh/core/theme/app_opacity.dart';
 import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/features/clinicas_metas/presentation/providers/clinicas_providers.dart';
 import 'package:project_mmh/features/core/presentation/providers/preferences_provider.dart';
@@ -94,8 +96,26 @@ class _ListaMaterialesListViewState
                         title: lista.contenido ?? '(Sin nombre)',
                         onTap: () =>
                             context.push('/notas/materiales/${lista.idNota}'),
-                        child: Text(
-                          '${cotizaciones.length} cotización(es)',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              DateFormat(
+                                'd MMM y, HH:mm',
+                                'es_ES',
+                              ).format(DateTime.parse(lista.fecha)),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context).colorScheme
+                                        .onSurface
+                                        .withValues(alpha: AppOpacity.muted),
+                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              '${cotizaciones.length} cotización(es)',
+                            ),
+                          ],
                         ),
                       ),
                     );
