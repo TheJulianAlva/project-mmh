@@ -36,18 +36,7 @@ Notas
 - No se exige ningún campo adicional para guardar (solo el contenido).
 - La nota queda disponible sin conexión a internet (persistencia local).
 
-### HU-02 — Ligar una nota a un paciente
-**Como** estudiante,
-**quiero** poder asociar una nota a un paciente específico,
-**para** encontrar después información relevante dentro de su expediente.
-
-**Criterios de aceptación:**
-- Al crear o editar una nota, puedo buscar y seleccionar un paciente ya registrado.
-- La nota se guarda con `id_paciente` apuntando al paciente elegido.
-- Desde el detalle del paciente puedo ver todas las notas asociadas a él, ordenadas por fecha.
-- Puedo desligar una nota de un paciente sin borrarla (dejar `id_paciente` en null).
-
-### HU-03 — Listar y buscar notas
+### HU-02 — Listar y buscar notas
 **Como** estudiante,
 **quiero** ver todas mis notas generales en una sola pantalla y poder buscarlas,
 **para** encontrar rápido algo que anoté antes.
@@ -58,7 +47,7 @@ Notas
 - Puedo filtrar por si están o no ligadas a un paciente.
 - Cada elemento de la lista muestra un extracto del contenido y la fecha.
 
-### HU-04 — Editar y eliminar una nota
+### HU-03 — Editar y eliminar una nota
 **Como** estudiante,
 **quiero** poder modificar o borrar una nota existente,
 **para** corregir errores o eliminar información que ya no necesito.
@@ -72,7 +61,7 @@ Notas
 
 ## Épica 2: Prepacientes
 
-### HU-05 — Registrar un prepaciente
+### HU-04 — Registrar un prepaciente
 **Como** estudiante,
 **quiero** anotar los datos mínimos de una persona con la que tuve contacto pero que aún no se ha registrado formalmente,
 **para** no perder el seguimiento sin tener que crear un expediente completo.
@@ -81,31 +70,17 @@ Notas
 - Existe una opción para crear una nota de `tipo = 'prepaciente'`, distinta visualmente de una nota general.
 - Los campos disponibles son: `nombre_contacto`, `telefono`, `tratamiento_probable` (opcional) y `contenido` libre para observaciones adicionales.
 - No se crea ningún registro en la tabla `Pacientes` ni se inicializa odontograma al guardar un prepaciente.
-- La nota se guarda con `convertido = false` por defecto.
 
-### HU-06 — Listar prepacientes
+### HU-05 — Listar prepacientes
 **Como** estudiante,
 **quiero** ver en una lista separada a todos mis prepacientes activos,
 **para** dar seguimiento a quiénes debo contactar o agendar.
 
 **Criterios de aceptación:**
-- Existe una vista filtrada que muestra solo notas `tipo = 'prepaciente'` con `convertido = false`.
+- Existe una vista filtrada que muestra solo notas `tipo = 'prepaciente'`.
 - Cada elemento muestra nombre, teléfono y tratamiento probable (si existe).
-- Los prepacientes ya convertidos no aparecen en esta lista por defecto, pero pueden consultarse con un filtro adicional ("mostrar convertidos").
 
-### HU-07 — Convertir un prepaciente en paciente formal
-**Como** estudiante,
-**quiero** transformar un prepaciente en un paciente real cuando decide agendarse,
-**para** iniciar su expediente clínico sin volver a capturar los datos que ya tenía.
-
-**Criterios de aceptación:**
-- Desde el detalle del prepaciente existe un botón "Registrar como paciente".
-- Al presionarlo, se abre la pantalla de "Nuevo Paciente" prellenada con `nombre_contacto`, `telefono` y `tratamiento_probable`.
-- Al guardar el nuevo paciente, se ejecuta la lógica normal de inicialización de odontograma (32/52 piezas).
-- La nota de prepaciente se actualiza automáticamente: `convertido = true` y `id_paciente_convertido` apuntando al nuevo registro.
-- Desde el detalle del paciente convertido es posible ver la nota original de prepaciente como referencia histórica.
-
-### HU-08 — Contactar a un prepaciente por WhatsApp
+### HU-06 — Contactar a un prepaciente por WhatsApp
 **Como** estudiante,
 **quiero** poder escribirle por WhatsApp a un prepaciente directamente desde su nota,
 **para** confirmar su interés o coordinar una cita sin salir de la app.
@@ -119,16 +94,16 @@ Notas
 
 ## Épica 3: Listas de materiales
 
-### HU-09 — Crear una lista de materiales manualmente
+### HU-07 — Crear una lista de materiales manualmente
 **Como** estudiante,
 **quiero** capturar una lista de materiales necesarios para una clínica,
 **para** tener claro qué debo conseguir o llevar.
 
 **Criterios de aceptación:**
 - Existe una opción para crear una nota de `tipo = 'lista_materiales'`.
-- Puedo agregar ítems con nombre, cantidad y unidad; se guardan en `items_json`.
+- Puedo agregar ítems con nombre, cantidad y unidad.
 - Puedo asociar opcionalmente la lista a una clínica (`id_clinica`).
-- El `origen` se guarda como `'manual'`.
+
 
 ### HU-10 — Crear una lista de materiales a partir de una imagen o PDF
 **Como** estudiante,
