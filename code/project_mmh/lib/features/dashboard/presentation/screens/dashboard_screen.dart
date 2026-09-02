@@ -7,7 +7,7 @@ import 'package:project_mmh/core/presentation/widgets/app_card.dart';
 import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
-import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
+import 'package:project_mmh/core/presentation/widgets/app_selection_sheet.dart';
 import 'package:project_mmh/core/theme/app_opacity.dart';
 import 'package:project_mmh/core/theme/app_radii.dart';
 import 'package:project_mmh/core/theme/app_semantic_colors.dart';
@@ -630,67 +630,26 @@ class _GradientProgressBar extends StatelessWidget {
 
 // ─── Period Picker ──────────────────────────────────────────────────────────────
 
-void _showPeriodPicker(
+Future<void> _showPeriodPicker(
   BuildContext context,
   WidgetRef ref,
   List<Periodo> periodos,
   int? currentId,
-) {
-  int initialIndex = periodos.indexWhere((p) => p.idPeriodo == currentId);
-  if (initialIndex == -1) initialIndex = 0;
+) async {
+  if (periodos.isEmpty) return;
 
-  showAppSheet<void>(
+  final actual = periodos.where((p) => p.idPeriodo == currentId).firstOrNull;
+  final p = await showAppSelectionSheet<Periodo>(
     context,
-    builder:
-        (context) => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  AppButton.text(
-                    label: 'Cancelar',
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Text('Periodo Académico', style: AppText.cardTitle),
-                  AppButton.text(
-                    label: 'Listo',
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: AppSpacing.xl),
-            SizedBox(
-              height: 216,
-              child: CupertinoPicker(
-                scrollController: FixedExtentScrollController(
-                  initialItem: initialIndex,
-                ),
-                itemExtent: 44,
-                magnification: 1.1,
-                useMagnifier: true,
-                onSelectedItemChanged: (index) {
-                  ref
-                      .read(lastViewedPeriodIdProvider.notifier)
-                      .setPeriod(periodos[index].idPeriodo);
-                  ref.read(activeClinicIdProvider.notifier).state = null;
-                },
-                children:
-                    periodos
-                        .map(
-                          (p) => Center(
-                            child: Text(p.nombrePeriodo, style: AppText.body),
-                          ),
-                        )
-                        .toList(),
-              ),
-            ),
-          ],
-        ),
+    title: 'Periodo Académico',
+    options: periodos,
+    labelOf: (p) => p.nombrePeriodo,
+    selected: actual,
   );
+  if (p != null && p.idPeriodo != currentId) {
+    ref.read(lastViewedPeriodIdProvider.notifier).setPeriod(p.idPeriodo);
+    ref.read(activeClinicIdProvider.notifier).state = null;
+  }
 }
 
 // ─── Period Selector Trigger ────────────────────────────────────────────────────

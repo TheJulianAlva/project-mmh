@@ -15,7 +15,7 @@ import 'package:project_mmh/core/presentation/widgets/app_empty_state.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
 import 'package:project_mmh/core/presentation/widgets/app_search_field.dart';
-import 'package:project_mmh/core/presentation/widgets/app_sheet.dart';
+import 'package:project_mmh/core/presentation/widgets/app_selection_sheet.dart';
 import 'package:project_mmh/core/theme/app_opacity.dart';
 import 'package:project_mmh/core/theme/app_semantic_colors.dart';
 import 'package:project_mmh/core/theme/app_spacing.dart';
@@ -402,80 +402,26 @@ class _TreatmentsScreenState extends ConsumerState<TreatmentsScreen> {
     );
   }
 
-  void _showPeriodPicker(
+  Future<void> _showPeriodPicker(
     BuildContext context,
     List<Periodo> periodos,
     int? currentId,
-  ) {
+  ) async {
     if (periodos.isEmpty) return;
 
-    int initialIndex = periodos.indexWhere((p) => p.idPeriodo == currentId);
-    if (initialIndex == -1) initialIndex = 0;
-
-    showAppSheet(
+    final actual = periodos.where((p) => p.idPeriodo == currentId).firstOrNull;
+    final p = await showAppSelectionSheet<Periodo>(
       context,
-      title: 'Filtrar por Periodo',
-      builder:
-          (context) => SizedBox(
-            height: 320,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      AppButton.text(
-                        label: 'Cancelar',
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      AppButton.text(
-                        label: 'Listo',
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 24),
-                Expanded(
-                  child: CupertinoPicker(
-                    scrollController: FixedExtentScrollController(
-                      initialItem: initialIndex,
-                    ),
-                    itemExtent: 44,
-                    magnification: 1.1,
-                    useMagnifier: true,
-                    onSelectedItemChanged: (index) {
-                      final newPeriod = periodos[index];
-                      // Update Local Provider
-                      ref
-                          .read(treatmentsActivePeriodIdProvider.notifier)
-                          .state = newPeriod.idPeriodo;
-                      // Reset local clinic filter when period changes
-                      ref
-                          .read(treatmentsActiveClinicIdProvider.notifier)
-                          .state = null;
-                    },
-                    children:
-                        periodos
-                            .map(
-                              (p) => Center(
-                                child: Text(
-                                  p.nombrePeriodo,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                              ),
-                            )
-                            .toList(),
-                  ),
-                ),
-              ],
-            ),
-          ),
+      title: 'Periodo',
+      options: periodos,
+      labelOf: (p) => p.nombrePeriodo,
+      selected: actual,
     );
+    if (p != null && p.idPeriodo != currentId) {
+      ref.read(treatmentsActivePeriodIdProvider.notifier).state = p.idPeriodo;
+      // Reset local clinic filter when period changes
+      ref.read(treatmentsActiveClinicIdProvider.notifier).state = null;
+    }
   }
 }
 
