@@ -80,6 +80,18 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
         SliverFillRemaining(
           child: Column(
             children: [
+              if (_bridgeStartPiece != null)
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: AppCard(
+                    accentColor: Theme.of(context).colorScheme.tertiary,
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    child: Text(
+                      "Seleccione el diente final del puente (Inicio: ${_bridgeStartPiece?.iso})",
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ),
               Expanded(
                 child: odontogramaState.when(
                   loading:
@@ -108,27 +120,6 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
                           ),
                           child: Column(
                             children: [
-                              if (_bridgeStartPiece != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    bottom: AppSpacing.sm,
-                                  ),
-                                  child: AppCard(
-                                    accentColor:
-                                        Theme.of(context).colorScheme.tertiary,
-                                    padding: const EdgeInsets.all(
-                                      AppSpacing.sm,
-                                    ),
-                                    child: Text(
-                                      "Seleccione el diente final del puente (Inicio: ${_bridgeStartPiece?.iso})",
-                                      style:
-                                          Theme.of(
-                                            context,
-                                          ).textTheme.bodyMedium,
-                                    ),
-                                  ),
-                                ),
-
                               // 1. Permanent Upper (18-11 | 21-28)
                               _buildTeethRow(
                                 piezas,
@@ -537,13 +528,8 @@ class _OdontogramaScreenState extends ConsumerState<OdontogramaScreen> {
     // 3. Bridge Selection
     if (tool == OdontogramaTools.protesisFija) {
       if (_bridgeStartPiece == null) {
+        // El banner fijo sobre el odontograma indica el siguiente paso.
         setState(() => _bridgeStartPiece = pieza);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Seleccione el diente final del puente'),
-            duration: Duration(seconds: 2),
-          ),
-        );
       } else {
         final created = await controller.createBridge(
           _bridgeStartPiece!,
