@@ -97,7 +97,7 @@ class _PrepacienteDetailScreenState
           );
         }
         return AppScaffold(
-          title: 'Prepaciente',
+          title: nota.nombreContacto ?? 'Prepaciente',
           actions: [
             IconButton(
               icon: const Icon(Icons.delete_outline),

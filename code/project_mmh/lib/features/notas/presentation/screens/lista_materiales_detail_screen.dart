@@ -89,8 +89,11 @@ class _ListaMaterialesDetailScreenState
     );
     final message = cotizaciones.isEmpty
         ? 'Esta acción no se puede deshacer.'
-        : 'Esta acción no se puede deshacer y también eliminará sus '
-              '${cotizaciones.length} cotización(es).';
+        : cotizaciones.length == 1
+            ? 'Esta acción no se puede deshacer y también eliminará su '
+                  'cotización.'
+            : 'Esta acción no se puede deshacer y también eliminará sus '
+                  '${cotizaciones.length} cotizaciones.';
 
     final confirmed = await showAppConfirm(
       context,
