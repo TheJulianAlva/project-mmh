@@ -13,6 +13,7 @@ import 'package:project_mmh/core/theme/app_spacing.dart';
 import 'package:project_mmh/features/pacientes/presentation/providers/patients_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project_mmh/core/services/image_service.dart';
+import 'package:project_mmh/core/services/whatsapp_launcher.dart';
 import 'package:project_mmh/features/pacientes/domain/patient.dart';
 
 class PatientDetailScreen extends ConsumerWidget {
@@ -190,6 +191,26 @@ class PatientDetailScreen extends ConsumerWidget {
             },
           ),
           const SizedBox(height: AppSpacing.lg),
+          if (patient.telefono != null) ...[
+            AppButton.primary(
+              label: 'Contactar por WhatsApp',
+              icon: Icons.chat,
+              onPressed: () async {
+                try {
+                  await launchWhatsApp(patient.telefono!);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('No se pudo abrir WhatsApp.'),
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
           _buildImagesSection(context, ref, patient),
         ],
       ),
