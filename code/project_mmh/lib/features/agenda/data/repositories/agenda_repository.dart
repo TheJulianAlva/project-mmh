@@ -38,6 +38,36 @@ class AgendaRepository {
     return await _dbHelper.insert('tratamientos', tratamiento.toJson());
   }
 
+  /// Crea varios tratamientos en una única transacción, adjuntando a cada uno
+  /// la misma lista de sesiones planificadas (`sesionesPlantilla`). El campo
+  /// `idTratamiento` de las plantillas se ignora y se reemplaza por el id real
+  /// de cada tratamiento insertado. Si cualquier inserción falla, no se
+  /// persiste ningún tratamiento ni sesión.
+  Future<List<int>> createTratamientosEnLote(
+    List<Tratamiento> tratamientos,
+    List<Sesion> sesionesPlantilla,
+  ) async {
+    assert(tratamientos.isNotEmpty, 'Se requiere al menos un tratamiento');
+    final db = await _dbHelper.database;
+    return db.transaction<List<int>>((txn) async {
+      final ids = <int>[];
+      for (final tratamiento in tratamientos) {
+        final idTratamiento = await txn.insert(
+          'tratamientos',
+          tratamiento.toJson(),
+        );
+        for (final sesion in sesionesPlantilla) {
+          await txn.insert(
+            'sesiones',
+            sesion.copyWith(idTratamiento: idTratamiento).toJson(),
+          );
+        }
+        ids.add(idTratamiento);
+      }
+      return ids;
+    });
+  }
+
   Future<int> updateTratamiento(Tratamiento tratamiento) async {
     final db = await _dbHelper.database;
     // Objetivo anterior, por si la edición lo reasigna.

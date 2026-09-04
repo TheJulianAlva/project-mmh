@@ -11,6 +11,10 @@ const Duration kDuracionSesionDefault = Duration(hours: 1);
 /// Longitud máxima del nombre de un tratamiento.
 const int kMaxNombreTratamiento = 40;
 
+/// Máximo de tratamientos que se pueden registrar de una sola vez para un
+/// mismo paciente (misma clínica y planificación de sesiones).
+const int kMaxTratamientosPorRegistro = 6;
+
 /// Longitud máxima del nombre de un periodo académico.
 const int kMaxNombrePeriodo = 40;
 

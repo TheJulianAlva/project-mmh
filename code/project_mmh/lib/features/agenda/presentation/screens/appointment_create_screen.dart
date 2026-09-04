@@ -51,12 +51,17 @@ class _AppointmentCreateScreenState
   int? _selectedPeriodId;
   String? _selectedPatientId;
   Patient? _selectedPatient;
-  Objetivo? _selectedObjetivo;
   bool _isSaving = false;
 
   // Sesiones adicionales con clave estable (no depende del índice en la lista).
   final List<_SessionDraft> _additionalSessions = [];
   int _sessionKeyCounter = 0;
+
+  // Tratamientos a registrar en este mismo formulario. Comparten paciente,
+  // periodo, clínica y planificación de sesiones; se diferencian en nombre y
+  // objetivo. Siempre hay al menos uno.
+  final List<_TreatmentDraft> _treatments = [];
+  int _treatmentKeyCounter = 0;
 
   @override
   void initState() {
@@ -68,6 +73,15 @@ class _AppointmentCreateScreenState
     if (widget.initialClinicId != null) {
       _selectedClinicaId = widget.initialClinicId;
     }
+    _treatments.add(_TreatmentDraft(key: _treatmentKeyCounter++));
+  }
+
+  @override
+  void dispose() {
+    for (final t in _treatments) {
+      t.nombre.dispose();
+    }
+    super.dispose();
   }
 
   @override
@@ -189,20 +203,26 @@ class _AppointmentCreateScreenState
                                       .nombreClinica
                                   : 'Seleccionar Clínica';
 
-                          return _buildGroupedSection(
-                            context,
+                          return Column(
                             children: [
-                              _buildSelectorRow(
+                              _buildGroupedSection(
                                 context,
-                                label: 'Clínica',
-                                value: displayValue,
-                                isPlaceholder: _selectedClinicaId == null,
-                                icon: CupertinoIcons.building_2_fill,
-                                onTap:
-                                    () => _showClinicPicker(context, clinicas),
+                                children: [
+                                  _buildSelectorRow(
+                                    context,
+                                    label: 'Clínica',
+                                    value: displayValue,
+                                    isPlaceholder: _selectedClinicaId == null,
+                                    icon: CupertinoIcons.building_2_fill,
+                                    onTap:
+                                        () => _showClinicPicker(
+                                          context,
+                                          clinicas,
+                                        ),
+                                  ),
+                                ],
                               ),
-                              _buildDivider(context),
-                              // Objetivo / Tratamiento Selector
+                              // Lista de tratamientos a registrar.
                               if (_selectedClinicaId != null) ...[
                                 Consumer(
                                   builder: (context, ref, _) {
@@ -212,63 +232,55 @@ class _AppointmentCreateScreenState
                                       ),
                                     );
                                     return objetivosAsync.when(
-                                      data: (objetivos) {
-                                        // We need to store a custom treatment name if "Custom" is selected
-                                        // For now, let's keep it simple: Treatment Name Input
-                                        // Ideally detailed picker for "Existing Goal" vs "Custom"
-                                        return Column(
-                                          children: [
-                                            _buildSelectorRow(
-                                              context,
-                                              label: 'Objetivo',
-                                              value:
-                                                  _selectedObjetivo
-                                                      ?.nombreTratamiento ??
-                                                  'Ninguno (Personalizado)',
-                                              icon: CupertinoIcons.scope,
-                                              onTap:
-                                                  () => _showObjetivoPicker(
-                                                    context,
-                                                    objetivos,
-                                                  ),
-                                            ),
-                                            _buildDivider(context),
-                                            _buildTextFieldRow(
-                                              context,
-                                              name: 'nombre_tratamiento',
-                                              label: 'Nombre',
-                                              placeholder: 'Ej. Endodoncia',
-                                              icon:
-                                                  CupertinoIcons.doc_text_fill,
-                                              maxLength: kMaxNombreTratamiento,
-                                              validator: (val) {
-                                                if (val == null ||
-                                                    val.trim().isEmpty) {
-                                                  return 'Nombre inválido';
-                                                }
-                                                return null;
-                                              },
-                                            ),
-                                          ],
-                                        );
-                                      },
+                                      data:
+                                          (objetivos) =>
+                                              _buildTreatmentsList(
+                                                context,
+                                                objetivos,
+                                              ),
                                       loading:
-                                          () => _buildLoadingRow(
-                                            context,
-                                            'Cargando objetivos...',
+                                          () => Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 12,
+                                            ),
+                                            child: _buildGroupedSection(
+                                              context,
+                                              children: [
+                                                _buildLoadingRow(
+                                                  context,
+                                                  'Cargando objetivos...',
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                       error:
-                                          (_, __) => _buildErrorRow(
-                                            context,
-                                            'Error al cargar objetivos',
+                                          (_, __) => Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 12,
+                                            ),
+                                            child: _buildGroupedSection(
+                                              context,
+                                              children: [
+                                                _buildErrorRow(
+                                                  context,
+                                                  'Error al cargar objetivos',
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                     );
                                   },
                                 ),
                               ] else ...[
-                                _buildDisabledRow(
+                                const SizedBox(height: 12),
+                                _buildGroupedSection(
                                   context,
-                                  'Seleccione una clínica primero',
+                                  children: [
+                                    _buildDisabledRow(
+                                      context,
+                                      'Seleccione una clínica primero',
+                                    ),
+                                  ],
                                 ),
                               ],
                             ],
@@ -626,54 +638,156 @@ class _AppointmentCreateScreenState
     );
   }
 
-  Widget _buildTextFieldRow(
-    BuildContext context, {
-    required String name,
-    required String label,
-    String? placeholder,
-    IconData? icon,
-    int maxLines = 1,
-    int? maxLength,
-    FormFieldValidator<String>? validator,
-  }) {
+  /// Fila con el campo de nombre de un tratamiento, ligada al controller del
+  /// borrador (`draft`). Se gestiona fuera de `FormBuilder` porque la lista de
+  /// tratamientos es dinámica (mismo enfoque que `_SessionDraft`).
+  Widget _buildNameFieldRow(BuildContext context, _TreatmentDraft draft) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: [
-          if (icon != null) ...[
-            Icon(icon, color: theme.colorScheme.primary, size: 22),
-            const SizedBox(width: 12),
-          ] else ...[
-            const SizedBox(width: 34),
-          ],
+          Icon(
+            CupertinoIcons.doc_text_fill,
+            color: theme.colorScheme.primary,
+            size: 22,
+          ),
+          const SizedBox(width: 12),
           SizedBox(
             width: 80,
-            child: Text(label, style: theme.textTheme.bodyLarge),
+            child: Text('Nombre', style: theme.textTheme.bodyLarge),
           ),
           Expanded(
-            child: FormBuilderTextField(
-              name: name,
+            child: TextField(
+              controller: draft.nombre,
               textAlign: TextAlign.end,
+              maxLength: kMaxNombreTratamiento,
               decoration: InputDecoration(
-                hintText: placeholder,
+                hintText: 'Ej. Endodoncia',
                 hintStyle: TextStyle(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 ),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
+                counterText: '',
                 contentPadding: EdgeInsets.zero,
                 fillColor: Colors.transparent,
               ),
-              maxLines: maxLines,
-              maxLength: maxLength,
-              validator: validator,
               style: theme.textTheme.bodyLarge,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Lista dinámica de tratamientos a registrar (nombre + objetivo), todos
+  /// compartiendo paciente, periodo, clínica y planificación de sesiones.
+  Widget _buildTreatmentsList(
+    BuildContext context,
+    List<Objetivo> objetivos,
+  ) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        ..._treatments.asMap().entries.map((entry) {
+          final index = entry.key;
+          final draft = entry.value;
+          return Padding(
+            key: ValueKey(draft.key),
+            padding: const EdgeInsets.only(top: 12),
+            child: _buildGroupedSection(
+              context,
+              children: [
+                if (_treatments.length > 1) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Tratamiento ${index + 1}',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (index > 0)
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _treatments.remove(draft);
+                                draft.nombre.dispose();
+                              });
+                            },
+                            child: Icon(
+                              CupertinoIcons.trash,
+                              color: theme.colorScheme.error,
+                              size: 20,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  _buildDivider(context),
+                ],
+                _buildSelectorRow(
+                  context,
+                  label: 'Objetivo',
+                  value:
+                      draft.objetivo?.nombreTratamiento ??
+                      'Ninguno (Personalizado)',
+                  icon: CupertinoIcons.scope,
+                  onTap: () => _showObjetivoPicker(context, objetivos, draft),
+                ),
+                _buildDivider(context),
+                _buildNameFieldRow(context, draft),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          child: SizedBox(
+            width: double.infinity,
+            child: AppButton.primary(
+              icon: CupertinoIcons.add,
+              label: 'Agregar otro tratamiento',
+              onPressed: () {
+                if (_treatments.length >= kMaxTratamientosPorRegistro) {
+                  showCupertinoDialog(
+                    context: context,
+                    builder:
+                        (ctx) => CupertinoAlertDialog(
+                          title: const Text('Límite Alcanzado'),
+                          content: const Text(
+                            'No se pueden registrar más de '
+                            '$kMaxTratamientosPorRegistro tratamientos a la vez.',
+                          ),
+                          actions: [
+                            CupertinoDialogAction(
+                              child: const Text('OK'),
+                              onPressed: () => Navigator.pop(ctx),
+                            ),
+                          ],
+                        ),
+                  );
+                  return;
+                }
+                setState(() {
+                  _treatments.add(
+                    _TreatmentDraft(key: _treatmentKeyCounter++),
+                  );
+                });
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -777,13 +891,14 @@ class _AppointmentCreateScreenState
   Future<void> _showObjetivoPicker(
     BuildContext context,
     List<Objetivo> objetivos,
+    _TreatmentDraft draft,
   ) async {
     final labels = [
-      'Ninguno / Personalizado',
+      'Ninguno (Personalizado)',
       ...objetivos.map((o) => o.nombreTratamiento),
     ];
     final objIdx =
-        _selectedObjetivo == null ? -1 : objetivos.indexOf(_selectedObjetivo!);
+        draft.objetivo == null ? -1 : objetivos.indexOf(draft.objetivo!);
     final currentIndex = objIdx < 0 ? 0 : objIdx + 1;
     final idx = await showAppSelectionSheet<int>(
       context,
@@ -792,13 +907,16 @@ class _AppointmentCreateScreenState
       labelOf: (i) => labels[i],
       selected: currentIndex,
     );
-    if (idx == null) return; // cerró sin elegir
+    if (idx == null || !mounted) return; // cerró sin elegir
     setState(() {
-      _selectedObjetivo = idx == 0 ? null : objetivos[idx - 1];
-      if (_selectedObjetivo != null) {
-        _formKey.currentState?.fields['nombre_tratamiento']?.didChange(
-          _selectedObjetivo!.nombreTratamiento,
-        );
+      final anterior = draft.objetivo?.nombreTratamiento;
+      draft.objetivo = idx == 0 ? null : objetivos[idx - 1];
+      // Solo prellenar el nombre si el usuario no lo ha personalizado (campo
+      // vacío o aún igual al objetivo elegido antes).
+      final actual = draft.nombre.text.trim();
+      if (draft.objetivo != null &&
+          (actual.isEmpty || actual == anterior)) {
+        draft.nombre.text = draft.objetivo!.nombreTratamiento;
       }
     });
   }
@@ -841,11 +959,19 @@ class _AppointmentCreateScreenState
     }
 
     final values = _formKey.currentState!.value;
-    final nombre = values['nombre_tratamiento'];
-    if (nombre == null || nombre.toString().trim().isEmpty) {
+
+    if (_treatments.every((t) => t.nombre.text.trim().isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Ingrese un nombre válido del tratamiento'),
+          content: Text('Ingrese al menos un tratamiento con nombre'),
+        ),
+      );
+      return;
+    }
+    if (_treatments.any((t) => t.nombre.text.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Hay tratamientos sin nombre; complételos o elimínelos'),
         ),
       );
       return;
@@ -879,38 +1005,40 @@ class _AppointmentCreateScreenState
     // Logic to save
     final repo = ref.read(agendaRepositoryProvider);
 
-    final nuevoTratamiento = Tratamiento(
-      idClinica: _selectedClinicaId!,
-      idExpediente: _selectedPatientId!,
-      idObjetivo: _selectedObjetivo?.idObjetivo,
-      nombreTratamiento:
-          nombre.toString().trim(), // Ensure trimmed value is saved
-      fechaCreacion: DateTime.now().toIso8601String(),
-      estado: EstadoTratamiento.pendiente,
-    );
+    final fechaCreacion = DateTime.now().toIso8601String();
+    final tratamientos = [
+      for (final t in _treatments)
+        Tratamiento(
+          idClinica: _selectedClinicaId!,
+          idExpediente: _selectedPatientId!,
+          idObjetivo: t.objetivo?.idObjetivo,
+          nombreTratamiento: t.nombre.text.trim(),
+          fechaCreacion: fechaCreacion,
+          estado: EstadoTratamiento.pendiente,
+        ),
+    ];
 
-    try {
-      final idTratamiento = await repo.createTratamiento(nuevoTratamiento);
-
-      await repo.createSesion(
+    // Plantilla de sesiones compartida por todos los tratamientos. El
+    // `idTratamiento` es un marcador; el repositorio lo sustituye por el id
+    // real de cada tratamiento.
+    final sesionesPlantilla = [
+      Sesion(
+        idTratamiento: 0,
+        fechaInicio: s0Start.toIso8601String(),
+        fechaFin: s0End.toIso8601String(),
+        estadoAsistencia: EstadoAsistencia.programada,
+      ),
+      for (final d in _additionalSessions)
         Sesion(
-          idTratamiento: idTratamiento,
-          fechaInicio: s0Start.toIso8601String(),
-          fechaFin: s0End.toIso8601String(),
+          idTratamiento: 0,
+          fechaInicio: d.inicio.toIso8601String(),
+          fechaFin: d.fin.toIso8601String(),
           estadoAsistencia: EstadoAsistencia.programada,
         ),
-      );
+    ];
 
-      for (final d in _additionalSessions) {
-        await repo.createSesion(
-          Sesion(
-            idTratamiento: idTratamiento,
-            fechaInicio: d.inicio.toIso8601String(),
-            fechaFin: d.fin.toIso8601String(),
-            estadoAsistencia: EstadoAsistencia.programada,
-          ),
-        );
-      }
+    try {
+      await repo.createTratamientosEnLote(tratamientos, sesionesPlantilla);
 
       ref.invalidate(allSesionesProvider);
       ref.invalidate(allTratamientosRichProvider);
@@ -918,9 +1046,13 @@ class _AppointmentCreateScreenState
 
       if (mounted) {
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tratamiento creado exitosamente')),
-        );
+        final msg =
+            tratamientos.length == 1
+                ? 'Tratamiento creado exitosamente'
+                : '${tratamientos.length} tratamientos creados exitosamente';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
       }
     } catch (e) {
       if (mounted) {
@@ -944,4 +1076,15 @@ class _SessionDraft {
   final int key;
   DateTime inicio;
   DateTime fin;
+}
+
+/// Borrador de un tratamiento dentro del formulario. La `key` es estable y no
+/// depende del índice, de modo que eliminar un tratamiento del medio no
+/// corrompe los demás.
+class _TreatmentDraft {
+  _TreatmentDraft({required this.key});
+
+  final int key;
+  Objetivo? objetivo;
+  final TextEditingController nombre = TextEditingController();
 }
