@@ -25,6 +25,7 @@ import 'package:project_mmh/features/notas/presentation/screens/prepaciente_deta
 import 'package:project_mmh/features/notas/presentation/screens/lista_materiales_create_screen.dart';
 import 'package:project_mmh/features/notas/presentation/screens/lista_materiales_detail_screen.dart';
 import 'package:project_mmh/features/notas/presentation/screens/cotizacion_create_screen.dart';
+import 'package:project_mmh/features/notas/presentation/screens/cotizacion_detail_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/dashboard',
@@ -201,6 +202,18 @@ final appRouter = GoRouter(
               return const _RouteErrorScreen(message: 'Lista no válida');
             }
             return CotizacionCreateScreen(listaId: id);
+          },
+        ),
+        GoRoute(
+          path: 'cotizacion/:cotizacionId',
+          builder: (context, state) {
+            final cotizacionId = int.tryParse(
+              state.pathParameters['cotizacionId'] ?? '',
+            );
+            if (cotizacionId == null) {
+              return const _RouteErrorScreen(message: 'Cotización no válida');
+            }
+            return CotizacionDetailScreen(cotizacionId: cotizacionId);
           },
         ),
       ],

@@ -3,46 +3,47 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_mmh/core/presentation/widgets/app_button.dart';
+import 'package:project_mmh/core/presentation/widgets/app_confirm.dart';
 import 'package:project_mmh/core/presentation/widgets/app_error_view.dart';
 import 'package:project_mmh/core/presentation/widgets/app_scaffold.dart';
 import 'package:project_mmh/core/presentation/widgets/app_section_header.dart';
 import 'package:project_mmh/core/presentation/widgets/app_text_field.dart';
 import 'package:project_mmh/core/theme/app_spacing.dart';
-import 'package:project_mmh/features/notas/domain/nota.dart';
 import 'package:project_mmh/features/notas/domain/nota_item.dart';
-import 'package:project_mmh/features/notas/domain/nota_tipo.dart';
 import 'package:project_mmh/features/notas/presentation/providers/notas_providers.dart';
 import 'package:project_mmh/features/notas/presentation/widgets/cotizacion_item_checklist.dart';
 
-class CotizacionCreateScreen extends ConsumerStatefulWidget {
-  const CotizacionCreateScreen({super.key, required this.listaId});
+class CotizacionDetailScreen extends ConsumerStatefulWidget {
+  const CotizacionDetailScreen({super.key, required this.cotizacionId});
 
-  final int listaId;
+  final int cotizacionId;
 
   @override
-  ConsumerState<CotizacionCreateScreen> createState() =>
-      _CotizacionCreateScreenState();
+  ConsumerState<CotizacionDetailScreen> createState() =>
+      _CotizacionDetailScreenState();
 }
 
-class _CotizacionCreateScreenState
-    extends ConsumerState<CotizacionCreateScreen> {
+class _CotizacionDetailScreenState
+    extends ConsumerState<CotizacionDetailScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
   List<NotaItem>? _items;
   bool _isSaving = false;
 
   Future<void> _save() async {
+    final nota = ref
+        .read(notaByIdProvider(widget.cotizacionId))
+        .asData
+        ?.value;
+    if (nota == null) return;
     if (!(_formKey.currentState?.saveAndValidate() ?? false)) return;
-    final v = _formKey.currentState!.value;
 
     setState(() => _isSaving = true);
     try {
-      await ref.read(notasProvider.notifier).addNota(
-        Nota(
-          tipo: NotaTipo.cotizacion,
-          fecha: DateTime.now().toIso8601String(),
-          idNotaRelacionada: widget.listaId,
+      final v = _formKey.currentState!.value;
+      await ref.read(notasProvider.notifier).updateNota(
+        nota.copyWith(
           proveedor: v['proveedor'] as String,
-          items: _items ?? [],
+          items: _items ?? nota.items,
         ),
       );
       if (mounted) context.pop();
@@ -58,28 +59,51 @@ class _CotizacionCreateScreenState
     }
   }
 
+  Future<void> _delete() async {
+    final confirmed = await showAppConfirm(
+      context,
+      title: 'Eliminar cotización',
+      message: 'Esta acción no se puede deshacer.',
+      destructive: true,
+      confirmLabel: 'Eliminar',
+    );
+    if (!confirmed) return;
+    try {
+      await ref.read(notasProvider.notifier).deleteNota(widget.cotizacionId);
+      if (mounted) context.pop();
+    } catch (e) {
+      if (mounted) {
+        final message = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al eliminar: $message')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final listaAsync = ref.watch(notaByIdProvider(widget.listaId));
+    final notaAsync = ref.watch(notaByIdProvider(widget.cotizacionId));
 
-    return listaAsync.when(
-      data: (lista) {
-        if (lista == null) {
+    return notaAsync.when(
+      data: (nota) {
+        if (nota == null) {
           return const AppScaffold(
-            title: 'Nueva Cotización',
-            body: Center(child: Text('Lista no encontrada.')),
+            title: 'Cotización',
+            body: Center(child: Text('Cotización no encontrada.')),
           );
         }
-        // Siembra los ítems desde la lista de materiales una sola vez (ver
-        // Global Constraints: evita guardar una lista vacía si el usuario no
-        // toca ningún precio).
-        _items ??= lista.items
-            .map((i) => i.copyWith(precioUnitario: null))
-            .toList();
+        // Ver Global Constraints: siembra una sola vez desde los datos ya
+        // guardados, para no perder ítems si el usuario no toca ninguno.
+        _items ??= List.of(nota.items);
 
         return AppScaffold(
-          title: 'Nueva Cotización',
+          title: nota.proveedor ?? 'Cotización',
           actions: [
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _delete,
+            ),
             AppButton.text(
               label: 'Guardar',
               loading: _isSaving,
@@ -96,12 +120,13 @@ class _CotizacionCreateScreenState
                   AppTextField.singleLine(
                     name: 'proveedor',
                     label: 'Proveedor *',
+                    initialValue: nota.proveedor,
                     validator: (v) =>
                         (v == null || v.isEmpty) ? 'Requerido' : null,
                   ),
                   const AppSectionHeader('Ítems'),
                   CotizacionItemChecklist(
-                    initialItems: _items!,
+                    initialItems: nota.items,
                     onChanged: (items) => _items = items,
                   ),
                 ],
@@ -111,14 +136,15 @@ class _CotizacionCreateScreenState
         );
       },
       loading: () => const AppScaffold(
-        title: 'Nueva Cotización',
+        title: 'Cotización',
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (e, s) => AppScaffold(
-        title: 'Nueva Cotización',
+        title: 'Cotización',
         body: AppErrorView(
-          message: 'No se pudo cargar la lista de materiales.',
-          onRetry: () => ref.invalidate(notaByIdProvider(widget.listaId)),
+          message: 'No se pudo cargar la cotización.',
+          onRetry: () =>
+              ref.invalidate(notaByIdProvider(widget.cotizacionId)),
         ),
       ),
     );
