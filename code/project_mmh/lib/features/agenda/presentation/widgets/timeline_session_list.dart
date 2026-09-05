@@ -339,7 +339,14 @@ class _TimelineRow extends StatelessWidget {
             ),
           ),
           // ── Card ──
-          Expanded(child: _TimelineSessionCard(session: session)),
+          // El espacio entre tarjetas va aquí (no en la fila completa) para que
+          // la línea vertical de la columna izquierda siga siendo continua.
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.md),
+              child: _TimelineSessionCard(session: session),
+            ),
+          ),
         ],
       ),
     );
